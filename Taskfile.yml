@@ -4,6 +4,16 @@ version: '3'
 
 vars:
   GREETING: Hello, World!
+  BIN_DIR: "{{.ROOT_DIR}}/bin"
+  TASKS_DIR: "{{.ROOT_DIR}}/tasks"
+
+includes:
+  docker: ./tasks/DockerTasks.yml
+  proto: ./tasks/ProtoTasks.yml
+  test: ./tasks/TestTasks.yml
+  format:
+    taskfile: ./tasks/FormatTasks.yml
+    flatten: true
 
 tasks:
   default:

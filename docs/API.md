@@ -8,10 +8,12 @@
 
 ## Аутентификация
 
-Все эндпоинты (кроме регистрации и входа) требуют JWT токен в заголовке:
+Все защищенные эндпоинты используют **OAuth 2.0 (Bearer Token)**:
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <access_token>
 ```
+
+Используем поток **Resource Owner Password Credentials (ROPC)** для первого релиза (CLI/desktop-клиент доверенный, без сторонних приложений). Refresh токены обновляют access токены. В будущем можно добавить Authorization Code + PKCE без изменения остальной схемы.
 
 ---
 
@@ -48,16 +50,20 @@ POST /auth/register
 
 ---
 
-#### 1.2. Вход (аутентификация)
+#### 1.2. Получение токена (OAuth2 Password Grant)
 ```
-POST /auth/login
+POST /oauth/token
 ```
 
-**Request Body:**
+**Request Body (grant_type=password):**
 ```json
 {
+  "grant_type": "password",
   "username": "string",
-  "password": "string"
+  "password": "string",
+  "client_id": "gophkeeper-cli",
+  "client_secret": "string (optional for public clients)",
+  "scope": "openid offline_access" 
 }
 ```
 
@@ -67,24 +73,30 @@ POST /auth/login
   "access_token": "string",
   "refresh_token": "string",
   "token_type": "Bearer",
-  "expires_in": 3600
+  "expires_in": 3600,
+  "scope": "openid offline_access"
 }
 ```
 
 **Errors:**
-- `401` - Неверные учетные данные
+- `400` - Неверный grant_type / отсутствуют параметры
+- `401` - Неверные учетные данные или client_id
+- `403` - Клиент не имеет права на парольный грант
 
 ---
 
-#### 1.3. Обновление токена
+#### 1.3. Обновление токена (Refresh Token Grant)
 ```
-POST /auth/refresh
+POST /oauth/token
 ```
 
-**Request Body:**
+**Request Body (grant_type=refresh_token):**
 ```json
 {
-  "refresh_token": "string"
+  "grant_type": "refresh_token",
+  "refresh_token": "string",
+  "client_id": "gophkeeper-cli",
+  "client_secret": "string (optional for public clients)"
 }
 ```
 
@@ -92,23 +104,44 @@ POST /auth/refresh
 ```json
 {
   "access_token": "string",
-  "expires_in": 3600
+  "refresh_token": "string",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "openid offline_access"
 }
 ```
 
 **Errors:**
-- `401` - Невалидный refresh token
+- `400` - Неверный grant_type / отсутствуют параметры
+- `401` - Невалидный или отозванный refresh token
 
 ---
 
-#### 1.4. Выход
+#### 1.4. Отзыв токена (Logout / Revoke)
 ```
-POST /auth/logout
+POST /oauth/revoke
 ```
 
-**Headers:** Authorization required
+**Headers:** Authorization: Basic base64(client_id:client_secret) или в теле
 
-**Response:** `204 No Content`
+**Request Body:**
+```json
+{
+  "token": "string",              // refresh_token или access_token
+  "token_type_hint": "refresh_token|access_token"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "revoked": true
+}
+```
+
+**Errors:**
+- `400` - Отсутствует token
+- `401` - Неверные client credentials
 
 ---
 

@@ -2,5 +2,11 @@
     "env": "development",
     "logger" :{
         "level": "debug"
+    },
+    "grpc":{
+        "host": "0.0.0.0",
+        "port": 50051,
+        "read_timeout": "15s",
+        "write_timeout": "15s"
     }
 }

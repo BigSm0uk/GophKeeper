@@ -1,27 +1,86 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/BigSm0uk/GophKeeper/internal/server/app"
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/config"
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/logger"
 	"go.uber.org/zap"
 )
 
-func bootstrap() error {
-	// Read config
+// bootstrap initializes and wires up all application components.
+// This follows the Dependency Injection and Inversion of Control patterns.
+func bootstrap() (*app.Container, error) {
+	// 1. Infrastructure Layer: Configuration
 	cfg, err := config.ReadConfig()
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to read config: %w", err)
 	}
-	// Init logger
-	zapLogger, err := logger.NewZapLogger(cfg.Logger.Level, cfg.Env == config.EnvDevelopment)
-	if err != nil {
-		return err
-	}
-	zapLogger.Debug("Config readed", zap.Any("cfg", cfg))
-	// Init db connections
-	// Init repo
-	// Init services
-	// Init handlers
 
+	// 2. Infrastructure Layer: Logger
+	log, err := logger.NewZapLogger(cfg.Logger.Level, cfg.IsDevelopment())
+	if err != nil {
+		return nil, fmt.Errorf("failed to create logger: %w", err)
+	}
+
+	log.Info("Initializing GophKeeper server",
+		zap.String("env", cfg.Env),
+		zap.String("grpc_address", cfg.GRPCAddress()),
+	)
+
+	// 3. Create Dependency Injection Container
+	container := app.NewContainer(log, cfg)
+
+	// 4. Infrastructure Layer: Database (TODO)
+	// db, err := initDatabase(cfg)
+	// if err != nil {
+	//     return nil, fmt.Errorf("failed to init database: %w", err)
+	// }
+	// container.RegisterDatabase(db)
+
+	// 5. Data Layer: Repositories (TODO)
+	// container.RegisterRepositories()
+
+	// 6. Domain Layer: Services (TODO)
+	// container.RegisterServices()
+
+	// 7. Presentation Layer: gRPC Server
+	grpcServer := app.NewGRPCServer(cfg, log)
+	container.RegisterGRPCServer(grpcServer)
+
+	// 8. Configure shutdown timeouts
+	container.App.SetShutdownTimeout(30 * time.Second)
+	container.App.SetStartupTimeout(10 * time.Second)
+
+	log.Info("Application bootstrap completed successfully")
+	return container, nil
+}
+
+// run starts the application and handles graceful shutdown.
+// This is the application entry point that coordinates the lifecycle.
+func run(container *app.Container) error {
+	// Create context that listens for interrupt signals
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+		syscall.SIGINT,
+	)
+	defer cancel()
+
+	container.Logger.Info("Starting application...")
+
+	// Run the application (starts all components and waits for shutdown)
+	if err := container.App.Run(ctx); err != nil {
+		return fmt.Errorf("application error: %w", err)
+	}
+
+	container.Logger.Info("Application shutdown completed")
 	return nil
 }

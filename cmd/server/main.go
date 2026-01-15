@@ -1,9 +1,29 @@
 package main
 
-import "log"
+import (
+	"fmt"
+	"os"
+)
 
 func main() {
-	if err := bootstrap(); err != nil {
-		log.Fatal(err)
+	// Initialize application
+	container, err := bootstrap()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Bootstrap error: %v\n", err)
+		os.Exit(1)
+	}
+
+	defer func() {
+		if container.Logger != nil {
+			_ = container.Logger.Sync()
+		}
+	}()
+
+	// Run application
+	if err := run(container); err != nil {
+		container.Logger.Error("Application failed") // zap.Error is imported in bootstrap.go
+
+		fmt.Fprintf(os.Stderr, "Application error: %v\n", err)
+		os.Exit(1)
 	}
 }

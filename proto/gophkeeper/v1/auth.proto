@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
+
+import "google/protobuf/timestamp.proto";
+
+// AuthService provides OAuth2-compatible token operations.
+service AuthService {
+  // Register creates a new user account.
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  // Token issues access/refresh tokens using OAuth2 grant types.
+  rpc Token(TokenRequest) returns (TokenResponse);
+  // Revoke invalidates access or refresh tokens.
+  rpc Revoke(RevokeRequest) returns (RevokeResponse);
+}
+
+// TokenGrantType enumerates supported OAuth2 grant types.
+enum TokenGrantType {
+  // TOKEN_GRANT_TYPE_UNSPECIFIED is an unknown grant type.
+  TOKEN_GRANT_TYPE_UNSPECIFIED = 0;
+  // TOKEN_GRANT_TYPE_PASSWORD is Resource Owner Password Credentials grant.
+  TOKEN_GRANT_TYPE_PASSWORD = 1;
+  // TOKEN_GRANT_TYPE_REFRESH_TOKEN is Refresh Token grant.
+  TOKEN_GRANT_TYPE_REFRESH_TOKEN = 2;
+}
+
+// TokenTypeHint provides a hint for token revocation.
+enum TokenTypeHint {
+  // TOKEN_TYPE_HINT_UNSPECIFIED is an unknown hint.
+  TOKEN_TYPE_HINT_UNSPECIFIED = 0;
+  // TOKEN_TYPE_HINT_ACCESS_TOKEN hints an access token.
+  TOKEN_TYPE_HINT_ACCESS_TOKEN = 1;
+  // TOKEN_TYPE_HINT_REFRESH_TOKEN hints a refresh token.
+  TOKEN_TYPE_HINT_REFRESH_TOKEN = 2;
+}
+
+// RegisterRequest represents user registration data.
+message RegisterRequest {
+  // username is a unique user name.
+  string username = 1;
+  // password is the raw password.
+  string password = 2;
+  // email is an optional email.
+  string email = 3;
+}
+
+// RegisterResponse represents registration result.
+message RegisterResponse {
+  // user_id is the created user ID.
+  string user_id = 1;
+  // username is the created username.
+  string username = 2;
+  // created_at is the account creation timestamp.
+  google.protobuf.Timestamp created_at = 3;
+}
+
+// TokenRequest represents OAuth2 token request.
+message TokenRequest {
+  // grant_type selects OAuth2 grant type.
+  TokenGrantType grant_type = 1;
+  // username is required for password grant.
+  string username = 2;
+  // password is required for password grant.
+  string password = 3;
+  // refresh_token is required for refresh_token grant.
+  string refresh_token = 4;
+  // client_id identifies a client application.
+  string client_id = 5;
+  // client_secret is optional for public clients.
+  string client_secret = 6;
+  // scope is a space-delimited list of scopes.
+  string scope = 7;
+}
+
+// TokenResponse represents OAuth2 token response.
+message TokenResponse {
+  // access_token is the issued access token.
+  string access_token = 1;
+  // refresh_token is the issued refresh token.
+  string refresh_token = 2;
+  // token_type is typically "Bearer".
+  string token_type = 3;
+  // expires_in is access token lifetime in seconds.
+  uint32 expires_in = 4;
+  // scope is a space-delimited list of scopes.
+  string scope = 5;
+}
+
+// RevokeRequest represents a token revocation request.
+message RevokeRequest {
+  // token is the access or refresh token to revoke.
+  string token = 1;
+  // token_type_hint hints the type of the token.
+  TokenTypeHint token_type_hint = 2;
+  // client_id identifies a client application.
+  string client_id = 3;
+  // client_secret is optional for public clients.
+  string client_secret = 4;
+}
+
+// RevokeResponse represents a token revocation response.
+message RevokeResponse {
+  // revoked indicates whether the token was revoked.
+  bool revoked = 1;
+}

@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
+
+import "google/protobuf/timestamp.proto";
+
+// SyncService provides data synchronization.
+service SyncService {
+  // Pull returns changes since the last sync.
+  rpc Pull(SyncPullRequest) returns (SyncPullResponse);
+  // Push applies local changes to the server.
+  rpc Push(SyncPushRequest) returns (SyncPushResponse);
+}
+
+// SyncOperation describes a change operation for sync entries.
+enum SyncOperation {
+  // SYNC_OPERATION_UNSPECIFIED is an unknown operation.
+  SYNC_OPERATION_UNSPECIFIED = 0;
+  // SYNC_OPERATION_CREATE indicates creation.
+  SYNC_OPERATION_CREATE = 1;
+  // SYNC_OPERATION_UPDATE indicates update.
+  SYNC_OPERATION_UPDATE = 2;
+  // SYNC_OPERATION_DELETE indicates delete.
+  SYNC_OPERATION_DELETE = 3;
+}
+
+// SyncChange represents a single sync operation.
+message SyncChange {
+  // id is the server-side ID.
+  string id = 1;
+  // operation is the change operation.
+  SyncOperation operation = 2;
+  // data is the serialized entity data (encrypted client-side if required).
+  bytes data = 3;
+}
+
+// SyncPullRequest requests changes since a timestamp.
+message SyncPullRequest {
+  // since is the last sync timestamp.
+  google.protobuf.Timestamp since = 1;
+}
+
+// SyncPullResponse returns changes since a timestamp.
+message SyncPullResponse {
+  // timestamp is the server sync time.
+  google.protobuf.Timestamp timestamp = 1;
+  // credentials contains changes for credentials.
+  repeated SyncChange credentials = 2;
+  // texts contains changes for texts.
+  repeated SyncChange texts = 3;
+  // binaries contains changes for binaries.
+  repeated SyncChange binaries = 4;
+  // cards contains changes for cards.
+  repeated SyncChange cards = 5;
+}
+
+// SyncPushRequest sends local changes to the server.
+message SyncPushRequest {
+  // credentials contains changes for credentials.
+  repeated SyncChange credentials = 1;
+  // texts contains changes for texts.
+  repeated SyncChange texts = 2;
+  // binaries contains changes for binaries.
+  repeated SyncChange binaries = 3;
+  // cards contains changes for cards.
+  repeated SyncChange cards = 4;
+}
+
+// SyncConflict represents a conflict between local and server data.
+message SyncConflict {
+  // entity_type describes the entity type.
+  string entity_type = 1;
+  // local_id is the local entry ID.
+  string local_id = 2;
+  // server_id is the server entry ID.
+  string server_id = 3;
+  // server_version is the server entity data.
+  bytes server_version = 4;
+}
+
+// SyncPushResponse returns results of applying changes.
+message SyncPushResponse {
+  // timestamp is the server sync time.
+  google.protobuf.Timestamp timestamp = 1;
+  // conflicts contains conflict list.
+  repeated SyncConflict conflicts = 2;
+}

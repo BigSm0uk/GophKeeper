@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
+
+import "google/protobuf/timestamp.proto";
+import "gophkeeper/v1/common.proto";
+
+// CardsService manages bank card entries.
+service CardsService {
+  // Create stores a new card entry.
+  rpc Create(CardCreateRequest) returns (CardCreateResponse);
+  // Get returns a single card entry by id.
+  rpc Get(CardGetRequest) returns (CardGetResponse);
+  // List returns paginated card entries.
+  rpc List(CardListRequest) returns (CardListResponse);
+  // Update modifies an existing card entry.
+  rpc Update(CardUpdateRequest) returns (CardUpdateResponse);
+  // Delete removes a card entry.
+  rpc Delete(CardDeleteRequest) returns (CardDeleteResponse);
+}
+
+// Card represents a bank card entry.
+message Card {
+  // id is the entry ID.
+  string id = 1;
+  // name is a user-provided label.
+  string name = 2;
+  // card_number is encrypted card number data.
+  string card_number = 3;
+  // cardholder_name is the cardholder name.
+  string cardholder_name = 4;
+  // expiry_date is encrypted expiration date.
+  string expiry_date = 5;
+  // cvv is encrypted CVV data.
+  string cvv = 6;
+  // bank_name is the issuing bank name.
+  string bank_name = 7;
+  // metadata is an optional metadata field.
+  string metadata = 8;
+  // created_at is the creation timestamp.
+  google.protobuf.Timestamp created_at = 9;
+  // updated_at is the last update timestamp.
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+// CardCreateRequest creates a card entry.
+message CardCreateRequest {
+  // name is a user-provided label.
+  string name = 1;
+  // card_number is encrypted card number data.
+  string card_number = 2;
+  // cardholder_name is the cardholder name.
+  string cardholder_name = 3;
+  // expiry_date is encrypted expiration date.
+  string expiry_date = 4;
+  // cvv is encrypted CVV data.
+  string cvv = 5;
+  // bank_name is the issuing bank name.
+  string bank_name = 6;
+  // metadata is an optional metadata field.
+  string metadata = 7;
+}
+
+// CardCreateResponse returns the created card entry.
+message CardCreateResponse {
+  // card is the created entry.
+  Card card = 1;
+}
+
+// CardGetRequest fetches a card entry by id.
+message CardGetRequest {
+  // id is the card ID.
+  string id = 1;
+}
+
+// CardGetResponse returns a card entry by id.
+message CardGetResponse {
+  // card is the requested entry.
+  Card card = 1;
+}
+
+// CardListRequest returns paginated card entries.
+message CardListRequest {
+  // page defines pagination options.
+  PageRequest page = 1;
+}
+
+// CardListResponse returns paginated card entries.
+message CardListResponse {
+  // items is the list of cards.
+  repeated Card items = 1;
+  // page is pagination metadata.
+  PageResponse page = 2;
+}
+
+// CardUpdateRequest updates a card entry.
+message CardUpdateRequest {
+  // id is the card ID.
+  string id = 1;
+  // name is a user-provided label.
+  string name = 2;
+  // card_number is encrypted card number data.
+  string card_number = 3;
+  // cardholder_name is the cardholder name.
+  string cardholder_name = 4;
+  // expiry_date is encrypted expiration date.
+  string expiry_date = 5;
+  // cvv is encrypted CVV data.
+  string cvv = 6;
+  // bank_name is the issuing bank name.
+  string bank_name = 7;
+  // metadata is an optional metadata field.
+  string metadata = 8;
+}
+
+// CardUpdateResponse returns the updated card entry.
+message CardUpdateResponse {
+  // card is the updated entry.
+  Card card = 1;
+}
+
+// CardDeleteRequest deletes a card entry by id.
+message CardDeleteRequest {
+  // id is the card ID.
+  string id = 1;
+}
+
+// CardDeleteResponse confirms deletion.
+message CardDeleteResponse {
+  // deleted indicates successful deletion.
+  bool deleted = 1;
+}

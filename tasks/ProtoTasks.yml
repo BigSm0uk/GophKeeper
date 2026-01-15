@@ -1,12 +1,76 @@
 # https://taskfile.dev
 
-version: '3'
+version: "3"
 
 vars:
-  GREETING: Hello, World!
+  BIN_DIR: "{{.ROOT_DIR}}/bin"
+
+  BUF_VERSION: "1.53.0"
+  PROTOC_GEN_GO_VERSION: "v1.36.6"
+  PROTOC_GEN_GO_GRPC_VERSION: "v1.5.1"
+  PROTOC_GEN_OPENAPIV2_VERSION: 'v2.26.3'
+
+
+  BUF: "{{.BIN_DIR}}/buf"
+  PROTOC_GEN_GO: "{{.BIN_DIR}}/protoc-gen-go"
+  PROTOC_GEN_GO_GRPC: "{{.BIN_DIR}}/protoc-gen-go-grpc"
+  PROTOC_GEN_OPENAPIV2: '{{.BIN_DIR}}/protoc-gen-openapiv2'
 
 tasks:
-  hello:
+  buf:install:
+    desc: "Устанавливает Buf в ./bin"
     cmds:
-      - echo "{{.GREETING}}"
-    silent: true
+      - mkdir -p "{{.BIN_DIR}}"
+      - |
+        if [ ! -f "{{.BUF}}" ]; then
+          mkdir -p tmp-buf
+          curl -sSL \
+            "https://github.com/bufbuild/buf/releases/download/v{{.BUF_VERSION}}/buf-$(uname -s)-$(uname -m).tar.gz" \
+            | tar -xz -C tmp-buf
+          cp tmp-buf/buf/bin/buf "{{.BUF}}"
+          rm -rf tmp-buf
+          chmod +x "{{.BUF}}"
+        fi
+
+  install-plugins:
+    desc: "Устанавливает protoc плагины в каталог bin"
+    cmds:
+      - |
+        [ -f "{{.PROTOC_GEN_GO}}" ] || {
+          echo '📦 Installing protoc-gen-go...'
+          GOBIN="{{.BIN_DIR}}" go install google.golang.org/protobuf/cmd/protoc-gen-go@{{.PROTOC_GEN_GO_VERSION}}
+        }
+        [ -f "{{.PROTOC_GEN_GO_GRPC}}" ] || {
+          echo '📦 Installing protoc-gen-go-grpc...'
+          GOBIN="{{.BIN_DIR}}" go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@{{.PROTOC_GEN_GO_GRPC_VERSION}}
+        }
+        [ -f "{{.PROTOC_GEN_OPENAPIV2}}" ] || {
+          echo '📦 Installing protoc-gen-openapiv2...'
+          GOBIN="{{.BIN_DIR}}" go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@{{.PROTOC_GEN_OPENAPIV2_VERSION}}
+        }
+  update-deps:
+    deps: [buf:install]
+    desc: Обновляем зависимости protobuf (нужен VPN)
+    dir: proto
+    cmds:
+      - |
+        echo "🚀 Обновляем зависимости protobuf"
+        {{.BUF}} dep update
+      - echo "✨ Зависимости protobuf обновлены успешно!"
+  lint:
+    deps: [buf:install, install-plugins]
+    desc: Проверка .proto-файлов на соответствие стилю
+    dir: proto
+    cmds:
+      - echo "🚀 Проверка .proto-файлов на соответствие стилю"
+      - '"{{.BUF}}" lint'
+      - echo "✨ .proto-файлы соответствуют стилю!"
+  gen:
+    deps: [buf:install, install-plugins, lint]
+    desc: Генерация Go-кода из .proto
+    dir: proto
+    cmds:
+      - |
+        echo "🚀 Генерируем Go-код из .proto..."
+        {{.BUF}} generate
+      - echo "✨ Go-код из .proto сгенерирован успешно!"

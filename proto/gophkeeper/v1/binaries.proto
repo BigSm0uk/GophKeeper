@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
+
+import "google/protobuf/timestamp.proto";
+import "gophkeeper/v1/common.proto";
+
+// BinariesService manages binary data entries.
+service BinariesService {
+  // Upload stores a new binary file.
+  rpc Upload(BinaryUploadRequest) returns (BinaryUploadResponse);
+  // Download returns binary file content by id.
+  rpc Download(BinaryDownloadRequest) returns (BinaryDownloadResponse);
+  // Get returns metadata for a binary entry.
+  rpc Get(BinaryGetRequest) returns (BinaryGetResponse);
+  // List returns paginated binary entries.
+  rpc List(BinaryListRequest) returns (BinaryListResponse);
+  // Update modifies binary metadata.
+  rpc Update(BinaryUpdateRequest) returns (BinaryUpdateResponse);
+  // Delete removes a binary entry.
+  rpc Delete(BinaryDeleteRequest) returns (BinaryDeleteResponse);
+}
+
+// Binary represents a binary entry metadata.
+message Binary {
+  // id is the entry ID.
+  string id = 1;
+  // name is a user-provided label.
+  string name = 2;
+  // filename is the original file name.
+  string filename = 3;
+  // size is the file size in bytes.
+  int64 size = 4;
+  // content_type is the file content type.
+  string content_type = 5;
+  // metadata is an optional metadata field.
+  string metadata = 6;
+  // created_at is the creation timestamp.
+  google.protobuf.Timestamp created_at = 7;
+  // updated_at is the last update timestamp.
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+// BinaryUploadRequest uploads binary content.
+message BinaryUploadRequest {
+  // name is a user-provided label.
+  string name = 1;
+  // filename is the original file name.
+  string filename = 2;
+  // content_type is the file content type.
+  string content_type = 3;
+  // data is the binary content (encrypted client-side if required).
+  bytes data = 4;
+  // metadata is an optional metadata field.
+  string metadata = 5;
+}
+
+// BinaryUploadResponse returns the created binary entry.
+message BinaryUploadResponse {
+  // binary is the created entry.
+  Binary binary = 1;
+}
+
+// BinaryDownloadRequest fetches binary content by id.
+message BinaryDownloadRequest {
+  // id is the binary entry ID.
+  string id = 1;
+}
+
+// BinaryDownloadResponse returns binary content.
+message BinaryDownloadResponse {
+  // data is the binary content (encrypted client-side if required).
+  bytes data = 1;
+  // filename is the original file name.
+  string filename = 2;
+  // content_type is the file content type.
+  string content_type = 3;
+}
+
+// BinaryGetRequest fetches binary metadata by id.
+message BinaryGetRequest {
+  // id is the binary entry ID.
+  string id = 1;
+}
+
+// BinaryGetResponse returns binary metadata by id.
+message BinaryGetResponse {
+  // binary is the requested entry.
+  Binary binary = 1;
+}
+
+// BinaryListRequest returns paginated binary entries.
+message BinaryListRequest {
+  // page defines pagination options.
+  PageRequest page = 1;
+}
+
+// BinaryListResponse returns paginated binary entries.
+message BinaryListResponse {
+  // items is the list of binaries.
+  repeated Binary items = 1;
+  // page is pagination metadata.
+  PageResponse page = 2;
+}
+
+// BinaryUpdateRequest updates binary metadata.
+message BinaryUpdateRequest {
+  // id is the binary entry ID.
+  string id = 1;
+  // name is a user-provided label.
+  string name = 2;
+  // metadata is an optional metadata field.
+  string metadata = 3;
+}
+
+// BinaryUpdateResponse returns the updated binary entry.
+message BinaryUpdateResponse {
+  // binary is the updated entry.
+  Binary binary = 1;
+}
+
+// BinaryDeleteRequest deletes a binary entry by id.
+message BinaryDeleteRequest {
+  // id is the binary entry ID.
+  string id = 1;
+}
+
+// BinaryDeleteResponse confirms deletion.
+message BinaryDeleteResponse {
+  // deleted indicates successful deletion.
+  bool deleted = 1;
+}

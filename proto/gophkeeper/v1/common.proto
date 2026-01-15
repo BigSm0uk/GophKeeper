@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
+
+// PageRequest defines pagination parameters.
+message PageRequest {
+  // limit is the maximum number of items to return.
+  uint32 limit = 1;
+  // offset is the number of items to skip.
+  uint32 offset = 2;
+  // search is an optional search query.
+  string search = 3;
+}
+
+// PageResponse defines pagination metadata.
+message PageResponse {
+  // total is the total number of items.
+  uint32 total = 1;
+  // limit is the limit used for the query.
+  uint32 limit = 2;
+  // offset is the offset used for the query.
+  uint32 offset = 3;
+}

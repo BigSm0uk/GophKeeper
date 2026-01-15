@@ -7,5 +7,5 @@ import (
 
 type Server struct {
 	logger *zap.Logger
-	cfg *config.ServerConfig
+	cfg    *config.ServerConfig
 }

@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
+
+import "google/protobuf/timestamp.proto";
+
+// UserService manages user profile operations.
+service UserService {
+  // GetProfile returns current user profile data.
+  rpc GetProfile(UserProfileGetRequest) returns (UserProfileGetResponse);
+  // UpdateProfile updates user profile data.
+  rpc UpdateProfile(UserProfileUpdateRequest) returns (UserProfileUpdateResponse);
+  // ChangePassword updates user password.
+  rpc ChangePassword(UserPasswordChangeRequest) returns (UserPasswordChangeResponse);
+  // DeleteAccount deletes user account.
+  rpc DeleteAccount(UserAccountDeleteRequest) returns (UserAccountDeleteResponse);
+}
+
+// UserProfile represents user profile data.
+message UserProfile {
+  // user_id is the user ID.
+  string user_id = 1;
+  // username is the username.
+  string username = 2;
+  // email is the user email.
+  string email = 3;
+  // created_at is account creation timestamp.
+  google.protobuf.Timestamp created_at = 4;
+  // last_sync is last sync timestamp.
+  google.protobuf.Timestamp last_sync = 5;
+  // storage_used is current storage usage in bytes.
+  int64 storage_used = 6;
+  // storage_limit is storage quota in bytes.
+  int64 storage_limit = 7;
+}
+
+// UserProfileGetRequest requests the current user profile.
+message UserProfileGetRequest {}
+
+// UserProfileGetResponse returns the user profile.
+message UserProfileGetResponse {
+  // profile is the user profile data.
+  UserProfile profile = 1;
+}
+
+// UserProfileUpdateRequest updates user profile data.
+message UserProfileUpdateRequest {
+  // email is the new user email.
+  string email = 1;
+}
+
+// UserProfileUpdateResponse returns updated profile data.
+message UserProfileUpdateResponse {
+  // profile is the updated profile data.
+  UserProfile profile = 1;
+}
+
+// UserPasswordChangeRequest changes the user password.
+message UserPasswordChangeRequest {
+  // old_password is the current password.
+  string old_password = 1;
+  // new_password is the new password.
+  string new_password = 2;
+}
+
+// UserPasswordChangeResponse confirms password change.
+message UserPasswordChangeResponse {
+  // changed indicates success.
+  bool changed = 1;
+}
+
+// UserAccountDeleteRequest deletes the user account.
+message UserAccountDeleteRequest {
+  // password is required to confirm deletion.
+  string password = 1;
+  // confirmation must be a fixed confirmation string.
+  string confirmation = 2;
+}
+
+// UserAccountDeleteResponse confirms account deletion.
+message UserAccountDeleteResponse {
+  // deleted indicates successful deletion.
+  bool deleted = 1;
+}

@@ -1,0 +1,789 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "gophkeeper/v1/auth.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "AuthService"
+    },
+    {
+      "name": "BinariesService"
+    },
+    {
+      "name": "CardsService"
+    },
+    {
+      "name": "CredentialsService"
+    },
+    {
+      "name": "SyncService"
+    },
+    {
+      "name": "TextsService"
+    },
+    {
+      "name": "UserService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1Binary": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "id is the entry ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "name is a user-provided label."
+        },
+        "filename": {
+          "type": "string",
+          "description": "filename is the original file name."
+        },
+        "size": {
+          "type": "string",
+          "format": "int64",
+          "description": "size is the file size in bytes."
+        },
+        "content_type": {
+          "type": "string",
+          "description": "content_type is the file content type."
+        },
+        "metadata": {
+          "type": "string",
+          "description": "metadata is an optional metadata field."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "created_at is the creation timestamp."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "updated_at is the last update timestamp."
+        }
+      },
+      "description": "Binary represents a binary entry metadata."
+    },
+    "v1BinaryDeleteResponse": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "deleted indicates successful deletion."
+        }
+      },
+      "description": "BinaryDeleteResponse confirms deletion."
+    },
+    "v1BinaryDownloadResponse": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string",
+          "format": "byte",
+          "description": "data is the binary content (encrypted client-side if required)."
+        },
+        "filename": {
+          "type": "string",
+          "description": "filename is the original file name."
+        },
+        "content_type": {
+          "type": "string",
+          "description": "content_type is the file content type."
+        }
+      },
+      "description": "BinaryDownloadResponse returns binary content."
+    },
+    "v1BinaryGetResponse": {
+      "type": "object",
+      "properties": {
+        "binary": {
+          "$ref": "#/definitions/v1Binary",
+          "description": "binary is the requested entry."
+        }
+      },
+      "description": "BinaryGetResponse returns binary metadata by id."
+    },
+    "v1BinaryListResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Binary"
+          },
+          "description": "items is the list of binaries."
+        },
+        "page": {
+          "$ref": "#/definitions/v1PageResponse",
+          "description": "page is pagination metadata."
+        }
+      },
+      "description": "BinaryListResponse returns paginated binary entries."
+    },
+    "v1BinaryUpdateResponse": {
+      "type": "object",
+      "properties": {
+        "binary": {
+          "$ref": "#/definitions/v1Binary",
+          "description": "binary is the updated entry."
+        }
+      },
+      "description": "BinaryUpdateResponse returns the updated binary entry."
+    },
+    "v1BinaryUploadResponse": {
+      "type": "object",
+      "properties": {
+        "binary": {
+          "$ref": "#/definitions/v1Binary",
+          "description": "binary is the created entry."
+        }
+      },
+      "description": "BinaryUploadResponse returns the created binary entry."
+    },
+    "v1Card": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "id is the entry ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "name is a user-provided label."
+        },
+        "card_number": {
+          "type": "string",
+          "description": "card_number is encrypted card number data."
+        },
+        "cardholder_name": {
+          "type": "string",
+          "description": "cardholder_name is the cardholder name."
+        },
+        "expiry_date": {
+          "type": "string",
+          "description": "expiry_date is encrypted expiration date."
+        },
+        "cvv": {
+          "type": "string",
+          "description": "cvv is encrypted CVV data."
+        },
+        "bank_name": {
+          "type": "string",
+          "description": "bank_name is the issuing bank name."
+        },
+        "metadata": {
+          "type": "string",
+          "description": "metadata is an optional metadata field."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "created_at is the creation timestamp."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "updated_at is the last update timestamp."
+        }
+      },
+      "description": "Card represents a bank card entry."
+    },
+    "v1CardCreateResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/v1Card",
+          "description": "card is the created entry."
+        }
+      },
+      "description": "CardCreateResponse returns the created card entry."
+    },
+    "v1CardDeleteResponse": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "deleted indicates successful deletion."
+        }
+      },
+      "description": "CardDeleteResponse confirms deletion."
+    },
+    "v1CardGetResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/v1Card",
+          "description": "card is the requested entry."
+        }
+      },
+      "description": "CardGetResponse returns a card entry by id."
+    },
+    "v1CardListResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Card"
+          },
+          "description": "items is the list of cards."
+        },
+        "page": {
+          "$ref": "#/definitions/v1PageResponse",
+          "description": "page is pagination metadata."
+        }
+      },
+      "description": "CardListResponse returns paginated card entries."
+    },
+    "v1CardUpdateResponse": {
+      "type": "object",
+      "properties": {
+        "card": {
+          "$ref": "#/definitions/v1Card",
+          "description": "card is the updated entry."
+        }
+      },
+      "description": "CardUpdateResponse returns the updated card entry."
+    },
+    "v1Credential": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "id is the entry ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "name is a user-provided label."
+        },
+        "login": {
+          "type": "string",
+          "description": "login is encrypted login data."
+        },
+        "password": {
+          "type": "string",
+          "description": "password is encrypted password data."
+        },
+        "url": {
+          "type": "string",
+          "description": "url is an optional associated URL."
+        },
+        "metadata": {
+          "type": "string",
+          "description": "metadata is an optional metadata field."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "created_at is the creation timestamp."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "updated_at is the last update timestamp."
+        }
+      },
+      "description": "Credential represents a login/password entry."
+    },
+    "v1CredentialCreateResponse": {
+      "type": "object",
+      "properties": {
+        "credential": {
+          "$ref": "#/definitions/v1Credential",
+          "description": "credential is the created entry."
+        }
+      },
+      "description": "CredentialCreateResponse returns the created credential."
+    },
+    "v1CredentialDeleteResponse": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "deleted indicates successful deletion."
+        }
+      },
+      "description": "CredentialDeleteResponse confirms deletion."
+    },
+    "v1CredentialGetResponse": {
+      "type": "object",
+      "properties": {
+        "credential": {
+          "$ref": "#/definitions/v1Credential",
+          "description": "credential is the requested entry."
+        }
+      },
+      "description": "CredentialGetResponse returns a credential by id."
+    },
+    "v1CredentialListResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Credential"
+          },
+          "description": "items is the list of credentials."
+        },
+        "page": {
+          "$ref": "#/definitions/v1PageResponse",
+          "description": "page is pagination metadata."
+        }
+      },
+      "description": "CredentialListResponse returns paginated credentials."
+    },
+    "v1CredentialUpdateResponse": {
+      "type": "object",
+      "properties": {
+        "credential": {
+          "$ref": "#/definitions/v1Credential",
+          "description": "credential is the updated entry."
+        }
+      },
+      "description": "CredentialUpdateResponse returns the updated credential."
+    },
+    "v1PageRequest": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "format": "int64",
+          "description": "limit is the maximum number of items to return."
+        },
+        "offset": {
+          "type": "integer",
+          "format": "int64",
+          "description": "offset is the number of items to skip."
+        },
+        "search": {
+          "type": "string",
+          "description": "search is an optional search query."
+        }
+      },
+      "description": "PageRequest defines pagination parameters."
+    },
+    "v1PageResponse": {
+      "type": "object",
+      "properties": {
+        "total": {
+          "type": "integer",
+          "format": "int64",
+          "description": "total is the total number of items."
+        },
+        "limit": {
+          "type": "integer",
+          "format": "int64",
+          "description": "limit is the limit used for the query."
+        },
+        "offset": {
+          "type": "integer",
+          "format": "int64",
+          "description": "offset is the offset used for the query."
+        }
+      },
+      "description": "PageResponse defines pagination metadata."
+    },
+    "v1RegisterResponse": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "description": "user_id is the created user ID."
+        },
+        "username": {
+          "type": "string",
+          "description": "username is the created username."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "created_at is the account creation timestamp."
+        }
+      },
+      "description": "RegisterResponse represents registration result."
+    },
+    "v1RevokeResponse": {
+      "type": "object",
+      "properties": {
+        "revoked": {
+          "type": "boolean",
+          "description": "revoked indicates whether the token was revoked."
+        }
+      },
+      "description": "RevokeResponse represents a token revocation response."
+    },
+    "v1SyncChange": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "id is the server-side ID."
+        },
+        "operation": {
+          "$ref": "#/definitions/v1SyncOperation",
+          "description": "operation is the change operation."
+        },
+        "data": {
+          "type": "string",
+          "format": "byte",
+          "description": "data is the serialized entity data (encrypted client-side if required)."
+        }
+      },
+      "description": "SyncChange represents a single sync operation."
+    },
+    "v1SyncConflict": {
+      "type": "object",
+      "properties": {
+        "entity_type": {
+          "type": "string",
+          "description": "entity_type describes the entity type."
+        },
+        "local_id": {
+          "type": "string",
+          "description": "local_id is the local entry ID."
+        },
+        "server_id": {
+          "type": "string",
+          "description": "server_id is the server entry ID."
+        },
+        "server_version": {
+          "type": "string",
+          "format": "byte",
+          "description": "server_version is the server entity data."
+        }
+      },
+      "description": "SyncConflict represents a conflict between local and server data."
+    },
+    "v1SyncOperation": {
+      "type": "string",
+      "enum": [
+        "SYNC_OPERATION_UNSPECIFIED",
+        "SYNC_OPERATION_CREATE",
+        "SYNC_OPERATION_UPDATE",
+        "SYNC_OPERATION_DELETE"
+      ],
+      "default": "SYNC_OPERATION_UNSPECIFIED",
+      "description": "SyncOperation describes a change operation for sync entries.\n\n - SYNC_OPERATION_UNSPECIFIED: SYNC_OPERATION_UNSPECIFIED is an unknown operation.\n - SYNC_OPERATION_CREATE: SYNC_OPERATION_CREATE indicates creation.\n - SYNC_OPERATION_UPDATE: SYNC_OPERATION_UPDATE indicates update.\n - SYNC_OPERATION_DELETE: SYNC_OPERATION_DELETE indicates delete."
+    },
+    "v1SyncPullResponse": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "timestamp is the server sync time."
+        },
+        "credentials": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1SyncChange"
+          },
+          "description": "credentials contains changes for credentials."
+        },
+        "texts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1SyncChange"
+          },
+          "description": "texts contains changes for texts."
+        },
+        "binaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1SyncChange"
+          },
+          "description": "binaries contains changes for binaries."
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1SyncChange"
+          },
+          "description": "cards contains changes for cards."
+        }
+      },
+      "description": "SyncPullResponse returns changes since a timestamp."
+    },
+    "v1SyncPushResponse": {
+      "type": "object",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "timestamp is the server sync time."
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1SyncConflict"
+          },
+          "description": "conflicts contains conflict list."
+        }
+      },
+      "description": "SyncPushResponse returns results of applying changes."
+    },
+    "v1Text": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "id is the entry ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "name is a user-provided label."
+        },
+        "content": {
+          "type": "string",
+          "description": "content is encrypted text content."
+        },
+        "metadata": {
+          "type": "string",
+          "description": "metadata is an optional metadata field."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "created_at is the creation timestamp."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "updated_at is the last update timestamp."
+        }
+      },
+      "description": "Text represents a text entry."
+    },
+    "v1TextCreateResponse": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/definitions/v1Text",
+          "description": "text is the created entry."
+        }
+      },
+      "description": "TextCreateResponse returns the created text entry."
+    },
+    "v1TextDeleteResponse": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "deleted indicates successful deletion."
+        }
+      },
+      "description": "TextDeleteResponse confirms deletion."
+    },
+    "v1TextGetResponse": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/definitions/v1Text",
+          "description": "text is the requested entry."
+        }
+      },
+      "description": "TextGetResponse returns a text entry by id."
+    },
+    "v1TextListResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Text"
+          },
+          "description": "items is the list of texts."
+        },
+        "page": {
+          "$ref": "#/definitions/v1PageResponse",
+          "description": "page is pagination metadata."
+        }
+      },
+      "description": "TextListResponse returns paginated text entries."
+    },
+    "v1TextUpdateResponse": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/definitions/v1Text",
+          "description": "text is the updated entry."
+        }
+      },
+      "description": "TextUpdateResponse returns the updated text entry."
+    },
+    "v1TokenGrantType": {
+      "type": "string",
+      "enum": [
+        "TOKEN_GRANT_TYPE_UNSPECIFIED",
+        "TOKEN_GRANT_TYPE_PASSWORD",
+        "TOKEN_GRANT_TYPE_REFRESH_TOKEN"
+      ],
+      "default": "TOKEN_GRANT_TYPE_UNSPECIFIED",
+      "description": "TokenGrantType enumerates supported OAuth2 grant types.\n\n - TOKEN_GRANT_TYPE_UNSPECIFIED: TOKEN_GRANT_TYPE_UNSPECIFIED is an unknown grant type.\n - TOKEN_GRANT_TYPE_PASSWORD: TOKEN_GRANT_TYPE_PASSWORD is Resource Owner Password Credentials grant.\n - TOKEN_GRANT_TYPE_REFRESH_TOKEN: TOKEN_GRANT_TYPE_REFRESH_TOKEN is Refresh Token grant."
+    },
+    "v1TokenResponse": {
+      "type": "object",
+      "properties": {
+        "access_token": {
+          "type": "string",
+          "description": "access_token is the issued access token."
+        },
+        "refresh_token": {
+          "type": "string",
+          "description": "refresh_token is the issued refresh token."
+        },
+        "token_type": {
+          "type": "string",
+          "description": "token_type is typically \"Bearer\"."
+        },
+        "expires_in": {
+          "type": "integer",
+          "format": "int64",
+          "description": "expires_in is access token lifetime in seconds."
+        },
+        "scope": {
+          "type": "string",
+          "description": "scope is a space-delimited list of scopes."
+        }
+      },
+      "description": "TokenResponse represents OAuth2 token response."
+    },
+    "v1TokenTypeHint": {
+      "type": "string",
+      "enum": [
+        "TOKEN_TYPE_HINT_UNSPECIFIED",
+        "TOKEN_TYPE_HINT_ACCESS_TOKEN",
+        "TOKEN_TYPE_HINT_REFRESH_TOKEN"
+      ],
+      "default": "TOKEN_TYPE_HINT_UNSPECIFIED",
+      "description": "TokenTypeHint provides a hint for token revocation.\n\n - TOKEN_TYPE_HINT_UNSPECIFIED: TOKEN_TYPE_HINT_UNSPECIFIED is an unknown hint.\n - TOKEN_TYPE_HINT_ACCESS_TOKEN: TOKEN_TYPE_HINT_ACCESS_TOKEN hints an access token.\n - TOKEN_TYPE_HINT_REFRESH_TOKEN: TOKEN_TYPE_HINT_REFRESH_TOKEN hints a refresh token."
+    },
+    "v1UserAccountDeleteResponse": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean",
+          "description": "deleted indicates successful deletion."
+        }
+      },
+      "description": "UserAccountDeleteResponse confirms account deletion."
+    },
+    "v1UserPasswordChangeResponse": {
+      "type": "object",
+      "properties": {
+        "changed": {
+          "type": "boolean",
+          "description": "changed indicates success."
+        }
+      },
+      "description": "UserPasswordChangeResponse confirms password change."
+    },
+    "v1UserProfile": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "description": "user_id is the user ID."
+        },
+        "username": {
+          "type": "string",
+          "description": "username is the username."
+        },
+        "email": {
+          "type": "string",
+          "description": "email is the user email."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "created_at is account creation timestamp."
+        },
+        "last_sync": {
+          "type": "string",
+          "format": "date-time",
+          "description": "last_sync is last sync timestamp."
+        },
+        "storage_used": {
+          "type": "string",
+          "format": "int64",
+          "description": "storage_used is current storage usage in bytes."
+        },
+        "storage_limit": {
+          "type": "string",
+          "format": "int64",
+          "description": "storage_limit is storage quota in bytes."
+        }
+      },
+      "description": "UserProfile represents user profile data."
+    },
+    "v1UserProfileGetResponse": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "$ref": "#/definitions/v1UserProfile",
+          "description": "profile is the user profile data."
+        }
+      },
+      "description": "UserProfileGetResponse returns the user profile."
+    },
+    "v1UserProfileUpdateResponse": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "$ref": "#/definitions/v1UserProfile",
+          "description": "profile is the updated profile data."
+        }
+      },
+      "description": "UserProfileUpdateResponse returns updated profile data."
+    }
+  }
+}

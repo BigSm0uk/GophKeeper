@@ -3,6 +3,11 @@ clean: true
 managed:
   enabled: false
 
+inputs:
+  - directory: .
+    paths:
+      - gophkeeper/v1
+
 plugins:
   - local: ../bin/protoc-gen-go
     out: ../pkg/proto
@@ -16,6 +21,7 @@ plugins:
     out: ../api
     opt:
       - allow_merge=true
+      - merge_file_name=gophkeeper
       - json_names_for_fields=false
       - use_go_templates=true
       - simple_operation_ids=true

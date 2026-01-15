@@ -39,7 +39,7 @@ func ReadConfig() (*ServerConfig, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	var cfg = NewDefaultServerConfig()
+	cfg := NewDefaultServerConfig()
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}

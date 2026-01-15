@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
+
+import "google/protobuf/timestamp.proto";
+import "gophkeeper/v1/common.proto";
+
+// TextsService manages text entries.
+service TextsService {
+  // Create stores a new text entry.
+  rpc Create(TextCreateRequest) returns (TextCreateResponse);
+  // Get returns a single text entry by id.
+  rpc Get(TextGetRequest) returns (TextGetResponse);
+  // List returns paginated text entries.
+  rpc List(TextListRequest) returns (TextListResponse);
+  // Update modifies an existing text entry.
+  rpc Update(TextUpdateRequest) returns (TextUpdateResponse);
+  // Delete removes a text entry.
+  rpc Delete(TextDeleteRequest) returns (TextDeleteResponse);
+}
+
+// Text represents a text entry.
+message Text {
+  // id is the entry ID.
+  string id = 1;
+  // name is a user-provided label.
+  string name = 2;
+  // content is encrypted text content.
+  string content = 3;
+  // metadata is an optional metadata field.
+  string metadata = 4;
+  // created_at is the creation timestamp.
+  google.protobuf.Timestamp created_at = 5;
+  // updated_at is the last update timestamp.
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+// TextCreateRequest creates a text entry.
+message TextCreateRequest {
+  // name is a user-provided label.
+  string name = 1;
+  // content is encrypted text content.
+  string content = 2;
+  // metadata is an optional metadata field.
+  string metadata = 3;
+}
+
+// TextCreateResponse returns the created text entry.
+message TextCreateResponse {
+  // text is the created entry.
+  Text text = 1;
+}
+
+// TextGetRequest fetches a text entry by id.
+message TextGetRequest {
+  // id is the text ID.
+  string id = 1;
+}
+
+// TextGetResponse returns a text entry by id.
+message TextGetResponse {
+  // text is the requested entry.
+  Text text = 1;
+}
+
+// TextListRequest returns paginated text entries.
+message TextListRequest {
+  // page defines pagination options.
+  PageRequest page = 1;
+}
+
+// TextListResponse returns paginated text entries.
+message TextListResponse {
+  // items is the list of texts.
+  repeated Text items = 1;
+  // page is pagination metadata.
+  PageResponse page = 2;
+}
+
+// TextUpdateRequest updates a text entry.
+message TextUpdateRequest {
+  // id is the text ID.
+  string id = 1;
+  // name is a user-provided label.
+  string name = 2;
+  // content is encrypted text content.
+  string content = 3;
+  // metadata is an optional metadata field.
+  string metadata = 4;
+}
+
+// TextUpdateResponse returns the updated text entry.
+message TextUpdateResponse {
+  // text is the updated entry.
+  Text text = 1;
+}
+
+// TextDeleteRequest deletes a text entry by id.
+message TextDeleteRequest {
+  // id is the text ID.
+  string id = 1;
+}
+
+// TextDeleteResponse confirms deletion.
+message TextDeleteResponse {
+  // deleted indicates successful deletion.
+  bool deleted = 1;
+}

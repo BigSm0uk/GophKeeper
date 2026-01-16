@@ -6,6 +6,7 @@ option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophk
 
 import "google/protobuf/timestamp.proto";
 import "gophkeeper/v1/common.proto";
+import "validate/validate.proto";
 
 // BinariesService manages binary data entries.
 service BinariesService {
@@ -36,7 +37,7 @@ message Binary {
   // content_type is the file content type.
   string content_type = 5;
   // metadata is an optional metadata field.
-  string metadata = 6;
+  optional string metadata = 6;
   // created_at is the creation timestamp.
   google.protobuf.Timestamp created_at = 7;
   // updated_at is the last update timestamp.
@@ -46,15 +47,24 @@ message Binary {
 // BinaryUploadRequest uploads binary content.
 message BinaryUploadRequest {
   // name is a user-provided label.
-  string name = 1;
+  string name = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // filename is the original file name.
-  string filename = 2;
+  string filename = 2 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // content_type is the file content type.
-  string content_type = 3;
+  string content_type = 3 [(validate.rules).string.max_len = 100];
   // data is the binary content (encrypted client-side if required).
-  bytes data = 4;
+  bytes data = 4 [(validate.rules).bytes = {
+    min_len: 1,
+    max_len: 10485760  // 10MB
+  }];
   // metadata is an optional metadata field.
-  string metadata = 5;
+  optional string metadata = 5 [(validate.rules).string.max_len = 1000];
 }
 
 // BinaryUploadResponse returns the created binary entry.
@@ -66,7 +76,10 @@ message BinaryUploadResponse {
 // BinaryDownloadRequest fetches binary content by id.
 message BinaryDownloadRequest {
   // id is the binary entry ID.
-  string id = 1;
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
 }
 
 // BinaryDownloadResponse returns binary content.
@@ -82,7 +95,10 @@ message BinaryDownloadResponse {
 // BinaryGetRequest fetches binary metadata by id.
 message BinaryGetRequest {
   // id is the binary entry ID.
-  string id = 1;
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
 }
 
 // BinaryGetResponse returns binary metadata by id.
@@ -108,11 +124,17 @@ message BinaryListResponse {
 // BinaryUpdateRequest updates binary metadata.
 message BinaryUpdateRequest {
   // id is the binary entry ID.
-  string id = 1;
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // name is a user-provided label.
-  string name = 2;
+  string name = 2 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // metadata is an optional metadata field.
-  string metadata = 3;
+  optional string metadata = 3 [(validate.rules).string.max_len = 1000];
 }
 
 // BinaryUpdateResponse returns the updated binary entry.
@@ -124,7 +146,10 @@ message BinaryUpdateResponse {
 // BinaryDeleteRequest deletes a binary entry by id.
 message BinaryDeleteRequest {
   // id is the binary entry ID.
-  string id = 1;
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
 }
 
 // BinaryDeleteResponse confirms deletion.

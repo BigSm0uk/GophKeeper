@@ -4,14 +4,19 @@ package gophkeeper.v1;
 
 option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
 
+import "validate/validate.proto";
+
 // PageRequest defines pagination parameters.
 message PageRequest {
   // limit is the maximum number of items to return.
-  uint32 limit = 1;
+  uint32 limit = 1 [(validate.rules).uint32 = {
+    gte: 1,
+    lte: 100
+  }];
   // offset is the number of items to skip.
-  uint32 offset = 2;
+  uint32 offset = 2 [(validate.rules).uint32.lte = 1000000];
   // search is an optional search query.
-  string search = 3;
+  optional string search = 3 [(validate.rules).string.max_len = 255];
 }
 
 // PageResponse defines pagination metadata.

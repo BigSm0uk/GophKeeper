@@ -25,3 +25,8 @@ plugins:
       - json_names_for_fields=false
       - use_go_templates=true
       - simple_operation_ids=true
+  - local: ../bin/protoc-gen-validate
+    out: ../pkg/proto
+    opt:
+      - paths=source_relative
+      - lang=go

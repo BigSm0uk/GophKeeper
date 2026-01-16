@@ -5,6 +5,7 @@ package gophkeeper.v1;
 option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
 
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 // AuthService provides OAuth2-compatible token operations.
 service AuthService {
@@ -39,11 +40,18 @@ enum TokenTypeHint {
 // RegisterRequest represents user registration data.
 message RegisterRequest {
   // username is a unique user name.
-  string username = 1;
+  string username = 1 [(validate.rules).string = {
+    min_len: 3,
+    max_len: 50,
+    pattern: "^[a-zA-Z0-9_-]+$"
+  }];
   // password is the raw password.
-  string password = 2;
+  string password = 2 [(validate.rules).string = {
+    min_len: 8,
+    max_len: 128
+  }];
   // email is an optional email.
-  string email = 3;
+  optional string email = 3 [(validate.rules).string.email = true];
 }
 
 // RegisterResponse represents registration result.
@@ -59,19 +67,31 @@ message RegisterResponse {
 // TokenRequest represents OAuth2 token request.
 message TokenRequest {
   // grant_type selects OAuth2 grant type.
-  TokenGrantType grant_type = 1;
+  TokenGrantType grant_type = 1 [(validate.rules).enum = {
+    defined_only: true,
+    in: [1,2]
+  }];
   // username is required for password grant.
-  string username = 2;
+  string username = 2 [(validate.rules).string = {
+    min_len: 3,
+    max_len: 50
+  }];
   // password is required for password grant.
-  string password = 3;
+  string password = 3 [(validate.rules).string = {
+    min_len: 8,
+    max_len: 128
+  }];
   // refresh_token is required for refresh_token grant.
-  string refresh_token = 4;
+  string refresh_token = 4 [(validate.rules).string.min_len = 1];
   // client_id identifies a client application.
-  string client_id = 5;
+  string client_id = 5 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // client_secret is optional for public clients.
-  string client_secret = 6;
+  optional string client_secret = 6;
   // scope is a space-delimited list of scopes.
-  string scope = 7;
+  optional string scope = 7;
 }
 
 // TokenResponse represents OAuth2 token response.
@@ -85,21 +105,23 @@ message TokenResponse {
   // expires_in is access token lifetime in seconds.
   uint32 expires_in = 4;
   // scope is a space-delimited list of scopes.
-  string scope = 5;
+  optional string scope = 5;
 }
 
 // RevokeRequest represents a token revocation request.
 message RevokeRequest {
   // token is the access or refresh token to revoke.
-  string token = 1;
+  string token = 1 [(validate.rules).string.min_len = 1];
   // token_type_hint hints the type of the token.
   TokenTypeHint token_type_hint = 2;
   // client_id identifies a client application.
-  string client_id = 3;
+  string client_id = 3 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // client_secret is optional for public clients.
-  string client_secret = 4;
+  optional string client_secret = 4;
 }
-
 // RevokeResponse represents a token revocation response.
 message RevokeResponse {
   // revoked indicates whether the token was revoked.

@@ -1,0 +1,37 @@
+version: "3"
+
+interval: 500ms
+
+vars:
+  BIN_DIR: "{{.ROOT_DIR}}/bin"
+  SERVER_DIR: "{{.ROOT_DIR}}/cmd/server/*"
+  CONFIG_DIR: "{{.ROOT_DIR}}/configs"
+
+tasks:
+  build:
+    cmds:
+      - go build -o {{.BIN_DIR}}/server {{.SERVER_DIR}}
+    silent: true
+
+  run:
+    deps: [build]
+    cmds:
+      - "{{.BIN_DIR}}/server --config={{.CONFIG_DIR}}/server.dev.json"
+    silent: true
+
+  run:w:
+    deps: [build]
+    watch: true
+    sources:
+      - 'internal/server/**/*.go'
+    cmds:
+      - "{{.BIN_DIR}}/server --config={{.CONFIG_DIR}}/server.dev.json"
+    silent: true
+
+  run:dev:
+    watch: true
+    sources:
+      - 'internal/server/**/*.go'
+    cmds:
+      - "go run {{.SERVER_DIR}} --config={{.CONFIG_DIR}}/server.dev.json"
+    silent: true

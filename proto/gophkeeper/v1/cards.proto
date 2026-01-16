@@ -6,6 +6,7 @@ option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophk
 
 import "google/protobuf/timestamp.proto";
 import "gophkeeper/v1/common.proto";
+import "validate/validate.proto";
 
 // CardsService manages bank card entries.
 service CardsService {
@@ -36,9 +37,9 @@ message Card {
   // cvv is encrypted CVV data.
   string cvv = 6;
   // bank_name is the issuing bank name.
-  string bank_name = 7;
+  optional string bank_name = 7;
   // metadata is an optional metadata field.
-  string metadata = 8;
+  optional string metadata = 8;
   // created_at is the creation timestamp.
   google.protobuf.Timestamp created_at = 9;
   // updated_at is the last update timestamp.
@@ -48,19 +49,25 @@ message Card {
 // CardCreateRequest creates a card entry.
 message CardCreateRequest {
   // name is a user-provided label.
-  string name = 1;
+  string name = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // card_number is encrypted card number data.
-  string card_number = 2;
+  string card_number = 2 [(validate.rules).string.min_len = 1];
   // cardholder_name is the cardholder name.
-  string cardholder_name = 3;
+  string cardholder_name = 3 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // expiry_date is encrypted expiration date.
-  string expiry_date = 4;
+  string expiry_date = 4 [(validate.rules).string.min_len = 1];
   // cvv is encrypted CVV data.
-  string cvv = 5;
+  string cvv = 5 [(validate.rules).string.min_len = 1];
   // bank_name is the issuing bank name.
-  string bank_name = 6;
+  optional string bank_name = 6 [(validate.rules).string.max_len = 255];
   // metadata is an optional metadata field.
-  string metadata = 7;
+  optional string metadata = 7 [(validate.rules).string.max_len = 1000];
 }
 
 // CardCreateResponse returns the created card entry.
@@ -72,7 +79,10 @@ message CardCreateResponse {
 // CardGetRequest fetches a card entry by id.
 message CardGetRequest {
   // id is the card ID.
-  string id = 1;
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
 }
 
 // CardGetResponse returns a card entry by id.
@@ -98,21 +108,30 @@ message CardListResponse {
 // CardUpdateRequest updates a card entry.
 message CardUpdateRequest {
   // id is the card ID.
-  string id = 1;
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // name is a user-provided label.
-  string name = 2;
+  string name = 2 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // card_number is encrypted card number data.
-  string card_number = 3;
+  string card_number = 3 [(validate.rules).string.min_len = 1];
   // cardholder_name is the cardholder name.
-  string cardholder_name = 4;
+  string cardholder_name = 4 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // expiry_date is encrypted expiration date.
-  string expiry_date = 5;
+  string expiry_date = 5 [(validate.rules).string.min_len = 1];
   // cvv is encrypted CVV data.
-  string cvv = 6;
+  string cvv = 6 [(validate.rules).string.min_len = 1];
   // bank_name is the issuing bank name.
-  string bank_name = 7;
+  optional string bank_name = 7 [(validate.rules).string.max_len = 255];
   // metadata is an optional metadata field.
-  string metadata = 8;
+  optional string metadata = 8 [(validate.rules).string.max_len = 1000];
 }
 
 // CardUpdateResponse returns the updated card entry.
@@ -124,7 +143,10 @@ message CardUpdateResponse {
 // CardDeleteRequest deletes a card entry by id.
 message CardDeleteRequest {
   // id is the card ID.
-  string id = 1;
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
 }
 
 // CardDeleteResponse confirms deletion.

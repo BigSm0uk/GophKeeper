@@ -37,17 +37,17 @@ func bootstrap() (*app.Container, error) {
 	// 3. Create Dependency Injection Container
 	container := app.NewContainer(log, cfg)
 
-	// 4. Infrastructure Layer: Database (TODO)
+	// 4. Infrastructure Layer: Database (TODO: Denis)
 	// db, err := initDatabase(cfg)
 	// if err != nil {
 	//     return nil, fmt.Errorf("failed to init database: %w", err)
 	// }
 	// container.RegisterDatabase(db)
 
-	// 5. Data Layer: Repositories (TODO)
+	// 5. Data Layer: Repositories (TODO: Denis)
 	// container.RegisterRepositories()
 
-	// 6. Domain Layer: Services (TODO)
+	// 6. Domain Layer: Services (TODO: Denis)
 	// container.RegisterServices()
 
 	// 7. Presentation Layer: gRPC Server

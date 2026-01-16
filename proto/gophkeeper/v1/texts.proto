@@ -6,6 +6,7 @@ option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophk
 
 import "google/protobuf/timestamp.proto";
 import "gophkeeper/v1/common.proto";
+import "validate/validate.proto";
 
 // TextsService manages text entries.
 service TextsService {
@@ -30,7 +31,7 @@ message Text {
   // content is encrypted text content.
   string content = 3;
   // metadata is an optional metadata field.
-  string metadata = 4;
+  optional string metadata = 4;
   // created_at is the creation timestamp.
   google.protobuf.Timestamp created_at = 5;
   // updated_at is the last update timestamp.
@@ -40,13 +41,15 @@ message Text {
 // TextCreateRequest creates a text entry.
 message TextCreateRequest {
   // name is a user-provided label.
-  string name = 1;
+  string name = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // content is encrypted text content.
-  string content = 2;
+  string content = 2 [(validate.rules).string.min_len = 1];
   // metadata is an optional metadata field.
-  string metadata = 3;
+  optional string metadata = 3 [(validate.rules).string.max_len = 1000];
 }
-
 // TextCreateResponse returns the created text entry.
 message TextCreateResponse {
   // text is the created entry.
@@ -56,7 +59,10 @@ message TextCreateResponse {
 // TextGetRequest fetches a text entry by id.
 message TextGetRequest {
   // id is the text ID.
-  string id = 1;
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
 }
 
 // TextGetResponse returns a text entry by id.
@@ -82,13 +88,19 @@ message TextListResponse {
 // TextUpdateRequest updates a text entry.
 message TextUpdateRequest {
   // id is the text ID.
-  string id = 1;
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // name is a user-provided label.
-  string name = 2;
+  string name = 2 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // content is encrypted text content.
-  string content = 3;
+  string content = 3 [(validate.rules).string.min_len = 1];
   // metadata is an optional metadata field.
-  string metadata = 4;
+  optional string metadata = 4 [(validate.rules).string.max_len = 1000];
 }
 
 // TextUpdateResponse returns the updated text entry.
@@ -100,7 +112,10 @@ message TextUpdateResponse {
 // TextDeleteRequest deletes a text entry by id.
 message TextDeleteRequest {
   // id is the text ID.
-  string id = 1;
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
 }
 
 // TextDeleteResponse confirms deletion.

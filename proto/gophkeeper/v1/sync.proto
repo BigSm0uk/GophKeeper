@@ -5,6 +5,7 @@ package gophkeeper.v1;
 option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
 
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 // SyncService provides data synchronization.
 service SyncService {
@@ -29,17 +30,23 @@ enum SyncOperation {
 // SyncChange represents a single sync operation.
 message SyncChange {
   // id is the server-side ID.
-  string id = 1;
+  string id = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
   // operation is the change operation.
-  SyncOperation operation = 2;
+  SyncOperation operation = 2 [(validate.rules).enum = {
+    defined_only: true,
+    not_in: [0]
+  }];
   // data is the serialized entity data (encrypted client-side if required).
-  bytes data = 3;
+  bytes data = 3 [(validate.rules).bytes.min_len = 1];
 }
 
 // SyncPullRequest requests changes since a timestamp.
 message SyncPullRequest {
-  // since is the last sync timestamp.
-  google.protobuf.Timestamp since = 1;
+  // since is the last sync timestamp (optional, returns all changes if not provided).
+  optional google.protobuf.Timestamp since = 1;
 }
 
 // SyncPullResponse returns changes since a timestamp.
@@ -71,7 +78,7 @@ message SyncPushRequest {
 // SyncConflict represents a conflict between local and server data.
 message SyncConflict {
   // entity_type describes the entity type.
-  string entity_type = 1;
+  string entity_type = 1 [(validate.rules).string.min_len = 1];
   // local_id is the local entry ID.
   string local_id = 2;
   // server_id is the server entry ID.

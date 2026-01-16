@@ -5,6 +5,7 @@ package gophkeeper.v1;
 option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
 
 import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
 
 // UserService manages user profile operations.
 service UserService {
@@ -25,11 +26,11 @@ message UserProfile {
   // username is the username.
   string username = 2;
   // email is the user email.
-  string email = 3;
+  optional string email = 3;
   // created_at is account creation timestamp.
   google.protobuf.Timestamp created_at = 4;
   // last_sync is last sync timestamp.
-  google.protobuf.Timestamp last_sync = 5;
+  optional google.protobuf.Timestamp last_sync = 5;
   // storage_used is current storage usage in bytes.
   int64 storage_used = 6;
   // storage_limit is storage quota in bytes.
@@ -48,7 +49,7 @@ message UserProfileGetResponse {
 // UserProfileUpdateRequest updates user profile data.
 message UserProfileUpdateRequest {
   // email is the new user email.
-  string email = 1;
+  optional string email = 1 [(validate.rules).string.email = true];
 }
 
 // UserProfileUpdateResponse returns updated profile data.
@@ -60,9 +61,15 @@ message UserProfileUpdateResponse {
 // UserPasswordChangeRequest changes the user password.
 message UserPasswordChangeRequest {
   // old_password is the current password.
-  string old_password = 1;
+  string old_password = 1 [(validate.rules).string = {
+    min_len: 8,
+    max_len: 128
+  }];
   // new_password is the new password.
-  string new_password = 2;
+  string new_password = 2 [(validate.rules).string = {
+    min_len: 8,
+    max_len: 128
+  }];
 }
 
 // UserPasswordChangeResponse confirms password change.
@@ -74,9 +81,11 @@ message UserPasswordChangeResponse {
 // UserAccountDeleteRequest deletes the user account.
 message UserAccountDeleteRequest {
   // password is required to confirm deletion.
-  string password = 1;
+  string password = 1 [(validate.rules).string.min_len = 1];
   // confirmation must be a fixed confirmation string.
-  string confirmation = 2;
+  string confirmation = 2 [(validate.rules).string = {
+    const: "DELETE_MY_ACCOUNT"
+  }];
 }
 
 // UserAccountDeleteResponse confirms account deletion.

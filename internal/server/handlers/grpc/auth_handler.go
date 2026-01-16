@@ -29,18 +29,15 @@ func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		zap.String("username", req.Username),
 	)
 
-	// Валидация
-	if req.Username == "" {
-		return nil, status.Error(codes.InvalidArgument, "username is required")
-	}
-	if req.Password == "" {
-		return nil, status.Error(codes.InvalidArgument, "password is required")
+	// Валидация с использованием сгенерированного метода
+	if err := req.Validate(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	// TODO: Реальная логика регистрации с БД
 	// Пока возвращаем stub
 	return &pb.RegisterResponse{
-		UserId:    "user-123",
+		UserId:    "user-1234",
 		Username:  req.Username,
 		CreatedAt: timestamppb.Now(),
 	}, nil
@@ -53,11 +50,8 @@ func (h *AuthHandler) Token(ctx context.Context, req *pb.TokenRequest) (*pb.Toke
 		zap.String("username", req.Username),
 	)
 
-	// Валидация для password grant
-	if req.GrantType == pb.TokenGrantType_TOKEN_GRANT_TYPE_PASSWORD {
-		if req.Username == "" || req.Password == "" {
-			return nil, status.Error(codes.InvalidArgument, "username and password are required")
-		}
+	if err := req.Validate(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	// TODO: Реальная логика аутентификации
@@ -76,6 +70,10 @@ func (h *AuthHandler) Revoke(ctx context.Context, req *pb.RevokeRequest) (*pb.Re
 	h.logger.Info("Revoke called",
 		zap.String("token", req.Token[:10]+"..."),
 	)
+
+	if err := req.Validate(); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
 
 	// TODO: Реальная логика отзыва токенов
 	return &pb.RevokeResponse{

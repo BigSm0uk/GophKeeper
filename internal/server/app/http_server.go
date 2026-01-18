@@ -11,6 +11,8 @@ import (
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/config"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service"
 	pb "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"go.uber.org/zap"
 )
@@ -132,30 +134,38 @@ func (s *HTTPServer) registerGatewayHandlers(
 	return nil
 }
 
-// createHandler creates the main HTTP handler with middleware
+// createHandler creates the main HTTP handler
 func (s *HTTPServer) createHandler(gatewayMux *runtime.ServeMux) http.Handler {
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
 
-	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", gatewayMux))
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(60 * time.Second))
 
-	mux.HandleFunc("/health", s.healthCheckHandler)
+	r.Use(s.loggingMiddleware)
+	r.Use(s.corsMiddleware)
 
-	// Serve documentation and static files (Swagger UI, OpenAPI spec)
+	// Health check endpoint
+	r.Get("/health", s.healthCheckHandler)
+
+	// API routes (grpc-gateway) с базовым путем /api/v1
+	r.Mount("/api/v1", http.StripPrefix("/api/v1", gatewayMux))
+
 	if s.config.IsDevelopment() {
-		mux.HandleFunc("/swagger/", s.swaggerHandler)
+		r.Route("/swagger", func(r chi.Router) {
+			r.Get("/*", s.swaggerHandler)
+		})
 	}
 
-	handler := s.loggingMiddleware(mux)
-	handler = s.corsMiddleware(handler)
-
-	return handler
+	return r
 }
 
-// healthCheckHandler - простой health check endpoint
+// healthCheckHandler health check endpoint
 func (s *HTTPServer) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(`{"status":"ok"}`))
+	_, _ = w.Write([]byte(`{"status":"ok","service":"GophKeeper"}`))
 }
 
 // swaggerHandler serves Swagger UI and OpenAPI specification
@@ -165,8 +175,7 @@ func (s *HTTPServer) swaggerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Remove /swagger/ prefix to get the requested file
-	requestedPath := strings.TrimPrefix(r.URL.Path, "/swagger/")
+	requestedPath := strings.TrimPrefix(chi.URLParam(r, "*"), "/")
 
 	if requestedPath == "" {
 		requestedPath = "index.html"
@@ -188,35 +197,36 @@ func (s *HTTPServer) swaggerHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(resp.Content)
 }
 
-// loggingMiddleware logging all requests
+// loggingMiddleware logging all requests (chi middleware)
 func (s *HTTPServer) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
-		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		defer func() {
+			s.logger.Debug("HTTP request",
+				zap.String("method", r.Method),
+				zap.String("path", r.URL.Path),
+				zap.Int("status", ww.Status()),
+				zap.Int("bytes", ww.BytesWritten()),
+				zap.Duration("duration", time.Since(start)),
+				zap.String("remote_addr", r.RemoteAddr),
+				zap.String("request_id", middleware.GetReqID(r.Context())),
+			)
+		}()
 
-		next.ServeHTTP(wrapped, r)
-
-		duration := time.Since(start)
-
-		s.logger.Debug("HTTP request",
-			zap.String("method", r.Method),
-			zap.String("path", r.URL.Path),
-			zap.Int("status", wrapped.statusCode),
-			zap.Duration("duration", duration),
-			zap.String("remote_addr", r.RemoteAddr),
-		)
+		next.ServeHTTP(ww, r)
 	})
 }
 
-// corsMiddleware add CORS headers
+// corsMiddleware adds CORS headers (chi middleware)
 func (s *HTTPServer) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-		if r.Method == "OPTIONS" {
+		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -225,24 +235,14 @@ func (s *HTTPServer) corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// customErrorHandler custome grpc-gateway error translator
+// customErrorHandler custom grpc-gateway error translator
 func (s *HTTPServer) customErrorHandler(ctx context.Context, mux *runtime.ServeMux, marshaler runtime.Marshaler, w http.ResponseWriter, r *http.Request, err error) {
 	runtime.DefaultHTTPErrorHandler(ctx, mux, marshaler, w, r, err)
 
 	s.logger.Error("Gateway error",
 		zap.String("path", r.URL.Path),
 		zap.String("method", r.Method),
+		zap.String("request_id", middleware.GetReqID(ctx)),
 		zap.Error(err),
 	)
-}
-
-// responseWriter wrapper
-type responseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (rw *responseWriter) WriteHeader(code int) {
-	rw.statusCode = code
-	rw.ResponseWriter.WriteHeader(code)
 }

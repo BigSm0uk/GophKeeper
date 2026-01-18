@@ -17,12 +17,10 @@ import (
 	"golang.org/x/term"
 )
 
-var (
-	authCmd = &cobra.Command{
-		Use:   "auth",
-		Short: "Authentication commands",
-	}
-)
+var authCmd = &cobra.Command{
+	Use:   "auth",
+	Short: "Authentication commands",
+}
 
 func init() {
 	var tuiRegister bool

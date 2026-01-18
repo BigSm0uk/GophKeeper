@@ -35,7 +35,7 @@ func New(address string, insecureTLS bool, timeout time.Duration) (*Client, erro
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 	}
 
-	conn, err := grpc.Dial(address, dialOpts...)
+	conn, err := grpc.NewClient(address, dialOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("dial grpc: %w", err)
 	}

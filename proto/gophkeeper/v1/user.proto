@@ -5,18 +5,89 @@ package gophkeeper.v1;
 option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 import "validate/validate.proto";
 
 // UserService manages user profile operations.
 service UserService {
   // GetProfile returns current user profile data.
-  rpc GetProfile(UserProfileGetRequest) returns (UserProfileGetResponse);
+  rpc GetProfile(UserProfileGetRequest) returns (UserProfileGetResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/user/profile"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get user profile"
+      description: "Returns current user profile information"
+      tags: "User"
+      operation_id: "getUserProfile"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // UpdateProfile updates user profile data.
-  rpc UpdateProfile(UserProfileUpdateRequest) returns (UserProfileUpdateResponse);
+  rpc UpdateProfile(UserProfileUpdateRequest) returns (UserProfileUpdateResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/user/profile"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update user profile"
+      description: "Updates user profile information"
+      tags: "User"
+      operation_id: "updateUserProfile"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // ChangePassword updates user password.
-  rpc ChangePassword(UserPasswordChangeRequest) returns (UserPasswordChangeResponse);
+  rpc ChangePassword(UserPasswordChangeRequest) returns (UserPasswordChangeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user/change-password"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Change password"
+      description: "Changes user password (requires old password)"
+      tags: "User"
+      operation_id: "changePassword"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+      responses: {
+        key: "401"
+        value: {
+          description: "Invalid old password"
+        }
+      }
+    };
+  }
   // DeleteAccount deletes user account.
-  rpc DeleteAccount(UserAccountDeleteRequest) returns (UserAccountDeleteResponse);
+  rpc DeleteAccount(UserAccountDeleteRequest) returns (UserAccountDeleteResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/user/account/delete"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Delete account"
+      description: "Permanently deletes user account and all associated data (requires password confirmation)"
+      tags: "User"
+      operation_id: "deleteAccount"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
 }
 
 // UserProfile represents user profile data.

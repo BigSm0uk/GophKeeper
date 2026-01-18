@@ -5,21 +5,100 @@ package gophkeeper.v1;
 option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 import "gophkeeper/v1/common.proto";
 import "validate/validate.proto";
 
 // CardsService manages bank card entries.
 service CardsService {
   // Create stores a new card entry.
-  rpc Create(CardCreateRequest) returns (CardCreateResponse);
+  rpc Create(CardCreateRequest) returns (CardCreateResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/cards"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Create card"
+      description: "Creates a new bank card entry with encrypted details"
+      tags: "Cards"
+      operation_id: "createCard"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // Get returns a single card entry by id.
-  rpc Get(CardGetRequest) returns (CardGetResponse);
+  rpc Get(CardGetRequest) returns (CardGetResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/cards/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get card"
+      description: "Returns a single bank card entry by ID"
+      tags: "Cards"
+      operation_id: "getCard"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // List returns paginated card entries.
-  rpc List(CardListRequest) returns (CardListResponse);
+  rpc List(CardListRequest) returns (CardListResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/cards"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "List cards"
+      description: "Returns paginated list of bank card entries"
+      tags: "Cards"
+      operation_id: "listCards"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // Update modifies an existing card entry.
-  rpc Update(CardUpdateRequest) returns (CardUpdateResponse);
+  rpc Update(CardUpdateRequest) returns (CardUpdateResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/cards/{id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update card"
+      description: "Updates an existing bank card entry"
+      tags: "Cards"
+      operation_id: "updateCard"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // Delete removes a card entry.
-  rpc Delete(CardDeleteRequest) returns (CardDeleteResponse);
+  rpc Delete(CardDeleteRequest) returns (CardDeleteResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/cards/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Delete card"
+      description: "Deletes a bank card entry by ID"
+      tags: "Cards"
+      operation_id: "deleteCard"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
 }
 
 // Card represents a bank card entry.

@@ -5,21 +5,100 @@ package gophkeeper.v1;
 option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 import "gophkeeper/v1/common.proto";
 import "validate/validate.proto";
 
 // TextsService manages text entries.
 service TextsService {
   // Create stores a new text entry.
-  rpc Create(TextCreateRequest) returns (TextCreateResponse);
+  rpc Create(TextCreateRequest) returns (TextCreateResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/texts"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Create text"
+      description: "Creates a new encrypted text note entry"
+      tags: "Texts"
+      operation_id: "createText"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // Get returns a single text entry by id.
-  rpc Get(TextGetRequest) returns (TextGetResponse);
+  rpc Get(TextGetRequest) returns (TextGetResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/texts/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get text"
+      description: "Returns a single text entry by ID"
+      tags: "Texts"
+      operation_id: "getText"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // List returns paginated text entries.
-  rpc List(TextListRequest) returns (TextListResponse);
+  rpc List(TextListRequest) returns (TextListResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/texts"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "List texts"
+      description: "Returns paginated list of text entries"
+      tags: "Texts"
+      operation_id: "listTexts"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // Update modifies an existing text entry.
-  rpc Update(TextUpdateRequest) returns (TextUpdateResponse);
+  rpc Update(TextUpdateRequest) returns (TextUpdateResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/texts/{id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update text"
+      description: "Updates an existing text entry"
+      tags: "Texts"
+      operation_id: "updateText"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // Delete removes a text entry.
-  rpc Delete(TextDeleteRequest) returns (TextDeleteResponse);
+  rpc Delete(TextDeleteRequest) returns (TextDeleteResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/texts/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Delete text"
+      description: "Deletes a text entry by ID"
+      tags: "Texts"
+      operation_id: "deleteText"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
 }
 
 // Text represents a text entry.

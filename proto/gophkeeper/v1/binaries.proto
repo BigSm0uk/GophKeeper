@@ -5,23 +5,117 @@ package gophkeeper.v1;
 option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 import "gophkeeper/v1/common.proto";
 import "validate/validate.proto";
 
 // BinariesService manages binary data entries.
 service BinariesService {
   // Upload stores a new binary file.
-  rpc Upload(BinaryUploadRequest) returns (BinaryUploadResponse);
+  rpc Upload(BinaryUploadRequest) returns (BinaryUploadResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/binaries"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Upload binary"
+      description: "Uploads a new encrypted binary file (max 10MB)"
+      tags: "Binaries"
+      operation_id: "uploadBinary"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // Download returns binary file content by id.
-  rpc Download(BinaryDownloadRequest) returns (BinaryDownloadResponse);
+  rpc Download(BinaryDownloadRequest) returns (BinaryDownloadResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/binaries/{id}/download"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Download binary"
+      description: "Downloads binary file content by ID"
+      tags: "Binaries"
+      operation_id: "downloadBinary"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // Get returns metadata for a binary entry.
-  rpc Get(BinaryGetRequest) returns (BinaryGetResponse);
+  rpc Get(BinaryGetRequest) returns (BinaryGetResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/binaries/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get binary metadata"
+      description: "Returns metadata for a binary entry by ID"
+      tags: "Binaries"
+      operation_id: "getBinary"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // List returns paginated binary entries.
-  rpc List(BinaryListRequest) returns (BinaryListResponse);
+  rpc List(BinaryListRequest) returns (BinaryListResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/binaries"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "List binaries"
+      description: "Returns paginated list of binary file entries"
+      tags: "Binaries"
+      operation_id: "listBinaries"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // Update modifies binary metadata.
-  rpc Update(BinaryUpdateRequest) returns (BinaryUpdateResponse);
+  rpc Update(BinaryUpdateRequest) returns (BinaryUpdateResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/binaries/{id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update binary metadata"
+      description: "Updates metadata for an existing binary entry"
+      tags: "Binaries"
+      operation_id: "updateBinary"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // Delete removes a binary entry.
-  rpc Delete(BinaryDeleteRequest) returns (BinaryDeleteResponse);
+  rpc Delete(BinaryDeleteRequest) returns (BinaryDeleteResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/binaries/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Delete binary"
+      description: "Deletes a binary file entry by ID"
+      tags: "Binaries"
+      operation_id: "deleteBinary"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
 }
 
 // Binary represents a binary entry metadata.

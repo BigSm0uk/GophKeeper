@@ -5,14 +5,47 @@ package gophkeeper.v1;
 option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 import "validate/validate.proto";
 
 // SyncService provides data synchronization.
 service SyncService {
   // Pull returns changes since the last sync.
-  rpc Pull(SyncPullRequest) returns (SyncPullResponse);
+  rpc Pull(SyncPullRequest) returns (SyncPullResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/sync"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Pull changes"
+      description: "Retrieves all changes from the server since the last synchronization timestamp"
+      tags: "Sync"
+      operation_id: "pullChanges"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
   // Push applies local changes to the server.
-  rpc Push(SyncPushRequest) returns (SyncPushResponse);
+  rpc Push(SyncPushRequest) returns (SyncPushResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/sync"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Push changes"
+      description: "Pushes local changes to the server and resolves conflicts"
+      tags: "Sync"
+      operation_id: "pushChanges"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
 }
 
 // SyncOperation describes a change operation for sync entries.

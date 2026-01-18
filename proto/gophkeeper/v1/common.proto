@@ -4,7 +4,190 @@ package gophkeeper.v1;
 
 option go_package = "github.com/dekkedenis/gophkeeper/gen/go/gophkeeper/v1;gophkeepv1";
 
+import "protoc-gen-openapiv2/options/annotations.proto";
 import "validate/validate.proto";
+
+// Global OpenAPI/Swagger configuration for GophKeeper API
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "GophKeeper API"
+    version: "1.0.0"
+    description: "Complete API for GophKeeper - a secure password manager with client-server architecture.\n\n"
+                 "## Features\n"
+                 "- **OAuth2 Authentication**: Secure token-based authentication using Resource Owner Password Credentials and Refresh Token flows\n"
+                 "- **Encrypted Data Storage**: Store credentials, text notes, bank cards, and binary files with client-side encryption\n"
+                 "- **Data Synchronization**: Sync your data across multiple devices with conflict resolution\n"
+                 "- **User Management**: Profile management, password change, and account deletion\n\n"
+                 "## Authentication\n"
+                 "Most endpoints require authentication using OAuth 2.0 Bearer tokens. Include the access token in the Authorization header:\n"
+                 "```\nAuthorization: Bearer <access_token>\n```\n\n"
+                 "## Data Types\n"
+                 "- **Credentials**: Login/password pairs for websites and services\n"
+                 "- **Texts**: Encrypted text notes and secure information\n"
+                 "- **Cards**: Bank card information (card number, CVV, expiry date)\n"
+                 "- **Binaries**: Encrypted files and documents (max 10MB per file)\n\n"
+                 "## Rate Limiting\n"
+                 "API requests are subject to rate limiting to prevent abuse. Default limits apply per user account.\n\n"
+                 "## Timestamps\n"
+                 "All timestamps follow ISO 8601 format in UTC timezone."
+    license: {
+      name: "MIT License"
+      url: "https://opensource.org/licenses/MIT"
+    }
+  }
+  schemes: HTTPS
+  schemes: HTTP
+  consumes: "application/json"
+  produces: "application/json"
+  base_path: "/api/v1"
+  security_definitions: {
+    security: {
+      key: "Bearer"
+      value: {
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        name: "Authorization"
+        description: "OAuth 2.0 Bearer Token. Format: 'Bearer <access_token>'\n\n"
+                     "To obtain a token, use the /oauth/token endpoint with your credentials."
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "Bearer"
+      value: {}
+    }
+  }
+  responses: {
+    key: "400"
+    value: {
+      description: "Bad Request - Invalid request data or validation error"
+      schema: {
+        json_schema: {
+          ref: ".google.rpc.Status"
+        }
+      }
+    }
+  }
+  responses: {
+    key: "401"
+    value: {
+      description: "Unauthorized - Authentication required or token expired"
+      schema: {
+        json_schema: {
+          ref: ".google.rpc.Status"
+        }
+      }
+    }
+  }
+  responses: {
+    key: "403"
+    value: {
+      description: "Forbidden - Access denied to the requested resource"
+      schema: {
+        json_schema: {
+          ref: ".google.rpc.Status"
+        }
+      }
+    }
+  }
+  responses: {
+    key: "404"
+    value: {
+      description: "Not Found - The requested resource does not exist"
+      schema: {
+        json_schema: {
+          ref: ".google.rpc.Status"
+        }
+      }
+    }
+  }
+  responses: {
+    key: "409"
+    value: {
+      description: "Conflict - Resource already exists or data conflict"
+      schema: {
+        json_schema: {
+          ref: ".google.rpc.Status"
+        }
+      }
+    }
+  }
+  responses: {
+    key: "413"
+    value: {
+      description: "Payload Too Large - Request body exceeds size limit"
+      schema: {
+        json_schema: {
+          ref: ".google.rpc.Status"
+        }
+      }
+    }
+  }
+  responses: {
+    key: "429"
+    value: {
+      description: "Too Many Requests - Rate limit exceeded"
+      schema: {
+        json_schema: {
+          ref: ".google.rpc.Status"
+        }
+      }
+    }
+  }
+  responses: {
+    key: "500"
+    value: {
+      description: "Internal Server Error - Unexpected server error"
+      schema: {
+        json_schema: {
+          ref: ".google.rpc.Status"
+        }
+      }
+    }
+  }
+  responses: {
+    key: "503"
+    value: {
+      description: "Service Unavailable - Server temporarily unavailable"
+      schema: {
+        json_schema: {
+          ref: ".google.rpc.Status"
+        }
+      }
+    }
+  }
+  tags: [
+    {
+      name: "Authentication"
+      description: "User registration, login, token management, and authorization endpoints"
+    },
+    {
+      name: "Credentials"
+      description: "Manage login/password entries for websites and services"
+    },
+    {
+      name: "Texts"
+      description: "Manage encrypted text notes and secure information"
+    },
+    {
+      name: "Cards"
+      description: "Manage bank card information (encrypted)"
+    },
+    {
+      name: "Binaries"
+      description: "Upload, download, and manage encrypted binary files (max 10MB)"
+    },
+    {
+      name: "Sync"
+      description: "Data synchronization endpoints for multi-device support"
+    },
+    {
+      name: "User"
+      description: "User profile management, password change, and account operations"
+    }
+  ]
+};
 
 // PageRequest defines pagination parameters.
 message PageRequest {

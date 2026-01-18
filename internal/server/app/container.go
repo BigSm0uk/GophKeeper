@@ -15,8 +15,9 @@ type Container struct {
 	// Application
 	App *Application
 
-	// Presentation Layer (gRPC)
+	// Presentation Layer (gRPC & HTTP)
 	GRPCServer *GRPCServer
+	HTTPServer *HTTPServer
 
 	// TODO: Add when implementing
 	// Domain Layer
@@ -42,6 +43,12 @@ func NewContainer(logger *zap.Logger, cfg *config.ServerConfig) *Container {
 // RegisterGRPCServer registers the gRPC server component.
 func (c *Container) RegisterGRPCServer(server *GRPCServer) {
 	c.GRPCServer = server
+	c.App.AddComponent(server)
+}
+
+// RegisterHTTPServer registers the HTTP server component (grpc-gateway).
+func (c *Container) RegisterHTTPServer(server *HTTPServer) {
+	c.HTTPServer = server
 	c.App.AddComponent(server)
 }
 

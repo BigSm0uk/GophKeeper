@@ -15,7 +15,7 @@ service BinariesService {
   // Upload stores a new binary file.
   rpc Upload(BinaryUploadRequest) returns (BinaryUploadResponse) {
     option (google.api.http) = {
-      post: "/api/v1/binaries"
+      post: "/binaries"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -33,7 +33,7 @@ service BinariesService {
   // Download returns binary file content by id.
   rpc Download(BinaryDownloadRequest) returns (BinaryDownloadResponse) {
     option (google.api.http) = {
-      get: "/api/v1/binaries/{id}/download"
+      get: "/binaries/{id}/download"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Download binary"
@@ -50,7 +50,7 @@ service BinariesService {
   // Get returns metadata for a binary entry.
   rpc Get(BinaryGetRequest) returns (BinaryGetResponse) {
     option (google.api.http) = {
-      get: "/api/v1/binaries/{id}"
+      get: "/binaries/{id}"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Get binary metadata"
@@ -67,7 +67,7 @@ service BinariesService {
   // List returns paginated binary entries.
   rpc List(BinaryListRequest) returns (BinaryListResponse) {
     option (google.api.http) = {
-      get: "/api/v1/binaries"
+      get: "/binaries"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "List binaries"
@@ -84,7 +84,7 @@ service BinariesService {
   // Update modifies binary metadata.
   rpc Update(BinaryUpdateRequest) returns (BinaryUpdateResponse) {
     option (google.api.http) = {
-      put: "/api/v1/binaries/{id}"
+      put: "/binaries/{id}"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -102,7 +102,7 @@ service BinariesService {
   // Delete removes a binary entry.
   rpc Delete(BinaryDeleteRequest) returns (BinaryDeleteResponse) {
     option (google.api.http) = {
-      delete: "/api/v1/binaries/{id}"
+      delete: "/binaries/{id}"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Delete binary"

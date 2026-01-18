@@ -10,12 +10,14 @@ vars:
   PROTOC_GEN_GO_GRPC_VERSION: "v1.5.1"
   PROTOC_GEN_OPENAPIV2_VERSION: 'v2.26.3'
   PROTOC_GEN_VALIDATE_VERSION: 'v1.3.0'
+  PROTOC_GEN_GRPC_GATEWAY_VERSION: 'v2.27.3'
 
   BUF: "{{.BIN_DIR}}/buf"
   PROTOC_GEN_GO: "{{.BIN_DIR}}/protoc-gen-go"
   PROTOC_GEN_GO_GRPC: "{{.BIN_DIR}}/protoc-gen-go-grpc"
   PROTOC_GEN_OPENAPIV2: '{{.BIN_DIR}}/protoc-gen-openapiv2'
   PROTOC_GEN_VALIDATE: '{{.BIN_DIR}}/protoc-gen-validate'
+  PROTOC_GEN_GRPC_GATEWAY: '{{.BIN_DIR}}/protoc-gen-grpc-gateway'
 tasks:
   buf:install:
     desc: "Устанавливает Buf в ./bin"
@@ -52,6 +54,10 @@ tasks:
           echo '📦 Installing protoc-gen-validate...'
           GOBIN="{{.BIN_DIR}}" go install github.com/envoyproxy/protoc-gen-validate@{{.PROTOC_GEN_VALIDATE_VERSION}}
         }
+        [ -f "{{.PROTOC_GEN_GRPC_GATEWAY}}" ] || {
+          echo '📦 Installing protoc-gen-grpc-gateway...'
+          GOBIN="{{.BIN_DIR}}" go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@{{.PROTOC_GEN_GRPC_GATEWAY_VERSION}}
+        }
   update-deps:
     deps: [buf:install]
     desc: Обновляем зависимости protobuf (нужен VPN)
@@ -75,6 +81,45 @@ tasks:
     dir: proto
     cmds:
       - |
-        echo "🚀 Генерируем Go-код из .proto..."
+        echo "🚀 Генерируем html для документации и Go-код из .proto..."
         {{.BUF}} generate
+      - |
+        echo "📄 Создаем index.html для Swagger UI..."
+        cat > ../api/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+          <meta charset="UTF-8">
+          <title>GophKeeper API Documentation</title>
+          <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css">
+          <style>
+            html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
+            *, *:before, *:after { box-sizing: inherit; }
+            body { margin:0; padding:0; }
+          </style>
+        </head>
+        <body>
+          <div id="swagger-ui"></div>
+          <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+          <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js"></script>
+          <script>
+            window.onload = function() {
+              window.ui = SwaggerUIBundle({
+                url: "./gophkeeper.swagger.json",
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                  SwaggerUIBundle.presets.apis,
+                  SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                  SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout"
+              });
+            };
+          </script>
+        </body>
+        </html>
+        EOF
       - echo "✨ Go-код из .proto сгенерирован успешно!"

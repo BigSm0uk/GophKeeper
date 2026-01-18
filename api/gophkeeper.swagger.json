@@ -72,7 +72,7 @@
     "application/json"
   ],
   "paths": {
-    "/api/v1/auth/register": {
+    "/auth/register": {
       "post": {
         "summary": "User registration",
         "description": "Creates a new user account",
@@ -161,7 +161,7 @@
         ]
       }
     },
-    "/api/v1/binaries": {
+    "/binaries": {
       "get": {
         "summary": "List binaries",
         "description": "Returns paginated list of binary file entries",
@@ -361,7 +361,7 @@
         ]
       }
     },
-    "/api/v1/binaries/{id}": {
+    "/binaries/{id}": {
       "get": {
         "summary": "Get binary metadata",
         "description": "Returns metadata for a binary entry by ID",
@@ -641,7 +641,7 @@
         ]
       }
     },
-    "/api/v1/binaries/{id}/download": {
+    "/binaries/{id}/download": {
       "get": {
         "summary": "Download binary",
         "description": "Downloads binary file content by ID",
@@ -733,7 +733,7 @@
         ]
       }
     },
-    "/api/v1/cards": {
+    "/cards": {
       "get": {
         "summary": "List cards",
         "description": "Returns paginated list of bank card entries",
@@ -933,7 +933,7 @@
         ]
       }
     },
-    "/api/v1/cards/{id}": {
+    "/cards/{id}": {
       "get": {
         "summary": "Get card",
         "description": "Returns a single bank card entry by ID",
@@ -1213,7 +1213,7 @@
         ]
       }
     },
-    "/api/v1/credentials": {
+    "/credentials": {
       "get": {
         "summary": "List credentials",
         "description": "Returns paginated list of credential entries",
@@ -1413,7 +1413,7 @@
         ]
       }
     },
-    "/api/v1/credentials/{id}": {
+    "/credentials/{id}": {
       "get": {
         "summary": "Get credential",
         "description": "Returns a single credential entry by ID",
@@ -1693,7 +1693,7 @@
         ]
       }
     },
-    "/api/v1/oauth/revoke": {
+    "/oauth/revoke": {
       "post": {
         "summary": "Revoke token",
         "description": "Revokes access or refresh token (Logout / Revoke)",
@@ -1778,7 +1778,7 @@
         ]
       }
     },
-    "/api/v1/oauth/token": {
+    "/oauth/token": {
       "post": {
         "summary": "Get token (OAuth2)",
         "description": "Issues access and refresh tokens via OAuth2 Password Grant or Refresh Token Grant",
@@ -1861,7 +1861,7 @@
         ]
       }
     },
-    "/api/v1/sync": {
+    "/sync": {
       "get": {
         "summary": "Pull changes",
         "description": "Retrieves all changes from the server since the last synchronization timestamp",
@@ -2046,7 +2046,7 @@
         ]
       }
     },
-    "/api/v1/texts": {
+    "/texts": {
       "get": {
         "summary": "List texts",
         "description": "Returns paginated list of text entries",
@@ -2246,7 +2246,7 @@
         ]
       }
     },
-    "/api/v1/texts/{id}": {
+    "/texts/{id}": {
       "get": {
         "summary": "Get text",
         "description": "Returns a single text entry by ID",
@@ -2526,7 +2526,7 @@
         ]
       }
     },
-    "/api/v1/user/account/delete": {
+    "/user/account/delete": {
       "post": {
         "summary": "Delete account",
         "description": "Permanently deletes user account and all associated data (requires password confirmation)",
@@ -2620,7 +2620,7 @@
         ]
       }
     },
-    "/api/v1/user/change-password": {
+    "/user/change-password": {
       "post": {
         "summary": "Change password",
         "description": "Changes user password (requires old password)",
@@ -2712,7 +2712,7 @@
         ]
       }
     },
-    "/api/v1/user/profile": {
+    "/user/profile": {
       "get": {
         "summary": "Get user profile",
         "description": "Returns current user profile information",

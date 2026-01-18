@@ -14,7 +14,7 @@ service SyncService {
   // Pull returns changes since the last sync.
   rpc Pull(SyncPullRequest) returns (SyncPullResponse) {
     option (google.api.http) = {
-      get: "/api/v1/sync"
+      get: "/sync"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Pull changes"
@@ -31,7 +31,7 @@ service SyncService {
   // Push applies local changes to the server.
   rpc Push(SyncPushRequest) returns (SyncPushResponse) {
     option (google.api.http) = {
-      post: "/api/v1/sync"
+      post: "/sync"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {

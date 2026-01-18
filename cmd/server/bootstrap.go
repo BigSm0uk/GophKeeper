@@ -32,6 +32,7 @@ func bootstrap() (*app.Container, error) {
 	log.Info("Initializing GophKeeper server",
 		zap.String("env", cfg.Env),
 		zap.String("grpc_address", cfg.GRPCAddress()),
+		zap.String("http_address", cfg.HTTPAddress()),
 	)
 
 	// 3. Create Dependency Injection Container
@@ -54,7 +55,13 @@ func bootstrap() (*app.Container, error) {
 	grpcServer := app.NewGRPCServer(cfg, log)
 	container.RegisterGRPCServer(grpcServer)
 
-	// 8. Configure shutdown timeouts
+	// 8. Presentation Layer: HTTP Server (grpc-gateway)
+	// ВАЖНО: HTTP сервер должен стартовать ПОСЛЕ gRPC сервера,
+	// так как он делает forwarding запросов к gRPC
+	httpServer := app.NewHTTPServer(cfg, log, grpcServer)
+	container.RegisterHTTPServer(httpServer)
+
+	// 9. Configure shutdown timeouts
 	container.App.SetShutdownTimeout(30 * time.Second)
 	container.App.SetStartupTimeout(10 * time.Second)
 

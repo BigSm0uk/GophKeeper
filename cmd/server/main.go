@@ -21,7 +21,7 @@ func main() {
 
 	// Run application
 	if err := run(container); err != nil {
-		container.Logger.Error("Application failed") // zap.Error is imported in bootstrap.go
+		container.Logger.Error("Application failed") 
 
 		fmt.Fprintf(os.Stderr, "Application error: %v\n", err)
 		os.Exit(1)

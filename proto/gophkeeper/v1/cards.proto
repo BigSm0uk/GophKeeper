@@ -15,7 +15,7 @@ service CardsService {
   // Create stores a new card entry.
   rpc Create(CardCreateRequest) returns (CardCreateResponse) {
     option (google.api.http) = {
-      post: "/api/v1/cards"
+      post: "/cards"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -33,7 +33,7 @@ service CardsService {
   // Get returns a single card entry by id.
   rpc Get(CardGetRequest) returns (CardGetResponse) {
     option (google.api.http) = {
-      get: "/api/v1/cards/{id}"
+      get: "/cards/{id}"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Get card"
@@ -50,7 +50,7 @@ service CardsService {
   // List returns paginated card entries.
   rpc List(CardListRequest) returns (CardListResponse) {
     option (google.api.http) = {
-      get: "/api/v1/cards"
+      get: "/cards"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "List cards"
@@ -67,7 +67,7 @@ service CardsService {
   // Update modifies an existing card entry.
   rpc Update(CardUpdateRequest) returns (CardUpdateResponse) {
     option (google.api.http) = {
-      put: "/api/v1/cards/{id}"
+      put: "/cards/{id}"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -85,7 +85,7 @@ service CardsService {
   // Delete removes a card entry.
   rpc Delete(CardDeleteRequest) returns (CardDeleteResponse) {
     option (google.api.http) = {
-      delete: "/api/v1/cards/{id}"
+      delete: "/cards/{id}"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Delete card"

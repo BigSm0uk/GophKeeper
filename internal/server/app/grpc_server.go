@@ -14,18 +14,18 @@ import (
 )
 
 type GRPCServer struct {
-	server *grpc.Server
-	logger *zap.Logger
-	config *config.ServerConfig
+	server      *grpc.Server
+	logger      *zap.Logger
+	config      *config.ServerConfig
+	authHandler *grpchandlers.AuthHandler
 }
 
 func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger) *GRPCServer {
-	// Создаем gRPC сервер
+
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(loggingInterceptor(logger)),
 	)
 
-	// Регистрируем handlers
 	authHandler := grpchandlers.NewAuthHandler(logger)
 	pb.RegisterAuthServiceServer(server, authHandler)
 
@@ -34,16 +34,16 @@ func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger) *GRPCServer {
 	// pb.RegisterTextsServiceServer(server, textsHandler)
 	// и т.д.
 
-	// Включаем gRPC reflection для удобной отладки (только в dev)
 	if cfg.IsDevelopment() {
 		reflection.Register(server)
 		logger.Info("gRPC reflection enabled (development mode)")
 	}
 
 	return &GRPCServer{
-		server: server,
-		logger: logger,
-		config: cfg,
+		server:      server,
+		logger:      logger,
+		config:      cfg,
+		authHandler: authHandler,
 	}
 }
 
@@ -105,6 +105,11 @@ func (s *GRPCServer) Stop(ctx context.Context) error {
 // Name implements Lifecycle interface
 func (s *GRPCServer) Name() string {
 	return "gRPC Server"
+}
+
+// GetAuthHandler returns the auth handler for in-process gateway registration
+func (s *GRPCServer) GetAuthHandler() pb.AuthServiceServer {
+	return s.authHandler
 }
 
 // loggingInterceptor логирует все gRPC вызовы

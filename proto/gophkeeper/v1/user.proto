@@ -14,7 +14,7 @@ service UserService {
   // GetProfile returns current user profile data.
   rpc GetProfile(UserProfileGetRequest) returns (UserProfileGetResponse) {
     option (google.api.http) = {
-      get: "/api/v1/user/profile"
+      get: "/user/profile"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Get user profile"
@@ -31,7 +31,7 @@ service UserService {
   // UpdateProfile updates user profile data.
   rpc UpdateProfile(UserProfileUpdateRequest) returns (UserProfileUpdateResponse) {
     option (google.api.http) = {
-      put: "/api/v1/user/profile"
+      put: "/user/profile"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -49,7 +49,7 @@ service UserService {
   // ChangePassword updates user password.
   rpc ChangePassword(UserPasswordChangeRequest) returns (UserPasswordChangeResponse) {
     option (google.api.http) = {
-      post: "/api/v1/user/change-password"
+      post: "/user/change-password"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -73,7 +73,7 @@ service UserService {
   // DeleteAccount deletes user account.
   rpc DeleteAccount(UserAccountDeleteRequest) returns (UserAccountDeleteResponse) {
     option (google.api.http) = {
-      post: "/api/v1/user/account/delete"
+      post: "/user/account/delete"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {

@@ -15,7 +15,7 @@ service TextsService {
   // Create stores a new text entry.
   rpc Create(TextCreateRequest) returns (TextCreateResponse) {
     option (google.api.http) = {
-      post: "/api/v1/texts"
+      post: "/texts"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -33,7 +33,7 @@ service TextsService {
   // Get returns a single text entry by id.
   rpc Get(TextGetRequest) returns (TextGetResponse) {
     option (google.api.http) = {
-      get: "/api/v1/texts/{id}"
+      get: "/texts/{id}"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Get text"
@@ -50,7 +50,7 @@ service TextsService {
   // List returns paginated text entries.
   rpc List(TextListRequest) returns (TextListResponse) {
     option (google.api.http) = {
-      get: "/api/v1/texts"
+      get: "/texts"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "List texts"
@@ -67,7 +67,7 @@ service TextsService {
   // Update modifies an existing text entry.
   rpc Update(TextUpdateRequest) returns (TextUpdateResponse) {
     option (google.api.http) = {
-      put: "/api/v1/texts/{id}"
+      put: "/texts/{id}"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -85,7 +85,7 @@ service TextsService {
   // Delete removes a text entry.
   rpc Delete(TextDeleteRequest) returns (TextDeleteResponse) {
     option (google.api.http) = {
-      delete: "/api/v1/texts/{id}"
+      delete: "/texts/{id}"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Delete text"

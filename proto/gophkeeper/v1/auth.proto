@@ -14,7 +14,7 @@ service AuthService {
   // Register creates a new user account.
   rpc Register(RegisterRequest) returns (RegisterResponse) {
     option (google.api.http) = {
-      post: "/api/v1/auth/register"
+      post: "/auth/register"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -45,7 +45,7 @@ service AuthService {
   // Token issues access/refresh tokens using OAuth2 grant types.
   rpc Token(TokenRequest) returns (TokenResponse) {
     option (google.api.http) = {
-      post: "/api/v1/oauth/token"
+      post: "/oauth/token"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -82,7 +82,7 @@ service AuthService {
   // Revoke invalidates access or refresh tokens.
   rpc Revoke(RevokeRequest) returns (RevokeResponse) {
     option (google.api.http) = {
-      post: "/api/v1/oauth/revoke"
+      post: "/oauth/revoke"
       body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {

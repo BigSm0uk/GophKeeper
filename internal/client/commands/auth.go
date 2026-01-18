@@ -9,7 +9,9 @@ import (
 	"syscall"
 
 	"github.com/BigSm0uk/GophKeeper/internal/client/storage"
+	"github.com/BigSm0uk/GophKeeper/internal/client/tui"
 	pb "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"golang.org/x/term"
@@ -23,6 +25,28 @@ var (
 )
 
 func init() {
+	var tuiRegister bool
+	tuiCmd := &cobra.Command{
+		Use:   "tui",
+		Short: "Open TUI for login/registration",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			store, err := storage.NewTokenStore()
+			if err != nil {
+				return fmt.Errorf("keyring: %w", err)
+			}
+			mode := tui.ModeLogin
+			if tuiRegister {
+				mode = tui.ModeRegister
+			}
+			model := tui.NewAuthModel(container.API, store, mode)
+			if _, err := tea.NewProgram(model).Run(); err != nil {
+				return fmt.Errorf("tui: %w", err)
+			}
+			return nil
+		},
+	}
+	tuiCmd.Flags().BoolVar(&tuiRegister, "register", false, "open registration mode")
+
 	registerCmd := &cobra.Command{
 		Use:   "register",
 		Short: "Register a new user",
@@ -118,6 +142,7 @@ func init() {
 	authCmd.AddCommand(registerCmd)
 	authCmd.AddCommand(loginCmd)
 	authCmd.AddCommand(logoutCmd)
+	authCmd.AddCommand(tuiCmd)
 }
 
 func prompt(label string) (string, error) {

@@ -21,6 +21,11 @@ type Client struct {
 	timeout     time.Duration
 }
 
+const (
+	defaultAttempts      = 3
+	defaultBackoffMillis = 200
+)
+
 // New создаёт новый gRPC клиент.
 func New(address string, insecureTLS bool, timeout time.Duration) (*Client, error) {
 	var dialOpts []grpc.DialOption
@@ -79,7 +84,13 @@ func (c *Client) Register(ctx context.Context, username, password, email string)
 		req.Email = &email
 	}
 
-	return c.auth.Register(ctx, req)
+	var resp *pb.RegisterResponse
+	err := c.callWithRetry(ctx, func(rctx context.Context) error {
+		var err error
+		resp, err = c.auth.Register(rctx, req)
+		return err
+	})
+	return resp, err
 }
 
 // PasswordToken запрашивает access/refresh токены по паролю.
@@ -100,7 +111,13 @@ func (c *Client) PasswordToken(ctx context.Context, username, password, clientID
 		req.Scope = &scope
 	}
 
-	return c.auth.Token(ctx, req)
+	var resp *pb.TokenResponse
+	err := c.callWithRetry(ctx, func(rctx context.Context) error {
+		var err error
+		resp, err = c.auth.Token(rctx, req)
+		return err
+	})
+	return resp, err
 }
 
 // RefreshToken запрашивает новый access токен по refresh токену.
@@ -117,7 +134,13 @@ func (c *Client) RefreshToken(ctx context.Context, refreshToken, clientID, clien
 		req.ClientSecret = &clientSecret
 	}
 
-	return c.auth.Token(ctx, req)
+	var resp *pb.TokenResponse
+	err := c.callWithRetry(ctx, func(rctx context.Context) error {
+		var err error
+		resp, err = c.auth.Token(rctx, req)
+		return err
+	})
+	return resp, err
 }
 
 // Revoke отзывает access/refresh токен.
@@ -135,5 +158,32 @@ func (c *Client) Revoke(ctx context.Context, token, clientID, clientSecret strin
 	}
 
 	ctx = c.withAuth(ctx)
-	return c.auth.Revoke(ctx, req)
+	var resp *pb.RevokeResponse
+	err := c.callWithRetry(ctx, func(rctx context.Context) error {
+		var err error
+		resp, err = c.auth.Revoke(rctx, req)
+		return err
+	})
+	return resp, err
+}
+
+// callWithRetry выполняет fn с простым повтором при ошибке.
+func (c *Client) callWithRetry(ctx context.Context, fn func(context.Context) error) error {
+	backoff := time.Duration(defaultBackoffMillis) * time.Millisecond
+	for attempt := 0; attempt < defaultAttempts; attempt++ {
+		err := fn(ctx)
+		if err == nil {
+			return nil
+		}
+		if attempt == defaultAttempts-1 {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(backoff):
+			backoff *= 2
+		}
+	}
+	return nil
 }

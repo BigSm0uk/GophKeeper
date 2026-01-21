@@ -2,6 +2,8 @@ package app
 
 import (
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/config"
+	"github.com/BigSm0uk/GophKeeper/internal/server/app/db"
+
 	"go.uber.org/zap"
 )
 
@@ -25,7 +27,7 @@ type Container struct {
 	// CredService     *services.CredentialsService
 
 	// Data Layer
-	// DB              *pgxpool.Pool
+	DB *db.PostgresDb
 	// UserRepo        *repositories.UserRepository
 	// CredRepo        *repositories.CredentialsRepository
 	// MinioClient     *minio.Client
@@ -53,6 +55,10 @@ func (c *Container) RegisterHTTPServer(server *HTTPServer) {
 }
 
 // TODO: Add methods for registering other components
-// func (c *Container) RegisterDatabase(db *pgxpool.Pool) { ... }
+func (c *Container) RegisterDatabase(db *db.PostgresDb) {
+	c.DB = db
+	c.App.AddComponent(db)
+}
+
 // func (c *Container) RegisterRepositories() { ... }
 // func (c *Container) RegisterServices() { ... }

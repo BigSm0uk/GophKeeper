@@ -17,6 +17,7 @@ type ServerConfig struct {
 	GRPC   GRPCConfig   `mapstructure:"grpc"`
 	HTTP   HTTPConfig   `mapstructure:"http"`
 	Logger LoggerConfig `mapstructure:"logger"`
+	DB     DBConfig     `mapstructure:"db"`
 }
 
 func NewDefaultServerConfig() ServerConfig {
@@ -33,6 +34,11 @@ func NewDefaultServerConfig() ServerConfig {
 			Port:         8080,
 			ReadTimeout:  15 * time.Second,
 			WriteTimeout: 15 * time.Second,
+		},
+		DB: DBConfig{
+			ConnectionString: "postgresql://user:password@localhost:5432/gophkeeper?sslmode=disable",
+			MaxConns:         25,
+			MinConns:         5,
 		},
 		Logger: LoggerConfig{
 			Level: "debug",

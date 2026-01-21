@@ -10,6 +10,7 @@ import (
 
 	"github.com/BigSm0uk/GophKeeper/internal/server/app"
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/config"
+	"github.com/BigSm0uk/GophKeeper/internal/server/app/db"
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/logger"
 	"go.uber.org/zap"
 )
@@ -38,12 +39,12 @@ func bootstrap() (*app.Container, error) {
 	// 3. Create Dependency Injection Container
 	container := app.NewContainer(log, cfg)
 
-	// 4. Infrastructure Layer: Database (TODO: Denis)
-	// db, err := initDatabase(cfg)
-	// if err != nil {
-	//     return nil, fmt.Errorf("failed to init database: %w", err)
-	// }
-	// container.RegisterDatabase(db)
+	// 4. Infrastructure Layer: Database
+	db, err := db.NewPostgresDb(context.Background(), cfg.DB, log)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init database: %w", err)
+	}
+	container.RegisterDatabase(db)
 
 	// 5. Data Layer: Repositories (TODO: Denis)
 	// container.RegisterRepositories()

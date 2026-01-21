@@ -14,5 +14,10 @@
         "port": 8080,
         "read_timeout": "15s",
         "write_timeout": "15s"
+    },
+    "db" : {
+        "connection_string" : "postgresql://user:password@localhost:5432/gophkeeper?sslmode=disable",
+        "max_conns": 25,
+        "min_conns":5
     }
 }

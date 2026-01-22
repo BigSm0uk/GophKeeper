@@ -40,26 +40,25 @@ func bootstrap() (*app.Container, error) {
 	container := app.NewContainer(log, cfg)
 
 	// 4. Infrastructure Layer: Database
-	db, err := db.NewPostgresDb(context.Background(), cfg.DB, log)
+	postgresDb, err := db.NewPostgresDb(context.Background(), cfg.DB, log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init database: %w", err)
 	}
-	container.RegisterDatabase(db)
+	container.RegisterDatabase(postgresDb)
 
 	// 5. Data Layer: Repositories (TODO: Denis)
-	// container.RegisterRepositories()
+	container.RegisterRepositories()
 
 	// 6. Domain Layer: Services (TODO: Denis)
-	// container.RegisterServices()
+	container.RegisterServices()
 
 	// 7. Presentation Layer: gRPC Server
-	grpcServer := app.NewGRPCServer(cfg, log)
-	container.RegisterGRPCServer(grpcServer)
+	container.RegisterGRPCServer()
 
 	// 8. Presentation Layer: HTTP Server (grpc-gateway)
 	// ВАЖНО: HTTP сервер должен стартовать ПОСЛЕ gRPC сервера,
 	// так как он делает forwarding запросов к gRPC
-	httpServer := app.NewHTTPServer(cfg, log, grpcServer)
+	httpServer := app.NewHTTPServer(cfg, log, container.GRPCServer)
 	container.RegisterHTTPServer(httpServer)
 
 	// 9. Configure shutdown timeouts

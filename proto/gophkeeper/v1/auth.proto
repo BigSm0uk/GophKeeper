@@ -167,17 +167,11 @@ message TokenRequest {
     in: [1,2]
   }];
   // username is required for password grant.
-  string username = 2 [(validate.rules).string = {
-    min_len: 3,
-    max_len: 50
-  }];
+  string username = 2;
   // password is required for password grant.
-  string password = 3 [(validate.rules).string = {
-    min_len: 8,
-    max_len: 128
-  }];
+  string password = 3;
   // refresh_token is required for refresh_token grant.
-  string refresh_token = 4 [(validate.rules).string.min_len = 1];
+  string refresh_token = 4;
   // client_id identifies a client application.
   string client_id = 5 [(validate.rules).string = {
     min_len: 1,

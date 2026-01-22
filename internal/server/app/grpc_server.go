@@ -7,6 +7,7 @@ import (
 
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/config"
 	grpchandlers "github.com/BigSm0uk/GophKeeper/internal/server/handlers/grpc"
+	"github.com/BigSm0uk/GophKeeper/internal/server/service"
 	pb "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -20,13 +21,13 @@ type GRPCServer struct {
 	authHandler *grpchandlers.AuthHandler
 }
 
-func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger) *GRPCServer {
+func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *service.AuthService) *GRPCServer {
 
 	server := grpc.NewServer(
 		grpc.UnaryInterceptor(loggingInterceptor(logger)),
 	)
 
-	authHandler := grpchandlers.NewAuthHandler(logger)
+	authHandler := grpchandlers.NewAuthHandler(logger, authService)
 	pb.RegisterAuthServiceServer(server, authHandler)
 
 	// TODO: Регистрировать другие сервисы

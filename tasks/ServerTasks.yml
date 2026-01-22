@@ -35,3 +35,30 @@ tasks:
     cmds:
       - "go run {{.SERVER_DIR}} --config={{.CONFIG_DIR}}/server.dev.json"
     silent: true
+
+  migrate:up:
+    desc: "Run database migrations up"
+    cmds:
+      - "goose -dir migrations postgres \"postgresql://user:password@localhost:5432/gophkeeper?sslmode=disable\" up"
+    silent: true
+
+  migrate:down:
+    desc: "Run database migrations down"
+    cmds:
+      - "goose -dir migrations postgres \"postgresql://user:password@localhost:5432/gophkeeper?sslmode=disable\" down"
+    silent: true
+
+  migrate:status:
+    desc: "Show migration status"
+    cmds:
+      - "goose -dir migrations postgres \"postgresql://user:password@localhost:5432/gophkeeper?sslmode=disable\" status"
+    silent: true
+
+  jwt:generate-keys:
+    desc: "Generate RSA key pair for JWT tokens"
+    cmds:
+      - "mkdir -p keys"
+      - "openssl genrsa -out keys/jwt_private.pem 2048"
+      - "openssl rsa -in keys/jwt_private.pem -pubout -out keys/jwt_public.pem"
+      - "echo 'JWT keys generated successfully in keys/ directory'"
+    silent: true

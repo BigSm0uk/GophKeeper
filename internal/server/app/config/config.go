@@ -18,6 +18,7 @@ type ServerConfig struct {
 	HTTP   HTTPConfig   `mapstructure:"http"`
 	Logger LoggerConfig `mapstructure:"logger"`
 	DB     DBConfig     `mapstructure:"db"`
+	JWT    JWTConfig    `mapstructure:"jwt"`
 }
 
 func NewDefaultServerConfig() ServerConfig {
@@ -43,6 +44,7 @@ func NewDefaultServerConfig() ServerConfig {
 		Logger: LoggerConfig{
 			Level: "debug",
 		},
+		JWT: NewDefaultJWTConfig(),
 	}
 }
 

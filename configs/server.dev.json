@@ -3,9 +3,16 @@
     "logger" :{
         "level": "debug"
     },
+    "jwt": {
+        "private_key_path": "keys/jwt_private.pem",
+        "public_key_path": "keys/jwt_public.pem",
+        "access_token_ttl": "15m",
+        "refresh_token_ttl": "168h",
+        "issuer": "gophkeeper"
+    },
     "grpc":{
         "host": "0.0.0.0",
-        "port": 50051,
+        "port": 50054,
         "read_timeout": "15s",
         "write_timeout": "15s"
     },

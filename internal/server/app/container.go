@@ -3,6 +3,9 @@ package app
 import (
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/config"
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/db"
+	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
+	pg_repo "github.com/BigSm0uk/GophKeeper/internal/server/repository/postgres"
+	"github.com/BigSm0uk/GophKeeper/internal/server/service"
 
 	"go.uber.org/zap"
 )
@@ -21,14 +24,14 @@ type Container struct {
 	GRPCServer *GRPCServer
 	HTTPServer *HTTPServer
 
-	// TODO: Add when implementing
 	// Domain Layer
-	// AuthService     *services.AuthService
+	AuthService *service.AuthService
+	JWTService  *service.JWTService
 	// CredService     *services.CredentialsService
 
 	// Data Layer
-	DB *db.PostgresDb
-	// UserRepo        *repositories.UserRepository
+	DB       *db.PostgresDb
+	UserRepo interfaces.UserRepository
 	// CredRepo        *repositories.CredentialsRepository
 	// MinioClient     *minio.Client
 }
@@ -43,7 +46,8 @@ func NewContainer(logger *zap.Logger, cfg *config.ServerConfig) *Container {
 }
 
 // RegisterGRPCServer registers the gRPC server component.
-func (c *Container) RegisterGRPCServer(server *GRPCServer) {
+func (c *Container) RegisterGRPCServer() {
+	server := NewGRPCServer(c.Config, c.Logger, c.AuthService)
 	c.GRPCServer = server
 	c.App.AddComponent(server)
 }
@@ -60,5 +64,21 @@ func (c *Container) RegisterDatabase(db *db.PostgresDb) {
 	c.App.AddComponent(db)
 }
 
-// func (c *Container) RegisterRepositories() { ... }
-// func (c *Container) RegisterServices() { ... }
+func (c *Container) RegisterRepositories() {
+	ur := pg_repo.NewUserRepository(c.Logger, c.DB)
+	c.UserRepo = ur
+
+}
+
+func (c *Container) RegisterServices() {
+	// Create JWT service
+	jwtSvc, err := service.NewJWTService(c.Config.JWT)
+	if err != nil {
+		c.Logger.Fatal("Failed to create JWT service", zap.Error(err))
+	}
+	c.JWTService = jwtSvc
+
+	// Create auth service with JWT service
+	authSvc := service.NewAuthService(c.Logger, c.UserRepo, c.JWTService)
+	c.AuthService = authSvc
+}

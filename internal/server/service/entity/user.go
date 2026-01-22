@@ -9,12 +9,12 @@ import (
 )
 
 type User struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	Email     *string   `json:"email"`
-	Password  string    `json:"password"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        string
+	Username  string
+	Email     *string
+	Password  string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (u *User) MapToResponse() (*pb.RegisterResponse, error) {
@@ -28,7 +28,7 @@ func (u *User) MapToResponse() (*pb.RegisterResponse, error) {
 	}, nil
 }
 
-func MapFromRequest(rq *pb.RegisterRequest) (*User, error) {
+func MapUserFromRequest(rq *pb.RegisterRequest) (*User, error) {
 	if rq == nil {
 		return nil, fmt.Errorf("request is nil")
 	}

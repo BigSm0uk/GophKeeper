@@ -50,7 +50,7 @@ func (p *PostgresDb) warmUp(n int) {
 	var wg sync.WaitGroup
 	for range n {
 		wg.Go(func() {
-			pingWithRetry(context.Background(), p.pool, 3, 100*time.Millisecond)
+			_ = pingWithRetry(context.Background(), p.pool, 3, 100*time.Millisecond)
 		})
 	}
 	wg.Wait()
@@ -79,7 +79,7 @@ func (p *PostgresDb) Start(ctx context.Context) error {
 }
 
 // Stop implements [interfaces.Lifecycle].
-func (p *PostgresDb) Stop(ctx context.Context) error {
+func (p *PostgresDb) Stop(_ context.Context) error {
 	p.pool.Close()
 	return nil
 }

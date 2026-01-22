@@ -9,7 +9,7 @@ func main() {
 	// Initialize application
 	container, err := bootstrap()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Bootstrap error: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Bootstrap error: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -21,9 +21,9 @@ func main() {
 
 	// Run application
 	if err := run(container); err != nil {
-		container.Logger.Error("Application failed") 
+		container.Logger.Error("Application failed")
 
-		fmt.Fprintf(os.Stderr, "Application error: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Application error: %v\n", err)
 		os.Exit(1)
 	}
 }

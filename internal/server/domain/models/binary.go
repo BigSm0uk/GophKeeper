@@ -17,6 +17,7 @@ type Binary struct {
 	ContentType string
 	Metadata    *string
 	StoragePath string // internal path where file is stored
+	Checksum    string 
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

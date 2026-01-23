@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -19,32 +18,19 @@ type ServerConfig struct {
 	Logger LoggerConfig `mapstructure:"logger"`
 	DB     DBConfig     `mapstructure:"db"`
 	JWT    JWTConfig    `mapstructure:"jwt"`
+	Auth   AuthConfig   `mapstructure:"auth"`
 }
 
+// NewDefaultServerConfig returns default server configuration
 func NewDefaultServerConfig() ServerConfig {
 	return ServerConfig{
-		Env: EnvDevelopment,
-		GRPC: GRPCConfig{
-			Host:         "0.0.0.0",
-			Port:         50051,
-			ReadTimeout:  15 * time.Second,
-			WriteTimeout: 15 * time.Second,
-		},
-		HTTP: HTTPConfig{
-			Host:         "0.0.0.0",
-			Port:         8080,
-			ReadTimeout:  15 * time.Second,
-			WriteTimeout: 15 * time.Second,
-		},
-		DB: DBConfig{
-			ConnectionString: "postgresql://user:password@localhost:5432/gophkeeper?sslmode=disable",
-			MaxConns:         25,
-			MinConns:         5,
-		},
-		Logger: LoggerConfig{
-			Level: "debug",
-		},
-		JWT: NewDefaultJWTConfig(),
+		Env:    EnvDevelopment,
+		GRPC:   NewDefaultGRPCConfig(),
+		HTTP:   NewDefaultHTTPConfig(),
+		DB:     NewDefaultDBConfig(),
+		Logger: NewDefaultLoggerConfig(),
+		JWT:    NewDefaultJWTConfig(),
+		Auth:   NewDefaultAuthConfig(),
 	}
 }
 

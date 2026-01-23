@@ -12,7 +12,7 @@
     },
     "grpc":{
         "host": "0.0.0.0",
-        "port": 50054,
+        "port": 50051,
         "read_timeout": "15s",
         "write_timeout": "15s"
     },
@@ -26,5 +26,13 @@
         "connection_string" : "postgresql://user:password@localhost:5432/gophkeeper?sslmode=disable",
         "max_conns": 25,
         "min_conns":5
+    },
+    "auth": {
+        "public_methods": [
+            "/gophkeeper.v1.AuthService/Register",
+            "/gophkeeper.v1.AuthService/Token",
+            "/grpc.health.v1.Health/Check",
+            "/grpc.health.v1.Health/Watch"
+        ]
     }
 }

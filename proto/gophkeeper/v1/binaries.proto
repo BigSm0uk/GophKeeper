@@ -12,17 +12,13 @@ import "validate/validate.proto";
 
 // BinariesService manages binary data entries.
 service BinariesService {
-  // Upload stores a new binary file.
-  rpc Upload(BinaryUploadRequest) returns (BinaryUploadResponse) {
-    option (google.api.http) = {
-      post: "/binaries"
-      body: "*"
-    };
+  // UploadStream stores a new binary file using streaming (supports large files).
+  rpc UploadStream(stream BinaryUploadChunk) returns (BinaryUploadResponse) {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Upload binary"
-      description: "Uploads a new encrypted binary file (max 10MB)"
+      summary: "Upload binary (streaming)"
+      description: "Uploads a new encrypted binary file using streaming, supports files of any size"
       tags: "Binaries"
-      operation_id: "uploadBinary"
+      operation_id: "uploadBinaryStream"
       security: {
         security_requirement: {
           key: "Bearer"
@@ -30,16 +26,13 @@ service BinariesService {
       }
     };
   }
-  // Download returns binary file content by id.
-  rpc Download(BinaryDownloadRequest) returns (BinaryDownloadResponse) {
-    option (google.api.http) = {
-      get: "/binaries/{id}/download"
-    };
+  // DownloadStream returns binary file content by id using streaming (supports large files).
+  rpc DownloadStream(BinaryDownloadRequest) returns (stream BinaryDownloadChunk) {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Download binary"
-      description: "Downloads binary file content by ID"
+      summary: "Download binary (streaming)"
+      description: "Downloads binary file content by ID using streaming, supports files of any size"
       tags: "Binaries"
-      operation_id: "downloadBinary"
+      operation_id: "downloadBinaryStream"
       security: {
         security_requirement: {
           key: "Bearer"
@@ -136,10 +129,12 @@ message Binary {
   google.protobuf.Timestamp created_at = 7;
   // updated_at is the last update timestamp.
   google.protobuf.Timestamp updated_at = 8;
+  // checksum is the SHA256 hash of the file content for integrity verification.
+  string checksum = 9;
 }
 
-// BinaryUploadRequest uploads binary content.
-message BinaryUploadRequest {
+// BinaryMetadata contains metadata for streaming upload.
+message BinaryMetadata {
   // name is a user-provided label.
   string name = 1 [(validate.rules).string = {
     min_len: 1,
@@ -152,13 +147,24 @@ message BinaryUploadRequest {
   }];
   // content_type is the file content type.
   string content_type = 3 [(validate.rules).string.max_len = 100];
-  // data is the binary content (encrypted client-side if required).
-  bytes data = 4 [(validate.rules).bytes = {
-    min_len: 1,
-    max_len: 10485760  // 10MB
-  }];
+  // total_size is the total file size in bytes.
+  int64 total_size = 4 [(validate.rules).int64.gt = 0];
   // metadata is an optional metadata field.
   optional string metadata = 5 [(validate.rules).string.max_len = 1000];
+  // checksum is the expected SHA256 hash of the file content.
+  string checksum = 6 [(validate.rules).string = {
+    pattern: "^[a-f0-9]{64}$"
+  }];
+}
+
+// BinaryUploadChunk represents a chunk of data during streaming upload.
+message BinaryUploadChunk {
+  oneof data {
+    // metadata is sent in the first message.
+    BinaryMetadata metadata = 1;
+    // chunk_data is the file content chunk (sent in subsequent messages).
+    bytes chunk_data = 2;
+  }
 }
 
 // BinaryUploadResponse returns the created binary entry.
@@ -176,14 +182,19 @@ message BinaryDownloadRequest {
   }];
 }
 
-// BinaryDownloadResponse returns binary content.
-message BinaryDownloadResponse {
-  // data is the binary content (encrypted client-side if required).
-  bytes data = 1;
-  // filename is the original file name.
-  string filename = 2;
-  // content_type is the file content type.
-  string content_type = 3;
+// BinaryDownloadChunk represents a chunk of data during streaming download.
+message BinaryDownloadChunk {
+  // chunk_data is a portion of the file content.
+  bytes chunk_data = 1 [(validate.rules).bytes = {
+    min_len: 1,
+    max_len: 1048576  // 1MB max chunk size
+  }];
+  // offset is the byte offset of this chunk in the file.
+  int64 offset = 2;
+  // total_size is the total file size in bytes.
+  int64 total_size = 3;
+  // checksum is the SHA256 hash of the complete file (sent in the last chunk).
+  optional string checksum = 4;
 }
 
 // BinaryGetRequest fetches binary metadata by id.

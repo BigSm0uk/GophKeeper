@@ -20,6 +20,7 @@ type Binary struct {
 	ContentType string
 	Metadata    *string
 	StoragePath string // internal path where file is stored
+	Checksum    string 
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -37,6 +38,7 @@ func MapBinaryToResponse(binary *Binary) (*pb.Binary, error) {
 		Size:        binary.Size,
 		ContentType: binary.ContentType,
 		Metadata:    binary.Metadata,
+		Checksum:    binary.Checksum,
 		CreatedAt:   timestamppb.New(binary.CreatedAt),
 		UpdatedAt:   timestamppb.New(binary.UpdatedAt),
 	}
@@ -44,21 +46,22 @@ func MapBinaryToResponse(binary *Binary) (*pb.Binary, error) {
 	return response, nil
 }
 
-// MapBinaryFromUploadRequest converts protobuf BinaryUploadRequest to domain Binary.
+// MapBinaryFromMetadata converts protobuf BinaryMetadata to domain Binary.
 // Note: This creates the metadata, actual file data should be handled separately.
-func MapBinaryFromUploadRequest(userID string, req *pb.BinaryUploadRequest) (*Binary, error) {
-	if req == nil {
-		return nil, fmt.Errorf("request is nil")
+func MapBinaryFromMetadata(userID string, metadata *pb.BinaryMetadata) (*Binary, error) {
+	if metadata == nil {
+		return nil, fmt.Errorf("metadata is nil")
 	}
 
 	now := time.Now()
 	binary := &Binary{
 		UserID:      userID,
-		Name:        req.Name,
-		Filename:    req.Filename,
-		Size:        int64(len(req.Data)),
-		ContentType: req.ContentType,
-		Metadata:    req.Metadata,
+		Name:        metadata.Name,
+		Filename:    metadata.Filename,
+		Size:        metadata.TotalSize,
+		ContentType: metadata.ContentType,
+		Metadata:    metadata.Metadata,
+		Checksum:    metadata.Checksum,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -94,6 +97,7 @@ func MapBinaryToListItem(binary *Binary) (*pb.Binary, error) {
 		Filename:    binary.Filename,
 		Size:        binary.Size,
 		ContentType: binary.ContentType,
+		Checksum:    binary.Checksum,
 		CreatedAt:   timestamppb.New(binary.CreatedAt),
 		UpdatedAt:   timestamppb.New(binary.UpdatedAt),
 		// Metadata is omitted for list views

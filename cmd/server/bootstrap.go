@@ -50,7 +50,10 @@ func bootstrap() (*app.Container, error) {
 	container.RegisterRepositories()
 
 	// 6. Domain Layer: Services (TODO: Denis)
-	container.RegisterServices()
+	err = container.RegisterServices()
+	if err != nil {
+		return nil, fmt.Errorf("failed to init services: %w", err)
+	}
 
 	// 7. Presentation Layer: gRPC Server
 	container.RegisterGRPCServer()

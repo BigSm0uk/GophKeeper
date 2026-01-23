@@ -2,7 +2,6 @@
 
 version: "3"
 
-interval: 500ms
 
 vars:
   GREETING: Hello, World!

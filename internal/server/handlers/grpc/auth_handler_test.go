@@ -3,13 +3,14 @@ package grpc
 import (
 	"testing"
 
+	"github.com/BigSm0uk/GophKeeper/internal/server/app/config"
 	pb "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1"
 	"go.uber.org/zap"
 )
 
 func TestValidateTokenRequest(t *testing.T) {
 	logger := zap.NewNop()
-	handler := NewAuthHandler(logger, nil)
+	handler := NewAuthHandler(logger, nil, config.NewDefaultJWTConfig())
 
 	tests := []struct {
 		name    string

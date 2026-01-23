@@ -24,10 +24,14 @@ type GRPCServer struct {
 func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *service.AuthService) *GRPCServer {
 
 	server := grpc.NewServer(
-		grpc.UnaryInterceptor(loggingInterceptor(logger)),
+		grpc.ChainUnaryInterceptor(
+			grpchandlers.RecoveryInterceptor(logger),
+			grpchandlers.AuthInterceptor(authService, cfg.Auth, logger),
+			grpchandlers.LoggingInterceptor(logger),
+		),
 	)
 
-	authHandler := grpchandlers.NewAuthHandler(logger, authService)
+	authHandler := grpchandlers.NewAuthHandler(logger, authService, cfg.JWT)
 	pb.RegisterAuthServiceServer(server, authHandler)
 
 	// TODO: Регистрировать другие сервисы
@@ -61,7 +65,6 @@ func (s *GRPCServer) Start(ctx context.Context) error {
 		zap.String("address", address),
 	)
 
-	// Start serving in a goroutine to make it non-blocking
 	errCh := make(chan error, 1)
 	go func() {
 		if err := s.server.Serve(listener); err != nil {
@@ -69,7 +72,6 @@ func (s *GRPCServer) Start(ctx context.Context) error {
 		}
 	}()
 
-	// Check if server started successfully or failed immediately
 	select {
 	case err := <-errCh:
 		return err
@@ -84,7 +86,6 @@ func (s *GRPCServer) Start(ctx context.Context) error {
 func (s *GRPCServer) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping gRPC server...")
 
-	// Use GracefulStop with timeout
 	stopped := make(chan struct{})
 	go func() {
 		s.server.GracefulStop()
@@ -96,7 +97,6 @@ func (s *GRPCServer) Stop(ctx context.Context) error {
 		s.logger.Info("gRPC server stopped gracefully")
 		return nil
 	case <-ctx.Done():
-		// Force stop if graceful shutdown takes too long
 		s.logger.Warn("gRPC server graceful stop timeout, forcing stop")
 		s.server.Stop()
 		return ctx.Err()
@@ -111,23 +111,4 @@ func (s *GRPCServer) Name() string {
 // GetAuthHandler returns the auth handler for in-process gateway registration
 func (s *GRPCServer) GetAuthHandler() pb.AuthServiceServer {
 	return s.authHandler
-}
-
-// loggingInterceptor логирует все gRPC вызовы
-func loggingInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		logger.Debug("gRPC call",
-			zap.String("method", info.FullMethod),
-		)
-
-		resp, err := handler(ctx, req)
-		if err != nil {
-			logger.Error("gRPC call failed",
-				zap.String("method", info.FullMethod),
-				zap.Error(err),
-			)
-		}
-
-		return resp, err
-	}
 }

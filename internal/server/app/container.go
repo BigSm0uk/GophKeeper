@@ -70,15 +70,14 @@ func (c *Container) RegisterRepositories() {
 
 }
 
-func (c *Container) RegisterServices() {
-	// Create JWT service
+func (c *Container) RegisterServices() error {
 	jwtSvc, err := service.NewJWTService(c.Config.JWT)
 	if err != nil {
-		c.Logger.Fatal("Failed to create JWT service", zap.Error(err))
+		return err
 	}
 	c.JWTService = jwtSvc
 
-	// Create auth service with JWT service
 	authSvc := service.NewAuthService(c.Logger, c.UserRepo, c.JWTService)
 	c.AuthService = authSvc
+	return nil
 }

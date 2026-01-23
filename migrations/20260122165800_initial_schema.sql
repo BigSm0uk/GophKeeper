@@ -58,8 +58,24 @@ CREATE TABLE IF NOT EXISTS binaries (
     content_type VARCHAR(255) NOT NULL,
     metadata TEXT,
     storage_path VARCHAR(2048) NOT NULL,
+    checksum VARCHAR(64) NOT NULL DEFAULT '',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Create sync_changelog table
+CREATE TABLE IF NOT EXISTS sync_changelog (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    entity_type VARCHAR(50) NOT NULL,  -- 'credentials', 'texts', 'binaries', 'cards'
+    entity_id UUID NOT NULL,
+    operation VARCHAR(10) NOT NULL,    -- 'create', 'update', 'delete'
+    data JSONB,                        
+    version BIGINT NOT NULL,           
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    
+    INDEX idx_sync_user_created (user_id, created_at),
+    INDEX idx_sync_user_version (user_id, version)
 );
 
 -- Create indexes for better performance
@@ -67,7 +83,7 @@ CREATE INDEX IF NOT EXISTS idx_texts_user_id ON texts(user_id);
 CREATE INDEX IF NOT EXISTS idx_credentials_user_id ON credentials(user_id);
 CREATE INDEX IF NOT EXISTS idx_cards_user_id ON cards(user_id);
 CREATE INDEX IF NOT EXISTS idx_binaries_user_id ON binaries(user_id);
-
+CREATE INDEX IF NOT EXISTS idx_binaries_checksum ON binaries(checksum);
 -- Create index on username for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
@@ -81,3 +97,5 @@ DROP TABLE IF EXISTS cards;
 DROP TABLE IF EXISTS credentials;
 DROP TABLE IF EXISTS texts;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS sync_changelog;
+DROP INDEX IF EXISTS idx_binaries_checksum;

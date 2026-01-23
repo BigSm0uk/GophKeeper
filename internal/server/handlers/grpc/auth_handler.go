@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/BigSm0uk/GophKeeper/internal/server/app/config"
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/models"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service/entity"
@@ -18,15 +19,17 @@ import (
 // AuthHandler implements AuthServiceServer
 type AuthHandler struct {
 	pb.UnimplementedAuthServiceServer
-	logger *zap.Logger
-	as     *service.AuthService
+	logger    *zap.Logger
+	as        *service.AuthService
+	jwtConfig config.JWTConfig
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(logger *zap.Logger, as *service.AuthService) *AuthHandler {
+func NewAuthHandler(logger *zap.Logger, as *service.AuthService, jwtConfig config.JWTConfig) *AuthHandler {
 	return &AuthHandler{
-		logger: logger,
-		as:     as,
+		logger:    logger,
+		as:        as,
+		jwtConfig: jwtConfig,
 	}
 }
 
@@ -150,7 +153,6 @@ func (h *AuthHandler) Token(ctx context.Context, req *pb.TokenRequest) (*pb.Toke
 		zap.String("username", req.Username),
 	)
 
-	// Custom validation based on grant type
 	if err := h.validateTokenRequest(req); err != nil {
 		h.logger.Warn("Invalid token request data", zap.Error(err))
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -180,7 +182,7 @@ func (h *AuthHandler) Token(ctx context.Context, req *pb.TokenRequest) (*pb.Toke
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		TokenType:    "Bearer",
-		ExpiresIn:    900, // 15 minutes in seconds
+		ExpiresIn:    uint32(h.jwtConfig.AccessTokenTTL.Seconds()), 
 		Scope:        req.Scope,
 	}, nil
 }

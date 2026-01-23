@@ -267,98 +267,6 @@
             "Bearer": []
           }
         ]
-      },
-      "post": {
-        "summary": "Upload binary",
-        "description": "Uploads a new encrypted binary file (max 10MB)",
-        "operationId": "uploadBinary",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1BinaryUploadResponse"
-            }
-          },
-          "400": {
-            "description": "Bad Request - Invalid request data or validation error",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required or token expired",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "403": {
-            "description": "Forbidden - Access denied to the requested resource",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "404": {
-            "description": "Not Found - The requested resource does not exist",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "409": {
-            "description": "Conflict - Resource already exists or data conflict",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "413": {
-            "description": "Payload Too Large - Request body exceeds size limit",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "429": {
-            "description": "Too Many Requests - Rate limit exceeded",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "500": {
-            "description": "Internal Server Error - Unexpected server error",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "503": {
-            "description": "Service Unavailable - Server temporarily unavailable",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "description": "BinaryUploadRequest uploads binary content.",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v1BinaryUploadRequest"
-            }
-          }
-        ],
-        "tags": [
-          "Binaries"
-        ],
-        "security": [
-          {
-            "Bearer": []
-          }
-        ]
       }
     },
     "/binaries/{id}": {
@@ -629,98 +537,6 @@
             "schema": {
               "$ref": "#/definitions/v1BinariesServiceUpdateBody"
             }
-          }
-        ],
-        "tags": [
-          "Binaries"
-        ],
-        "security": [
-          {
-            "Bearer": []
-          }
-        ]
-      }
-    },
-    "/binaries/{id}/download": {
-      "get": {
-        "summary": "Download binary",
-        "description": "Downloads binary file content by ID",
-        "operationId": "downloadBinary",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1BinaryDownloadResponse"
-            }
-          },
-          "400": {
-            "description": "Bad Request - Invalid request data or validation error",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required or token expired",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "403": {
-            "description": "Forbidden - Access denied to the requested resource",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "404": {
-            "description": "Not Found - The requested resource does not exist",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "409": {
-            "description": "Conflict - Resource already exists or data conflict",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "413": {
-            "description": "Payload Too Large - Request body exceeds size limit",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "429": {
-            "description": "Too Many Requests - Rate limit exceeded",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "500": {
-            "description": "Internal Server Error - Unexpected server error",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "503": {
-            "description": "Service Unavailable - Server temporarily unavailable",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "id",
-            "description": "id is the binary entry ID.",
-            "in": "path",
-            "required": true,
-            "type": "string"
           }
         ],
         "tags": [
@@ -2968,6 +2784,10 @@
           "type": "string",
           "format": "date-time",
           "description": "updated_at is the last update timestamp."
+        },
+        "checksum": {
+          "type": "string",
+          "description": "checksum is the SHA256 hash of the file content for integrity verification."
         }
       },
       "description": "Binary represents a binary entry metadata."
@@ -2982,24 +2802,30 @@
       },
       "description": "BinaryDeleteResponse confirms deletion."
     },
-    "v1BinaryDownloadResponse": {
+    "v1BinaryDownloadChunk": {
       "type": "object",
       "properties": {
-        "data": {
+        "chunk_data": {
           "type": "string",
           "format": "byte",
-          "description": "data is the binary content (encrypted client-side if required)."
+          "description": "chunk_data is a portion of the file content."
         },
-        "filename": {
+        "offset": {
           "type": "string",
-          "description": "filename is the original file name."
+          "format": "int64",
+          "description": "offset is the byte offset of this chunk in the file."
         },
-        "content_type": {
+        "total_size": {
           "type": "string",
-          "description": "content_type is the file content type."
+          "format": "int64",
+          "description": "total_size is the total file size in bytes."
+        },
+        "checksum": {
+          "type": "string",
+          "description": "checksum is the SHA256 hash of the complete file (sent in the last chunk)."
         }
       },
-      "description": "BinaryDownloadResponse returns binary content."
+      "description": "BinaryDownloadChunk represents a chunk of data during streaming download."
     },
     "v1BinaryGetResponse": {
       "type": "object",
@@ -3029,17 +2855,7 @@
       },
       "description": "BinaryListResponse returns paginated binary entries."
     },
-    "v1BinaryUpdateResponse": {
-      "type": "object",
-      "properties": {
-        "binary": {
-          "$ref": "#/definitions/v1Binary",
-          "description": "binary is the updated entry."
-        }
-      },
-      "description": "BinaryUpdateResponse returns the updated binary entry."
-    },
-    "v1BinaryUploadRequest": {
+    "v1BinaryMetadata": {
       "type": "object",
       "properties": {
         "name": {
@@ -3054,17 +2870,31 @@
           "type": "string",
           "description": "content_type is the file content type."
         },
-        "data": {
+        "total_size": {
           "type": "string",
-          "format": "byte",
-          "description": "data is the binary content (encrypted client-side if required)."
+          "format": "int64",
+          "description": "total_size is the total file size in bytes."
         },
         "metadata": {
           "type": "string",
           "description": "metadata is an optional metadata field."
+        },
+        "checksum": {
+          "type": "string",
+          "description": "checksum is the expected SHA256 hash of the file content."
         }
       },
-      "description": "BinaryUploadRequest uploads binary content."
+      "description": "BinaryMetadata contains metadata for streaming upload."
+    },
+    "v1BinaryUpdateResponse": {
+      "type": "object",
+      "properties": {
+        "binary": {
+          "$ref": "#/definitions/v1Binary",
+          "description": "binary is the updated entry."
+        }
+      },
+      "description": "BinaryUpdateResponse returns the updated binary entry."
     },
     "v1BinaryUploadResponse": {
       "type": "object",

@@ -29,6 +29,15 @@ tasks:
     silent: true
 
   run:dev:
+    desc: "Run server in development mode"
+    sources:
+      - 'internal/server/**/*.go'
+    cmds:
+      - "go run {{.SERVER_DIR}} --config={{.CONFIG_DIR}}/server.dev.json"
+    silent: true
+
+  run:watch:
+    desc: "Run server with file watching"
     watch: true
     sources:
       - 'internal/server/**/*.go'

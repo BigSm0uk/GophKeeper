@@ -36,9 +36,13 @@ func NewContainer(logger *zap.Logger, cfg *config.ClientConfig, client *api.Clie
 
 // InitEncryptor инициализирует encryptor с заданным master password.
 func (c *Container) InitEncryptor(masterPassword string) error {
+	if c.Encryptor != nil {
+		return nil // уже инициализирован
+	}
+
 	// Пробуем загрузить salt из keyring
 	salt, err := c.TokenStore.GetEncryptionSalt()
-	if err != nil || salt == nil {
+	if err != nil || salt == nil || len(salt) == 0 {
 		// Генерируем новый salt
 		salt, err = crypto.GenerateSalt()
 		if err != nil {

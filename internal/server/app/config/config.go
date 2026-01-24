@@ -12,25 +12,27 @@ const (
 )
 
 type ServerConfig struct {
-	Env    string       `mapstructure:"env"`
-	GRPC   GRPCConfig   `mapstructure:"grpc"`
-	HTTP   HTTPConfig   `mapstructure:"http"`
-	Logger LoggerConfig `mapstructure:"logger"`
-	DB     DBConfig     `mapstructure:"db"`
-	JWT    JWTConfig    `mapstructure:"jwt"`
-	Auth   AuthConfig   `mapstructure:"auth"`
+	Env     string        `mapstructure:"env"`
+	GRPC    GRPCConfig    `mapstructure:"grpc"`
+	HTTP    HTTPConfig    `mapstructure:"http"`
+	Logger  LoggerConfig  `mapstructure:"logger"`
+	DB      DBConfig      `mapstructure:"db"`
+	JWT     JWTConfig     `mapstructure:"jwt"`
+	Auth    AuthConfig    `mapstructure:"auth"`
+	Storage StorageConfig `mapstructure:"storage"`
 }
 
 // NewDefaultServerConfig returns default server configuration
 func NewDefaultServerConfig() ServerConfig {
 	return ServerConfig{
-		Env:    EnvDevelopment,
-		GRPC:   NewDefaultGRPCConfig(),
-		HTTP:   NewDefaultHTTPConfig(),
-		DB:     NewDefaultDBConfig(),
-		Logger: NewDefaultLoggerConfig(),
-		JWT:    NewDefaultJWTConfig(),
-		Auth:   NewDefaultAuthConfig(),
+		Env:     EnvDevelopment,
+		GRPC:    NewDefaultGRPCConfig(),
+		HTTP:    NewDefaultHTTPConfig(),
+		DB:      NewDefaultDBConfig(),
+		Logger:  NewDefaultLoggerConfig(),
+		JWT:     NewDefaultJWTConfig(),
+		Auth:    NewDefaultAuthConfig(),
+		Storage: NewDefaultStorageConfig(),
 	}
 }
 

@@ -72,10 +72,7 @@ CREATE TABLE IF NOT EXISTS sync_changelog (
     operation VARCHAR(10) NOT NULL,    -- 'create', 'update', 'delete'
     data JSONB,                        
     version BIGINT NOT NULL,           
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    
-    INDEX idx_sync_user_created (user_id, created_at),
-    INDEX idx_sync_user_version (user_id, version)
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 -- Create indexes for better performance
@@ -88,18 +85,30 @@ CREATE INDEX IF NOT EXISTS idx_binaries_user_checksum ON binaries(user_id, check
 -- Create index on username for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
+-- Create indexes for sync_changelog table
+CREATE INDEX IF NOT EXISTS idx_sync_user_created ON sync_changelog(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_sync_user_version ON sync_changelog(user_id, version);
+
 -- Create partial index on email for users who have email set
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL;
 
 -- +goose Down
+-- Drop indexes first
+DROP INDEX IF EXISTS idx_sync_user_created;
+DROP INDEX IF EXISTS idx_sync_user_version;
+DROP INDEX IF EXISTS idx_texts_user_id;
+DROP INDEX IF EXISTS idx_credentials_user_id;
+DROP INDEX IF EXISTS idx_cards_user_id;
+DROP INDEX IF EXISTS idx_binaries_user_id;
+DROP INDEX IF EXISTS idx_binaries_checksum;
+DROP INDEX IF EXISTS idx_binaries_user_checksum;
+DROP INDEX IF EXISTS idx_users_username;
+DROP INDEX IF EXISTS idx_users_email;
+
 -- Drop tables in reverse order due to foreign key constraints
+DROP TABLE IF EXISTS sync_changelog;
 DROP TABLE IF EXISTS binaries;
 DROP TABLE IF EXISTS cards;
 DROP TABLE IF EXISTS credentials;
 DROP TABLE IF EXISTS texts;
 DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS sync_changelog;
-DROP INDEX IF EXISTS idx_texts_user_id;
-DROP INDEX IF EXISTS idx_credentials_user_id;
-DROP INDEX IF EXISTS idx_cards_user_id;
-DROP INDEX IF EXISTS idx_binaries_checksum;

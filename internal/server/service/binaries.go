@@ -20,13 +20,13 @@ import (
 
 type BinaryService struct {
 	logger      *zap.Logger
-	repo        interfaces.BinaryRepository
+	repo        interfaces.BinariesRepository
 	fileService *FileService
 	maxFileSize int64
 }
 
 // NewBinaryService creates a new binary service
-func NewBinaryService(logger *zap.Logger, repo interfaces.BinaryRepository, fileService *FileService, maxFileSize int64) *BinaryService {
+func NewBinaryService(logger *zap.Logger, repo interfaces.BinariesRepository, fileService *FileService, maxFileSize int64) *BinaryService {
 	return &BinaryService{
 		logger:      logger,
 		repo:        repo,

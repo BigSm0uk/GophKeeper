@@ -34,5 +34,9 @@
             "/grpc.health.v1.Health/Check",
             "/grpc.health.v1.Health/Watch"
         ]
+    },
+    "storage": {
+        "base_path": "./data/files",
+        "max_file_size": 104857600
     }
 }

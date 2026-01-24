@@ -32,8 +32,12 @@ func NewFileService(baseDir string, logger *zap.Logger) (*FileService, error) {
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
+	// Create base directory if it doesn't exist
 	if _, err := os.Stat(absBaseDir); os.IsNotExist(err) {
-		return nil, fmt.Errorf("base directory does not exist: %s", absBaseDir)
+		if err := os.MkdirAll(absBaseDir, 0o755); err != nil {
+			return nil, fmt.Errorf("failed to create base directory: %w", err)
+		}
+		logger.Info("Created base storage directory", zap.String("base_dir", absBaseDir))
 	}
 
 	logger.Info("File service initialized",

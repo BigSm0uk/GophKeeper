@@ -24,13 +24,16 @@ type Container struct {
 	HTTPServer *HTTPServer
 
 	// Domain Layer
-	AuthService *service.AuthService
-	JWTService  *service.JWTService
+	AuthService     *service.AuthService
+	JWTService      *service.JWTService
+	BinariesService *service.BinaryService
+	FileService *service.FileService
 	// CredService     *services.CredentialsService
 
 	// Data Layer
 	DB       *db.PostgresDb
 	UserRepo interfaces.UserRepository
+	BinariesRepo interfaces.BinariesRepository
 	// CredRepo        *repositories.CredentialsRepository
 	// MinioClient     *minio.Client
 }
@@ -65,17 +68,34 @@ func (c *Container) RegisterDatabase(db *db.PostgresDb) {
 
 func (c *Container) RegisterRepositories() {
 	ur := pg_repo.NewUserRepository(c.Logger, c.DB)
+	br := pg_repo.NewBinaryRepository(c.Logger, c.DB)
+
 	c.UserRepo = ur
+	c.BinariesRepo = br
 }
 
 func (c *Container) RegisterServices() error {
+	// Initialize FileService with configured storage path
+	fSvc, err := service.NewFileService(c.Config.Storage.BasePath, c.Logger)
+	if err != nil {
+		return err
+	}
+	c.FileService = fSvc
+
+	// Initialize JWT Service
 	jwtSvc, err := service.NewJWTService(c.Config.JWT)
 	if err != nil {
 		return err
 	}
 	c.JWTService = jwtSvc
 
+	// Initialize Auth Service
 	authSvc := service.NewAuthService(c.Logger, c.UserRepo, c.JWTService)
 	c.AuthService = authSvc
+
+	// Initialize Binaries Service
+	binSvc := service.NewBinaryService(c.Logger, c.BinariesRepo, c.FileService, c.Config.Storage.MaxFileSize)
+	c.BinariesService = binSvc
+
 	return nil
 }

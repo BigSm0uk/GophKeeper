@@ -182,7 +182,7 @@ func (h *AuthHandler) Token(ctx context.Context, req *pb.TokenRequest) (*pb.Toke
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		TokenType:    "Bearer",
-		ExpiresIn:    uint32(h.jwtConfig.AccessTokenTTL.Seconds()), 
+		ExpiresIn:    uint32(h.jwtConfig.AccessTokenTTL.Seconds()),
 		Scope:        req.Scope,
 	}, nil
 }

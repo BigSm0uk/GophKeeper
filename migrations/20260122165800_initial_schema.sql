@@ -84,6 +84,7 @@ CREATE INDEX IF NOT EXISTS idx_credentials_user_id ON credentials(user_id);
 CREATE INDEX IF NOT EXISTS idx_cards_user_id ON cards(user_id);
 CREATE INDEX IF NOT EXISTS idx_binaries_user_id ON binaries(user_id);
 CREATE INDEX IF NOT EXISTS idx_binaries_checksum ON binaries(checksum);
+CREATE INDEX IF NOT EXISTS idx_binaries_user_checksum ON binaries(user_id, checksum);
 -- Create index on username for faster lookups
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
@@ -98,4 +99,7 @@ DROP TABLE IF EXISTS credentials;
 DROP TABLE IF EXISTS texts;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS sync_changelog;
+DROP INDEX IF EXISTS idx_texts_user_id;
+DROP INDEX IF EXISTS idx_credentials_user_id;
+DROP INDEX IF EXISTS idx_cards_user_id;
 DROP INDEX IF EXISTS idx_binaries_checksum;

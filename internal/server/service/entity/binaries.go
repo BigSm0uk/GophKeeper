@@ -10,6 +10,59 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// streamReader is an adapter that converts gRPC stream to io.Reader
+type StreamReader struct {
+	stream    pb.BinariesService_UploadStreamServer
+	buffer    []byte
+	bufferPos int
+}
+
+func NewStreamReader(stream pb.BinariesService_UploadStreamServer) *StreamReader {
+	return &StreamReader{
+		stream: stream,
+		buffer: nil,
+	}
+}
+
+func (sr *StreamReader) Read(p []byte) (n int, err error) {
+
+	if sr.buffer == nil || sr.bufferPos >= len(sr.buffer) {
+		req, err := sr.stream.Recv()
+		if err != nil {
+			return 0, err
+		}
+
+		chunkData := req.GetChunkData()
+		if chunkData == nil {
+			return sr.Read(p)
+		}
+
+		sr.buffer = chunkData
+		sr.bufferPos = 0
+	}
+
+	n = copy(p, sr.buffer[sr.bufferPos:])
+	sr.bufferPos += n
+	return n, nil
+}
+
+// StreamUploadRequest represents the metadata for uploading a file
+type StreamUploadRequest struct {
+	UserID      string
+	Name        string
+	Filename    string
+	ContentType string
+	TotalSize   int64
+	Metadata    *string
+	Checksum    string
+}
+
+// StreamUploadResult represents the result of a file upload
+type StreamUploadResult struct {
+	Binary    *Binary
+	BytesRead int64
+}
+
 // Binary represents a binary file entry in the domain layer.
 type Binary struct {
 	ID          string
@@ -20,7 +73,7 @@ type Binary struct {
 	ContentType string
 	Metadata    *string
 	StoragePath string // internal path where file is stored
-	Checksum    string 
+	Checksum    string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

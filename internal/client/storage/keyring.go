@@ -57,3 +57,23 @@ func (s *TokenStore) DeleteTokens(username string) {
 	_ = s.ring.Remove(fmt.Sprintf("%s:access_token", username))
 	_ = s.ring.Remove(fmt.Sprintf("%s:refresh_token", username))
 }
+
+// SaveEncryptionSalt сохраняет salt для шифрования.
+func (s *TokenStore) SaveEncryptionSalt(salt []byte) error {
+	return s.ring.Set(keyring.Item{
+		Key:  "encryption_salt",
+		Data: salt,
+	})
+}
+
+// GetEncryptionSalt загружает salt для шифрования.
+func (s *TokenStore) GetEncryptionSalt() ([]byte, error) {
+	item, err := s.ring.Get("encryption_salt")
+	if err != nil {
+		if err == keyring.ErrKeyNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return item.Data, nil
+}

@@ -45,6 +45,12 @@ func configSearchPath() string {
 	return filepath.Join(xdg.ConfigHome, "gophkeeper", "client.yaml")
 }
 
+// GetLocalDBPath возвращает путь к локальной БД.
+func (c *ClientConfig) GetLocalDBPath() (string, error) {
+	dbPath := filepath.Join(xdg.DataHome, "gophkeeper", "local.db")
+	return dbPath, nil
+}
+
 // Load читает конфиг. Если путь пустой и файл по умолчанию не найден, возвращает значения по умолчанию.
 func Load(path string) (*ClientConfig, error) {
 	cfg := DefaultConfig()

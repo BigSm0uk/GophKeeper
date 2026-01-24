@@ -7,6 +7,7 @@ import (
 	clientapp "github.com/BigSm0uk/GophKeeper/internal/client/app"
 	"github.com/BigSm0uk/GophKeeper/internal/client/app/config"
 	"github.com/BigSm0uk/GophKeeper/internal/client/app/logger"
+	"github.com/BigSm0uk/GophKeeper/internal/client/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -73,7 +74,12 @@ func init() {
 			return fmt.Errorf("api client: %w", err)
 		}
 
-		container = clientapp.NewContainer(log, cfg, client)
+		tokenStore, err := storage.NewTokenStore()
+		if err != nil {
+			return fmt.Errorf("token store: %w", err)
+		}
+
+		container = clientapp.NewContainer(log, cfg, client, tokenStore)
 		return nil
 	}
 

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/BigSm0uk/GophKeeper/internal/client/storage"
 	"github.com/BigSm0uk/GophKeeper/internal/client/tui"
 	pb "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1"
 	tea "github.com/charmbracelet/bubbletea"
@@ -28,10 +27,10 @@ func init() {
 		Use:   "tui",
 		Short: "Open TUI for login/registration",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			store, err := storage.NewTokenStore()
-			if err != nil {
-				return fmt.Errorf("keyring: %w", err)
+			if container == nil || container.TokenStore == nil {
+				return fmt.Errorf("client not initialized")
 			}
+			store := container.TokenStore
 			mode := tui.ModeLogin
 			if tuiRegister {
 				mode = tui.ModeRegister
@@ -91,14 +90,13 @@ func init() {
 				return fmt.Errorf("login: %w", err)
 			}
 
-			store, err := storage.NewTokenStore()
-			if err != nil {
-				return fmt.Errorf("keyring: %w", err)
+			if container.TokenStore == nil {
+				return fmt.Errorf("token store not initialized")
 			}
-			if err := store.SaveAccessToken(username, tokens.AccessToken); err != nil {
+			if err := container.TokenStore.SaveAccessToken(username, tokens.AccessToken); err != nil {
 				return fmt.Errorf("save access token: %w", err)
 			}
-			if err := store.SaveRefreshToken(username, tokens.RefreshToken); err != nil {
+			if err := container.TokenStore.SaveRefreshToken(username, tokens.RefreshToken); err != nil {
 				return fmt.Errorf("save refresh token: %w", err)
 			}
 
@@ -118,11 +116,10 @@ func init() {
 				return err
 			}
 
-			store, err := storage.NewTokenStore()
-			if err != nil {
-				return fmt.Errorf("keyring: %w", err)
+			if container.TokenStore == nil {
+				return fmt.Errorf("token store not initialized")
 			}
-			refresh, err := store.GetRefreshToken(username)
+			refresh, err := container.TokenStore.GetRefreshToken(username)
 			if err != nil {
 				return fmt.Errorf("get refresh token: %w", err)
 			}
@@ -130,7 +127,7 @@ func init() {
 			if _, err := container.API.Revoke(context.Background(), refresh, "gophkeeper-cli", "", pb.TokenTypeHint_TOKEN_TYPE_HINT_REFRESH_TOKEN); err != nil {
 				return fmt.Errorf("revoke: %w", err)
 			}
-			store.DeleteTokens(username)
+			container.TokenStore.DeleteTokens(username)
 			container.Logger.Info("user logged out", zap.String("username", username))
 			fmt.Println("✅ Logged out")
 			return nil

@@ -237,7 +237,7 @@ var credUpdateCmd = &cobra.Command{
 		if login == "" {
 			login = current.Credential.Login
 		}
-		
+
 		// Для пароля нужно шифровать если он изменился
 		encryptedPassword := current.Credential.Password // по умолчанию оставляем старый
 		if password != "" {

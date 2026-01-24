@@ -2,14 +2,17 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/config"
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
+	"github.com/BigSm0uk/GophKeeper/migrations"
 	"github.com/avast/retry-go"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 )
 
@@ -75,6 +78,37 @@ func (p *PostgresDb) Start(ctx context.Context) error {
 	}
 
 	p.warmUp(10)
+
+	return nil
+}
+
+// RunMigrations runs all pending database migrations using goose.
+// It creates a separate database/sql connection specifically for migrations.
+func RunMigrations(connectionString string, logger *zap.Logger) error {
+	// Create a standard database/sql connection for goose
+	sqlDB, err := sql.Open("pgx", connectionString)
+	if err != nil {
+		return fmt.Errorf("failed to open database for migrations: %w", err)
+	}
+	defer sqlDB.Close()
+
+	goose.SetBaseFS(migrations.EmbedMigrations)
+
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("failed to set goose dialect: %w", err)
+	}
+
+	logger.Info("Running database migrations...")
+	if err := goose.Up(sqlDB, "."); err != nil {
+		return fmt.Errorf("failed to apply migrations: %w", err)
+	}
+
+	version, err := goose.GetDBVersion(sqlDB)
+	if err != nil {
+		logger.Warn("Failed to get migration version", zap.Error(err))
+	} else {
+		logger.Info("Database migrations completed", zap.Int64("version", version))
+	}
 
 	return nil
 }

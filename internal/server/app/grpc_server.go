@@ -15,13 +15,14 @@ import (
 )
 
 type GRPCServer struct {
-	server      *grpc.Server
-	logger      *zap.Logger
-	config      *config.ServerConfig
-	authHandler *grpchandlers.AuthHandler
+	server          *grpc.Server
+	logger          *zap.Logger
+	config          *config.ServerConfig
+	authHandler     *grpchandlers.AuthHandler
+	binariesHandler *grpchandlers.BinariesHandler
 }
 
-func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *service.AuthService) *GRPCServer {
+func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *service.AuthService, binariesService *service.BinaryService) *GRPCServer {
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			grpchandlers.RecoveryInterceptor(logger),
@@ -31,7 +32,10 @@ func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *se
 	)
 
 	authHandler := grpchandlers.NewAuthHandler(logger, authService, cfg.JWT)
+	binariesHandler := grpchandlers.NewBinariesHandler(logger, binariesService)
+
 	pb.RegisterAuthServiceServer(server, authHandler)
+	pb.RegisterBinariesServiceServer(server, binariesHandler)
 
 	// TODO: Регистрировать другие сервисы
 	// pb.RegisterCredentialsServiceServer(server, credHandler)
@@ -44,10 +48,11 @@ func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *se
 	}
 
 	return &GRPCServer{
-		server:      server,
-		logger:      logger,
-		config:      cfg,
-		authHandler: authHandler,
+		server:          server,
+		logger:          logger,
+		config:          cfg,
+		authHandler:     authHandler,
+		binariesHandler: binariesHandler,
 	}
 }
 

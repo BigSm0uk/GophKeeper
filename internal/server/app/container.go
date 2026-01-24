@@ -27,12 +27,12 @@ type Container struct {
 	AuthService     *service.AuthService
 	JWTService      *service.JWTService
 	BinariesService *service.BinaryService
-	FileService *service.FileService
+	FileService     *service.FileService
 	// CredService     *services.CredentialsService
 
 	// Data Layer
-	DB       *db.PostgresDb
-	UserRepo interfaces.UserRepository
+	DB           *db.PostgresDb
+	UserRepo     interfaces.UserRepository
 	BinariesRepo interfaces.BinariesRepository
 	// CredRepo        *repositories.CredentialsRepository
 	// MinioClient     *minio.Client
@@ -49,7 +49,7 @@ func NewContainer(logger *zap.Logger, cfg *config.ServerConfig) *Container {
 
 // RegisterGRPCServer registers the gRPC server component.
 func (c *Container) RegisterGRPCServer() {
-	server := NewGRPCServer(c.Config, c.Logger, c.AuthService)
+	server := NewGRPCServer(c.Config, c.Logger, c.AuthService, c.BinariesService)
 	c.GRPCServer = server
 	c.App.AddComponent(server)
 }

@@ -1,0 +1,108 @@
+---
+description: gRPC patterns and best practices for GophKeeper
+globs: "{**/*grpc*.go,**/handlers/grpc/*.go,**/*.proto}"
+alwaysApply: false
+---
+
+# gRPC Patterns
+
+## Handler Structure
+
+All gRPC handlers are in `internal/server/handlers/grpc/`.
+
+```go
+// AuthHandler implements AuthServiceServer
+type AuthHandler struct {
+    pb.UnimplementedAuthServiceServer
+    logger    *zap.Logger
+    as        *service.AuthService
+    jwtConfig config.JWTConfig
+}
+
+// NewAuthHandler creates a new auth handler
+func NewAuthHandler(logger *zap.Logger, as *service.AuthService, jwtConfig config.JWTConfig) *AuthHandler {
+    return &AuthHandler{
+        logger:    logger,
+        as:        as,
+        jwtConfig: jwtConfig,
+    }
+}
+```
+
+## Request Validation
+
+Always validate input data with detailed checks:
+```go
+// validateTokenRequest validates token request based on grant type
+func (h *AuthHandler) validateTokenRequest(req *pb.TokenRequest) error {
+    if req.Username == "" {
+        return fmt.Errorf("username is required for password grant")
+    }
+    if len(req.Username) < 3 || len(req.Username) > 50 {
+        return fmt.Errorf("username must be between 3 and 50 characters")
+    }
+    return nil
+}
+```
+
+## Error Classification
+
+Create helper methods to transform domain errors to gRPC statuses:
+```go
+// classifyServiceError classifies service errors into appropriate gRPC status codes
+// Note: This method only transforms errors, logging is handled at the service layer
+func (h *AuthHandler) classifyServiceError(err error) error {
+    switch {
+    case errors.Is(err, models.ErrUserNotFound):
+        return status.Error(codes.NotFound, "User not found")
+    case errors.Is(err, models.ErrUserAlreadyExists):
+        return status.Error(codes.AlreadyExists, "User with this username already exists")
+    case errors.Is(err, models.ErrInvalidCredentials):
+        return status.Error(codes.Unauthenticated, "Invalid credentials")
+    case errors.Is(err, models.ErrInvalidToken):
+        return status.Error(codes.Unauthenticated, "Invalid token")
+    default:
+        return status.Error(codes.Internal, "Internal server error")
+    }
+}
+```
+
+## Interceptors
+
+Use interceptors for cross-cutting concerns:
+- **Authentication**: `AuthInterceptor` validates JWT tokens
+- **Logging**: logs all requests
+- **Recovery**: catches panics
+
+See `internal/server/handlers/grpc/interceptors.go`.
+
+## Proto Files
+
+Structure: `proto/gophkeeper/v1/`
+
+Naming conventions:
+- Services: `AuthService`, `BinariesService`
+- Methods: verb + noun (`Register`, `GetBinary`)
+- Messages: `{Method}Request`, `{Method}Response`
+
+```protobuf
+service AuthService {
+    rpc Register(RegisterRequest) returns (RegisterResponse);
+    rpc Token(TokenRequest) returns (TokenResponse);
+}
+```
+
+## Streaming
+
+Use streaming for large files:
+```go
+stream, err := client.UploadBinary(ctx)
+for {
+    chunk := make([]byte, chunkSize)
+    n, err := file.Read(chunk)
+    if err == io.EOF {
+        break
+    }
+    stream.Send(&UploadRequest{Chunk: chunk[:n]})
+}
+```

@@ -12,6 +12,7 @@ import (
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/config"
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/db"
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/logger"
+	_ "github.com/jackc/pgx/v5/stdlib" // Register pgx driver for database/sql
 	"go.uber.org/zap"
 )
 
@@ -45,6 +46,11 @@ func bootstrap() (*app.Container, error) {
 		return nil, fmt.Errorf("failed to init database: %w", err)
 	}
 	container.RegisterDatabase(postgresDb)
+
+	// 4.1. Run database migrations
+	if err := db.RunMigrations(cfg.DB.ConnectionString, log); err != nil {
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	}
 
 	// 5. Data Layer: Repositories (TODO: Denis)
 	container.RegisterRepositories()

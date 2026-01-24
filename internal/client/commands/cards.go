@@ -59,11 +59,11 @@ var cardAddCmd = &cobra.Command{
 		}
 
 		req := &pb.CardCreateRequest{
-			Name:            name,
-			CardNumber:      encryptedCardNumber,
-			CardholderName:  cardholderName,
-			ExpiryDate:      encryptedExpiryDate,
-			Cvv:             encryptedCVV,
+			Name:           name,
+			CardNumber:     encryptedCardNumber,
+			CardholderName: cardholderName,
+			ExpiryDate:     encryptedExpiryDate,
+			Cvv:            encryptedCVV,
 		}
 		if bankName != "" {
 			req.BankName = &bankName
@@ -343,7 +343,6 @@ var cardDeleteCmd = &cobra.Command{
 		return nil
 	},
 }
-
 
 func init() {
 	cardAddCmd.Flags().String("bank", "", "bank name")

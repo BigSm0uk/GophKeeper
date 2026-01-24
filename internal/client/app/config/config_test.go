@@ -25,7 +25,7 @@ func TestLoad_DefaultConfig(t *testing.T) {
 		}
 	}`
 
-	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	err := os.WriteFile(configPath, []byte(configContent), 0o644)
 	if err != nil {
 		t.Fatalf("failed to write config file: %v", err)
 	}

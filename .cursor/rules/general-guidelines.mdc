@@ -1,0 +1,118 @@
+---
+description: General development guidelines for GophKeeper
+alwaysApply: true
+---
+
+# General Guidelines
+
+## Communication Language
+
+Always respond in Russian unless the user requests otherwise.
+
+## Code Style
+
+- Follow Go standards (gofmt, golangci-lint)
+- Use meaningful variable names
+- **Comment ONLY exported functions/types in ENGLISH**
+- **Add inline comments ONLY for critical logic in ENGLISH**
+- Line length: up to 120 characters
+
+## Comments (IMPORTANT)
+
+**All comments must be in ENGLISH**
+
+Only comment:
+1. Exported functions/types/methods (starting with capital letter)
+2. Critical/complex logic inside functions
+
+```go
+// ✅ GOOD - exported function with English comment
+// NewUserRepository creates a new user repository
+func NewUserRepository(logger *zap.Logger, db *db.PostgresDb) *UserRepository {
+    return &UserRepository{logger: logger, db: db}
+}
+
+// ✅ GOOD - critical logic explained
+// For password grant, username and password are required
+if req.Username == "" {
+    return fmt.Errorf("username is required")
+}
+
+// ❌ BAD - private function with comment (unnecessary)
+// создает нового пользователя
+func createUser() {}
+
+// ❌ BAD - comment in Russian
+// Создает новый репозиторий
+func NewRepository() {}
+```
+
+## Testing
+
+- Unit tests: `*_test.go` next to code
+- Integration tests: `tests/integration/`
+- Use testcontainers for integration tests
+- See `tests/QUICKSTART.md` for running tests
+
+```go
+func TestServiceMethod(t *testing.T) {
+    // Arrange
+    service := setupTestService(t)
+    
+    // Act
+    result, err := service.Method(ctx, input)
+    
+    // Assert
+    require.NoError(t, err)
+    assert.Equal(t, expected, result)
+}
+```
+
+## Security
+
+- **NEVER** log sensitive data (passwords, tokens, keys)
+- Use bcrypt for password hashing
+- JWT tokens for authentication
+- Validate all input data
+
+## Concurrency
+
+- Use sync.RWMutex to protect shared state
+- Close goroutines via context
+- Always use defer for cleanup
+
+```go
+func (s *Service) Start(ctx context.Context) error {
+    defer s.cleanup()
+    
+    for {
+        select {
+        case <-ctx.Done():
+            return ctx.Err()
+        case task := <-s.tasks:
+            s.process(task)
+        }
+    }
+}
+```
+
+## Task Commands
+
+Use taskfile for common operations:
+- `task proto:generate` - generate proto files
+- `task server:run` - run server
+- `task server:migrate:up` - apply migrations
+- `task test:integration` - run integration tests
+- `task format` - format code
+
+## Git Workflow
+
+- Commits in Russian or English (be consistent)
+- Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`
+- Example: `feat: добавлена поддержка синхронизации карт`
+
+## Documentation
+
+- API docs: `docs/API.md`
+- Tech stack: `docs/TECH_STACK.md`
+- Swagger UI available at `/swagger/` when server is running

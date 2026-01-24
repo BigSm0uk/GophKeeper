@@ -19,7 +19,7 @@ type LocalDB struct {
 func NewLocalDB(dbPath string) (*LocalDB, error) {
 	// Ensure directory exists
 	dir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, fmt.Errorf("failed to create db directory: %w", err)
 	}
 
@@ -259,13 +259,13 @@ func (l *LocalDB) DeleteCredential(id string) error {
 // UpdateCredentialSyncStatus updates the sync status of a credential.
 func (l *LocalDB) UpdateCredentialSyncStatus(id string, status SyncStatus) error {
 	query := `UPDATE credentials SET sync_status = ?, synced_at = ? WHERE id = ?`
-	
+
 	var syncedAt *int64
 	if status == StatusSynced {
 		now := time.Now().Unix()
 		syncedAt = &now
 	}
-	
+
 	_, err := l.db.Exec(query, string(status), syncedAt, id)
 	return err
 }

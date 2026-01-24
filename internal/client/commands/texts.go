@@ -24,13 +24,24 @@ var textAddCmd = &cobra.Command{
 			return fmt.Errorf("client not initialized")
 		}
 
+		// Инициализируем encryptor
+		if err := ensureEncryptor(); err != nil {
+			return err
+		}
+
 		name := promptRequired("Name")
 		content := promptRequired("Content")
 		metadata, _ := cmd.Flags().GetString("metadata")
 
+		// Шифруем content
+		encryptedContent, err := container.Encryptor.Encrypt(content)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt content: %w", err)
+		}
+
 		req := &pb.TextCreateRequest{
 			Name:    name,
-			Content: content,
+			Content: encryptedContent,
 		}
 		if metadata != "" {
 			req.Metadata = &metadata
@@ -124,6 +135,11 @@ var textGetCmd = &cobra.Command{
 
 		id := args[0]
 
+		// Инициализируем encryptor
+		if err := ensureEncryptor(); err != nil {
+			return err
+		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
@@ -134,10 +150,16 @@ var textGetCmd = &cobra.Command{
 
 		text := resp.Text
 
+		// Дешифруем content
+		decryptedContent, err := container.Encryptor.Decrypt(text.Content)
+		if err != nil {
+			return fmt.Errorf("failed to decrypt content: %w", err)
+		}
+
 		fmt.Printf("Text Note Details:\n")
 		fmt.Printf("  ID:      %s\n", text.Id)
 		fmt.Printf("  Name:    %s\n", text.Name)
-		fmt.Printf("  Content:\n%s\n", text.Content)
+		fmt.Printf("  Content:\n%s\n", decryptedContent)
 
 		if text.Metadata != nil {
 			fmt.Printf("  Metadata: %s\n", *text.Metadata)

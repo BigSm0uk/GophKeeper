@@ -24,6 +24,11 @@ var credAddCmd = &cobra.Command{
 			return fmt.Errorf("client not initialized")
 		}
 
+		// Инициализируем encryptor
+		if err := ensureEncryptor(); err != nil {
+			return err
+		}
+
 		name := promptRequired("Name")
 		login := promptRequired("Login")
 		password, err := promptSecret("Password")
@@ -36,10 +41,16 @@ var credAddCmd = &cobra.Command{
 		url, _ := cmd.Flags().GetString("url")
 		metadata, _ := cmd.Flags().GetString("metadata")
 
+		// Шифруем чувствительные данные
+		encryptedPassword, err := container.Encryptor.Encrypt(password)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt password: %w", err)
+		}
+
 		req := &pb.CredentialCreateRequest{
 			Name:     name,
 			Login:    login,
-			Password: password,
+			Password: encryptedPassword, // отправляем зашифрованный пароль
 		}
 		if url != "" {
 			req.Url = &url
@@ -139,6 +150,11 @@ var credGetCmd = &cobra.Command{
 
 		id := args[0]
 
+		// Инициализируем encryptor
+		if err := ensureEncryptor(); err != nil {
+			return err
+		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
@@ -149,11 +165,17 @@ var credGetCmd = &cobra.Command{
 
 		cred := resp.Credential
 
+		// Дешифруем пароль
+		decryptedPassword, err := container.Encryptor.Decrypt(cred.Password)
+		if err != nil {
+			return fmt.Errorf("failed to decrypt password: %w", err)
+		}
+
 		fmt.Printf("Credential Details:\n")
 		fmt.Printf("  ID:       %s\n", cred.Id)
 		fmt.Printf("  Name:     %s\n", cred.Name)
 		fmt.Printf("  Login:    %s\n", cred.Login)
-		fmt.Printf("  Password: %s\n", cred.Password)
+		fmt.Printf("  Password: %s\n", decryptedPassword)
 
 		if cred.Url != nil {
 			fmt.Printf("  URL:      %s\n", *cred.Url)
@@ -194,6 +216,11 @@ var credUpdateCmd = &cobra.Command{
 			return fmt.Errorf("at least one field must be specified for update")
 		}
 
+		// Инициализируем encryptor
+		if err := ensureEncryptor(); err != nil {
+			return err
+		}
+
 		// Get current credential to preserve unchanged fields
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -210,15 +237,22 @@ var credUpdateCmd = &cobra.Command{
 		if login == "" {
 			login = current.Credential.Login
 		}
-		if password == "" {
-			password = current.Credential.Password
+		
+		// Для пароля нужно шифровать если он изменился
+		encryptedPassword := current.Credential.Password // по умолчанию оставляем старый
+		if password != "" {
+			// Шифруем новый пароль
+			encryptedPassword, err = container.Encryptor.Encrypt(password)
+			if err != nil {
+				return fmt.Errorf("failed to encrypt password: %w", err)
+			}
 		}
 
 		req := &pb.CredentialUpdateRequest{
 			Id:       id,
 			Name:     name,
 			Login:    login,
-			Password: password,
+			Password: encryptedPassword,
 		}
 
 		if cmd.Flags().Changed("url") {
@@ -288,6 +322,27 @@ var credDeleteCmd = &cobra.Command{
 		fmt.Printf("✓ Credential deleted successfully!\n")
 		return nil
 	},
+}
+
+// ensureEncryptor проверяет что encryptor инициализирован, если нет - запрашивает master password.
+func ensureEncryptor() error {
+	if container.Encryptor != nil {
+		return nil
+	}
+
+	masterPassword, err := promptSecret("Master Password (for encryption)")
+	if err != nil {
+		return fmt.Errorf("failed to read master password: %w", err)
+	}
+	if masterPassword == "" {
+		return fmt.Errorf("master password is required")
+	}
+
+	if err := container.InitEncryptor(masterPassword); err != nil {
+		return fmt.Errorf("failed to init encryptor: %w", err)
+	}
+
+	return nil
 }
 
 func init() {

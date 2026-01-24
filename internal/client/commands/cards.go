@@ -24,6 +24,11 @@ var cardAddCmd = &cobra.Command{
 			return fmt.Errorf("client not initialized")
 		}
 
+		// Инициализируем encryptor
+		if err := ensureEncryptor(); err != nil {
+			return err
+		}
+
 		name := promptRequired("Card Name")
 		cardNumber := promptRequired("Card Number")
 		cardholderName := promptRequired("Cardholder Name")
@@ -39,12 +44,26 @@ var cardAddCmd = &cobra.Command{
 		bankName, _ := cmd.Flags().GetString("bank")
 		metadata, _ := cmd.Flags().GetString("metadata")
 
+		// Шифруем чувствительные данные
+		encryptedCardNumber, err := container.Encryptor.Encrypt(cardNumber)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt card number: %w", err)
+		}
+		encryptedCVV, err := container.Encryptor.Encrypt(cvv)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt CVV: %w", err)
+		}
+		encryptedExpiryDate, err := container.Encryptor.Encrypt(expiryDate)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt expiry date: %w", err)
+		}
+
 		req := &pb.CardCreateRequest{
 			Name:            name,
-			CardNumber:      cardNumber,
+			CardNumber:      encryptedCardNumber,
 			CardholderName:  cardholderName,
-			ExpiryDate:      expiryDate,
-			Cvv:             cvv,
+			ExpiryDate:      encryptedExpiryDate,
+			Cvv:             encryptedCVV,
 		}
 		if bankName != "" {
 			req.BankName = &bankName
@@ -143,6 +162,11 @@ var cardGetCmd = &cobra.Command{
 
 		id := args[0]
 
+		// Инициализируем encryptor
+		if err := ensureEncryptor(); err != nil {
+			return err
+		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
@@ -153,13 +177,27 @@ var cardGetCmd = &cobra.Command{
 
 		card := resp.Card
 
+		// Дешифруем чувствительные данные
+		decryptedCardNumber, err := container.Encryptor.Decrypt(card.CardNumber)
+		if err != nil {
+			return fmt.Errorf("failed to decrypt card number: %w", err)
+		}
+		decryptedExpiryDate, err := container.Encryptor.Decrypt(card.ExpiryDate)
+		if err != nil {
+			return fmt.Errorf("failed to decrypt expiry date: %w", err)
+		}
+		decryptedCVV, err := container.Encryptor.Decrypt(card.Cvv)
+		if err != nil {
+			return fmt.Errorf("failed to decrypt CVV: %w", err)
+		}
+
 		fmt.Printf("Card Details:\n")
 		fmt.Printf("  ID:          %s\n", card.Id)
 		fmt.Printf("  Name:        %s\n", card.Name)
 		fmt.Printf("  Cardholder:  %s\n", card.CardholderName)
-		fmt.Printf("  Number:      %s\n", card.CardNumber)
-		fmt.Printf("  Expiry:      %s\n", card.ExpiryDate)
-		fmt.Printf("  CVV:         %s\n", card.Cvv)
+		fmt.Printf("  Number:      %s\n", decryptedCardNumber)
+		fmt.Printf("  Expiry:      %s\n", decryptedExpiryDate)
+		fmt.Printf("  CVV:         %s\n", decryptedCVV)
 
 		if card.BankName != nil {
 			fmt.Printf("  Bank:        %s\n", *card.BankName)
@@ -305,6 +343,7 @@ var cardDeleteCmd = &cobra.Command{
 		return nil
 	},
 }
+
 
 func init() {
 	cardAddCmd.Flags().String("bank", "", "bank name")

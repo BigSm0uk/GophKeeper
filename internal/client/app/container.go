@@ -2,22 +2,25 @@ package app
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/BigSm0uk/GophKeeper/internal/client/api"
 	"github.com/BigSm0uk/GophKeeper/internal/client/app/config"
 	"github.com/BigSm0uk/GophKeeper/internal/client/crypto"
 	"github.com/BigSm0uk/GophKeeper/internal/client/storage"
+	"github.com/BigSm0uk/GophKeeper/internal/client/sync"
 	"go.uber.org/zap"
 )
 
 // Container хранит зависимости клиента.
 type Container struct {
-	Logger     *zap.Logger
-	Config     *config.ClientConfig
-	API        *api.Client
-	TokenStore *storage.TokenStore
-	LocalDB    *storage.LocalDB
-	Encryptor  *crypto.Encryptor // может быть nil, инициализируется при необходимости
+	Logger      *zap.Logger
+	Config      *config.ClientConfig
+	API         *api.Client
+	TokenStore  *storage.TokenStore
+	LocalDB     *storage.LocalDB
+	Encryptor   *crypto.Encryptor // может быть nil, инициализируется при необходимости
+	SyncManager *sync.Manager     // менеджер фоновой синхронизации
 }
 
 func NewContainer(logger *zap.Logger, cfg *config.ClientConfig, client *api.Client, tokenStore *storage.TokenStore) *Container {
@@ -76,4 +79,41 @@ func (c *Container) GetOrInitLocalDB() (*storage.LocalDB, error) {
 
 	c.LocalDB = db
 	return db, nil
+}
+
+// InitSyncManager инициализирует менеджер синхронизации.
+func (c *Container) InitSyncManager() error {
+	if c.SyncManager != nil {
+		return nil // уже инициализирован
+	}
+
+	if c.LocalDB == nil {
+		if _, err := c.GetOrInitLocalDB(); err != nil {
+			return fmt.Errorf("failed to init local db: %w", err)
+		}
+	}
+
+	// Интервал синхронизации по умолчанию - 5 минут
+	interval := 5 * time.Minute
+	c.SyncManager = sync.NewManager(c.API, c.LocalDB, c.Logger, interval)
+
+	return nil
+}
+
+// StartSync запускает фоновую синхронизацию.
+func (c *Container) StartSync() error {
+	if err := c.InitSyncManager(); err != nil {
+		return err
+	}
+
+	go c.SyncManager.Start()
+	return nil
+}
+
+// StopSync останавливает фоновую синхронизацию.
+func (c *Container) StopSync() error {
+	if c.SyncManager != nil {
+		return c.SyncManager.Stop()
+	}
+	return nil
 }

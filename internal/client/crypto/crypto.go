@@ -53,6 +53,60 @@ func GenerateSalt() ([]byte, error) {
 	return salt, nil
 }
 
+// EncryptBytes encrypts []byte data using AES-256-GCM and returns encrypted bytes.
+func (e *Encryptor) EncryptBytes(plaintext []byte) ([]byte, error) {
+	if len(plaintext) == 0 {
+		return []byte{}, nil
+	}
+
+	block, err := aes.NewCipher(e.key)
+	if err != nil {
+		return nil, fmt.Errorf("cipher creation failed: %w", err)
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("GCM creation failed: %w", err)
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, fmt.Errorf("nonce generation failed: %w", err)
+	}
+
+	ciphertext := gcm.Seal(nonce, nonce, plaintext, nil)
+	return ciphertext, nil
+}
+
+// DecryptBytes decrypts []byte data using AES-256-GCM.
+func (e *Encryptor) DecryptBytes(ciphertext []byte) ([]byte, error) {
+	if len(ciphertext) == 0 {
+		return []byte{}, nil
+	}
+
+	block, err := aes.NewCipher(e.key)
+	if err != nil {
+		return nil, fmt.Errorf("cipher creation failed: %w", err)
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, fmt.Errorf("GCM creation failed: %w", err)
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return nil, fmt.Errorf("ciphertext too short")
+	}
+
+	nonce, encrypted := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, encrypted, nil)
+	if err != nil {
+		return nil, fmt.Errorf("decryption failed: %w", err)
+	}
+	return plaintext, nil
+}
+
 // Encrypt encrypts plaintext using AES-256-GCM and returns base64-encoded ciphertext.
 // Format: nonce + ciphertext
 func (e *Encryptor) Encrypt(plaintext string) (string, error) {

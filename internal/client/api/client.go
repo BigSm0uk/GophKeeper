@@ -61,6 +61,11 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
+// GetConn возвращает gRPC соединение для использования в streaming клиентах.
+func (c *Client) GetConn() *grpc.ClientConn {
+	return c.conn
+}
+
 // SetAccessToken обновляет токен для будущих запросов.
 func (c *Client) SetAccessToken(token string) {
 	c.accessToken = token

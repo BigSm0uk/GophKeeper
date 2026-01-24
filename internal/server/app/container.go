@@ -6,7 +6,6 @@ import (
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
 	pg_repo "github.com/BigSm0uk/GophKeeper/internal/server/repository/postgres"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service"
-
 	"go.uber.org/zap"
 )
 
@@ -67,7 +66,6 @@ func (c *Container) RegisterDatabase(db *db.PostgresDb) {
 func (c *Container) RegisterRepositories() {
 	ur := pg_repo.NewUserRepository(c.Logger, c.DB)
 	c.UserRepo = ur
-
 }
 
 func (c *Container) RegisterServices() error {

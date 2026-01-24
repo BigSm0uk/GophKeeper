@@ -25,7 +25,6 @@ func NewStreamReader(stream pb.BinariesService_UploadStreamServer) *StreamReader
 }
 
 func (sr *StreamReader) Read(p []byte) (n int, err error) {
-
 	if sr.buffer == nil || sr.bufferPos >= len(sr.buffer) {
 		req, err := sr.stream.Recv()
 		if err != nil {

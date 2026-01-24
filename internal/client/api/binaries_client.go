@@ -250,7 +250,7 @@ func (c *BinariesClient) calculateChecksum(filePath string) (string, error) {
 // detectContentType detects content type based on file extension.
 func detectContentType(filename string) string {
 	ext := filepath.Ext(filename)
-	
+
 	// Map common extensions to MIME types
 	contentTypes := map[string]string{
 		".txt":  "text/plain",

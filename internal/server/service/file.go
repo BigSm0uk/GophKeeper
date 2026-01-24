@@ -204,12 +204,12 @@ func (s *FileService) SaveFile(relativePath string, content []byte) error {
 	}
 
 	dir := filepath.Dir(fullPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		s.logger.Error("Failed to create directory", zap.Error(err), zap.String("dir", dir))
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	if err := os.WriteFile(fullPath, content, 0644); err != nil {
+	if err := os.WriteFile(fullPath, content, 0o644); err != nil {
 		s.logger.Error("Failed to write file", zap.Error(err), zap.String("path", fullPath))
 		return fmt.Errorf("failed to write file: %w", err)
 	}
@@ -299,7 +299,7 @@ func (s *FileService) CreateFileForWriting(relativePath string) (*os.File, func(
 	}
 
 	dir := filepath.Dir(fullPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		s.logger.Error("Failed to create directory", zap.Error(err), zap.String("dir", dir))
 		return nil, nil, fmt.Errorf("failed to create directory: %w", err)
 	}

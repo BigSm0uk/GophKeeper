@@ -28,7 +28,6 @@ type JWTService struct {
 
 // NewJWTService creates a new JWT service
 func NewJWTService(cfg config.JWTConfig) (*JWTService, error) {
-
 	privateKeyData, err := os.ReadFile(cfg.PrivateKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read private key: %w", err)
@@ -120,7 +119,6 @@ func (s *JWTService) ValidateToken(tokenString string) (*JWTClaims, error) {
 		}
 		return s.publicKey, nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}

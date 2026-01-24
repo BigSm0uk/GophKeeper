@@ -25,7 +25,7 @@ tasks:
     sources:
       - 'internal/server/**/*.go'
     cmds:
-      - "{{.BIN_DIR}}/server --config={{.CONFIG_DIR}}/server.dev.json"w
+      - "{{.BIN_DIR}}/server --config={{.CONFIG_DIR}}/server.dev.json"
     silent: true
 
   run:dev:

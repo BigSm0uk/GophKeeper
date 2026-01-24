@@ -23,6 +23,7 @@ func NewAuthService(logger *zap.Logger, ur interfaces.UserRepository, jwtService
 		jwtService: jwtService,
 	}
 }
+
 func (as *AuthService) Register(ctx context.Context, user entity.User) (*entity.User, error) {
 	exists, err := as.ur.ExistsByUsername(ctx, user.Username)
 	if err != nil {

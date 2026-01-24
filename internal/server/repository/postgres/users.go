@@ -79,7 +79,6 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) (*models
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		r.logger.Error("Failed to create user after retries",
 			zap.Error(err),
@@ -147,7 +146,6 @@ func (r *UserRepository) FindByID(ctx context.Context, id string) (*models.User,
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			r.logger.Info("User not found", zap.String("user_id", id))
@@ -223,7 +221,6 @@ func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			r.logger.Info("User not found", zap.String("username", username))
@@ -298,7 +295,6 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		r.logger.Error("Failed to update user after retries",
 			zap.Error(err),
@@ -364,7 +360,6 @@ func (r *UserRepository) Delete(ctx context.Context, id string) error {
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		r.logger.Error("Failed to delete user after retries",
 			zap.Error(err),
@@ -436,7 +431,6 @@ func (r *UserRepository) Exists(ctx context.Context, id string) (bool, error) {
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		r.logger.Error("Failed to check user existence after retries",
 			zap.Error(err),
@@ -446,6 +440,7 @@ func (r *UserRepository) Exists(ctx context.Context, id string) (bool, error) {
 
 	return exists, nil
 }
+
 func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) (bool, error) {
 	if username == "" {
 		return false, models.ErrInvalidUsername
@@ -499,7 +494,6 @@ func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) 
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		r.logger.Error("Failed to check user existence after retries",
 			zap.Error(err),
@@ -549,7 +543,6 @@ func (r *UserRepository) Count(ctx context.Context) (int64, error) {
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		r.logger.Error("Failed to count users after retries", zap.Error(err))
 		return 0, err

@@ -13,19 +13,19 @@ func TestFileService_GetFile(t *testing.T) {
 
 	testContent := []byte("test content")
 	testFilePath := filepath.Join(tempDir, "test.txt")
-	err := os.WriteFile(testFilePath, testContent, 0644)
+	err := os.WriteFile(testFilePath, testContent, 0o644)
 	if err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
 	// Create subdirectory and file
 	subDir := filepath.Join(tempDir, "subdir")
-	err = os.Mkdir(subDir, 0755)
+	err = os.Mkdir(subDir, 0o755)
 	if err != nil {
 		t.Fatalf("failed to create subdirectory: %v", err)
 	}
 	subFilePath := filepath.Join(subDir, "nested.json")
 	subFileContent := []byte(`{"key": "value"}`)
-	err = os.WriteFile(subFilePath, subFileContent, 0644)
+	err = os.WriteFile(subFilePath, subFileContent, 0o644)
 	if err != nil {
 		t.Fatalf("failed to create nested file: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestFileService_FileExists(t *testing.T) {
 	tempDir := t.TempDir()
 
 	testFilePath := filepath.Join(tempDir, "exists.txt")
-	err := os.WriteFile(testFilePath, []byte("content"), 0644)
+	err := os.WriteFile(testFilePath, []byte("content"), 0o644)
 	if err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
@@ -186,14 +186,14 @@ func TestFileService_ListFiles(t *testing.T) {
 	// Create test files
 	files := []string{"file1.txt", "file2.json", "file3.md"}
 	for _, file := range files {
-		err := os.WriteFile(filepath.Join(tempDir, file), []byte("content"), 0644)
+		err := os.WriteFile(filepath.Join(tempDir, file), []byte("content"), 0o644)
 		if err != nil {
 			t.Fatalf("failed to create test file: %v", err)
 		}
 	}
 
 	// Create subdirectory (should be ignored)
-	err := os.Mkdir(filepath.Join(tempDir, "subdir"), 0755)
+	err := os.Mkdir(filepath.Join(tempDir, "subdir"), 0o755)
 	if err != nil {
 		t.Fatalf("failed to create subdirectory: %v", err)
 	}

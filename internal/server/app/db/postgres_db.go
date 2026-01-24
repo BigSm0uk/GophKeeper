@@ -21,7 +21,6 @@ type PostgresDb struct {
 var _ interfaces.Lifecycle = (*PostgresDb)(nil)
 
 func NewPostgresDb(ctx context.Context, cfg config.DBConfig, logger *zap.Logger) (*PostgresDb, error) {
-
 	poolConfig, err := pgxpool.ParseConfig(cfg.ConnectionString)
 	if err != nil {
 		return nil, err
@@ -46,6 +45,7 @@ func pingWithRetry(ctx context.Context, pool *pgxpool.Pool, maxRetries int, dela
 		return pool.Ping(ctx)
 	}, retry.Attempts(uint(maxRetries)), retry.Delay(delay))
 }
+
 func (p *PostgresDb) warmUp(n int) {
 	var wg sync.WaitGroup
 	for range n {
@@ -55,6 +55,7 @@ func (p *PostgresDb) warmUp(n int) {
 	}
 	wg.Wait()
 }
+
 func (p *PostgresDb) GetPool() *pgxpool.Pool {
 	return p.pool
 }

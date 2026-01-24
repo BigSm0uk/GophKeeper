@@ -19,7 +19,6 @@ type userKey struct{}
 // AuthInterceptor validates JWT tokens for protected gRPC methods.
 func AuthInterceptor(authService *service.AuthService, authConfig config.AuthConfig, logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-
 		if requiresAuth(info.FullMethod, authConfig) {
 			user, err := authenticateUser(ctx, authService, logger)
 			if err != nil {

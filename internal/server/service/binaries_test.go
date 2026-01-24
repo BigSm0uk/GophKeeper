@@ -420,10 +420,10 @@ func TestBinaryService_DownloadStream(t *testing.T) {
 			if tt.setupFile != nil {
 				storagePath = filepath.Join("user-123", "test.txt")
 				fullPath := filepath.Join(tempDir, storagePath)
-				err := os.MkdirAll(filepath.Dir(fullPath), 0755)
+				err := os.MkdirAll(filepath.Dir(fullPath), 0o755)
 				require.NoError(t, err)
 				content := tt.setupFile(storagePath)
-				err = os.WriteFile(fullPath, content, 0644)
+				err = os.WriteFile(fullPath, content, 0o644)
 				require.NoError(t, err)
 			}
 

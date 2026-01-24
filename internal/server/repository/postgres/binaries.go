@@ -77,7 +77,6 @@ func (r *BinaryRepository) Create(ctx context.Context, binary *models.Binary) (*
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		r.logger.Error("Failed to create binary after retries",
 			zap.Error(err),
@@ -150,7 +149,6 @@ func (r *BinaryRepository) FindByID(ctx context.Context, id string) (*models.Bin
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			r.logger.Info("Binary not found", zap.String("binary_id", id))
@@ -222,7 +220,6 @@ func (r *BinaryRepository) FindByUserID(ctx context.Context, userID string, limi
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		r.logger.Error("Failed to find binaries after retries",
 			zap.Error(err),
@@ -326,7 +323,6 @@ func (r *BinaryRepository) Update(ctx context.Context, binary *models.Binary) er
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return models.ErrBinaryNotFound
@@ -396,7 +392,6 @@ func (r *BinaryRepository) Delete(ctx context.Context, id string) error {
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		r.logger.Error("Failed to delete binary after retries",
 			zap.Error(err),
@@ -461,7 +456,6 @@ func (r *BinaryRepository) CountByUserID(ctx context.Context, userID string) (in
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		r.logger.Error("Failed to count binaries after retries",
 			zap.Error(err),
@@ -535,7 +529,6 @@ func (r *BinaryRepository) FindByChecksum(ctx context.Context, userID, checksum 
 		}),
 		retry.Context(ctx),
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, models.ErrBinaryNotFound

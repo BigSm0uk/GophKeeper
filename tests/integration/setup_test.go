@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/BigSm0uk/GophKeeper/tests/helpers"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 )

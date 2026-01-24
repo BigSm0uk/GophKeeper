@@ -40,3 +40,13 @@ keys/
 # Generated Go
 *.pb.go
 *.pb.*.go
+
+# Temporary proto dependencies (downloaded for buf generation)
+proto/validate/
+proto/google/
+proto/protoc-gen-openapiv2/
+proto/.gitignore
+
+# Binary files
+client
+server

@@ -68,7 +68,7 @@ func init() {
 			return fmt.Errorf("logger: %w", err)
 		}
 
-		client, err := api.New(cfg.ServerAddress, cfg.Insecure, cfg.RequestTimeout)
+		client, err := api.New(cfg.ServerAddress, cfg.Insecure, cfg.RequestTimeout, log)
 		if err != nil {
 			return fmt.Errorf("api client: %w", err)
 		}
@@ -89,4 +89,10 @@ func init() {
 
 	// Auth команды
 	rootCmd.AddCommand(authCmd)
+	// Credentials команды
+	rootCmd.AddCommand(credCmd)
+	// Cards команды
+	rootCmd.AddCommand(cardCmd)
+	// Text команды
+	rootCmd.AddCommand(textCmd)
 }

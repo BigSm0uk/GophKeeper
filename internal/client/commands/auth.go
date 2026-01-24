@@ -163,3 +163,19 @@ func promptSecret(label string) (string, error) {
 	}
 	return strings.TrimSpace(string(bytes)), nil
 }
+
+// promptRequired prompts for required input and validates it's not empty
+func promptRequired(label string) string {
+	for {
+		value, err := prompt(label)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			continue
+		}
+		if value == "" {
+			fmt.Printf("%s is required\n", label)
+			continue
+		}
+		return value
+	}
+}

@@ -8,11 +8,31 @@ import (
 	"github.com/BigSm0uk/GophKeeper/internal/client/app/config"
 	"github.com/BigSm0uk/GophKeeper/internal/client/app/logger"
 	"github.com/BigSm0uk/GophKeeper/internal/client/storage"
+	"github.com/BigSm0uk/GophKeeper/internal/client/tui"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 )
 
 var (
-	rootCmd   = &cobra.Command{Use: "gophkeeper", Short: "GophKeeper client"}
+	rootCmd = &cobra.Command{
+		Use:   "gophkeeper",
+		Short: "GophKeeper client",
+		Long:  "GophKeeper - secure password manager client",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Если нет подкоманд, запускаем интерактивный UI
+			if len(args) == 0 && cmd.CalledAs() == "gophkeeper" {
+				if container == nil || container.TokenStore == nil {
+					return fmt.Errorf("client not initialized. Please run: gophkeeper auth tui")
+				}
+				model := tui.NewAuthModel(container.API, container.TokenStore, tui.ModeSelect)
+				if _, err := tea.NewProgram(model, tea.WithAltScreen()).Run(); err != nil {
+					return fmt.Errorf("tui: %w", err)
+				}
+				return nil
+			}
+			return cmd.Help()
+		},
+	}
 	cfgPath   string
 	server    string
 	insecure  bool

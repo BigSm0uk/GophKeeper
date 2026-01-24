@@ -23,26 +23,34 @@ var authCmd = &cobra.Command{
 
 func init() {
 	var tuiRegister bool
+	var tuiLogin bool
 	tuiCmd := &cobra.Command{
 		Use:   "tui",
-		Short: "Open TUI for login/registration",
+		Short: "Open interactive TUI for login/registration",
+		Long:  "Opens an interactive terminal UI where you can choose to login or register",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if container == nil || container.TokenStore == nil {
 				return fmt.Errorf("client not initialized")
 			}
 			store := container.TokenStore
-			mode := tui.ModeLogin
+			
+			// По умолчанию показываем меню выбора
+			mode := tui.ModeSelect
 			if tuiRegister {
 				mode = tui.ModeRegister
+			} else if tuiLogin {
+				mode = tui.ModeLogin
 			}
+			
 			model := tui.NewAuthModel(container.API, store, mode)
-			if _, err := tea.NewProgram(model).Run(); err != nil {
+			if _, err := tea.NewProgram(model, tea.WithAltScreen()).Run(); err != nil {
 				return fmt.Errorf("tui: %w", err)
 			}
 			return nil
 		},
 	}
-	tuiCmd.Flags().BoolVar(&tuiRegister, "register", false, "open registration mode")
+	tuiCmd.Flags().BoolVar(&tuiRegister, "register", false, "open registration mode directly")
+	tuiCmd.Flags().BoolVar(&tuiLogin, "login", false, "open login mode directly")
 
 	registerCmd := &cobra.Command{
 		Use:   "register",

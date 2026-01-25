@@ -119,7 +119,9 @@ func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		h.logger.Warn("Invalid registration request data",
 			zap.Error(err),
 			zap.String("username", req.Username))
-		return nil, status.Error(codes.InvalidArgument, "Invalid registration data")
+		// Extract detailed validation error message
+		errorMsg := err.Error()
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid registration data: %s", errorMsg))
 	}
 
 	user, err := entity.MapUserFromRequest(req)

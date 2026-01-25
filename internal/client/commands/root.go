@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/BigSm0uk/GophKeeper/internal/client/api"
 	clientapp "github.com/BigSm0uk/GophKeeper/internal/client/app"
@@ -20,13 +21,47 @@ var (
 		Long:  "GophKeeper - secure password manager client",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Если нет подкоманд, запускаем интерактивный UI
-			if len(args) == 0 && cmd.CalledAs() == "gophkeeper" {
+			if len(args) == 0 {
 				if container == nil || container.TokenStore == nil {
 					return fmt.Errorf("client not initialized. Please run: gophkeeper auth tui")
 				}
 				model := tui.NewAuthModel(container.API, container.TokenStore, tui.ModeSelect)
-				if _, err := tea.NewProgram(model, tea.WithAltScreen()).Run(); err != nil {
+				finalModel, err := tea.NewProgram(model, tea.WithAltScreen()).Run()
+				if err != nil {
 					return fmt.Errorf("tui: %w", err)
+				}
+
+				if authResult, ok := tui.ExtractAuthResult(finalModel); ok && authResult.Success {
+					container.API.SetAccessToken(authResult.AccessToken)
+
+					mainMenu := tui.NewMainMenuModel(container.API, container.TokenStore)
+					if _, err := tea.NewProgram(mainMenu, tea.WithAltScreen()).Run(); err != nil {
+						return fmt.Errorf("main menu: %w", err)
+					}
+					return nil
+				}
+
+				// Fallback: читаем токены из keyring с ретраями
+				var username string
+				var token string
+				var errFetch error
+				for i := 0; i < 5; i++ {
+					time.Sleep(300 * time.Millisecond)
+					username, errFetch = container.TokenStore.GetCurrentUsername()
+					if errFetch == nil && username != "" {
+						token, errFetch = container.TokenStore.GetAccessToken(username)
+						if errFetch == nil && token != "" {
+							break
+						}
+					}
+				}
+				if errFetch != nil || username == "" || token == "" {
+					return nil
+				}
+				container.API.SetAccessToken(token)
+				mainMenu := tui.NewMainMenuModel(container.API, container.TokenStore)
+				if _, err := tea.NewProgram(mainMenu, tea.WithAltScreen()).Run(); err != nil {
+					return fmt.Errorf("main menu: %w", err)
 				}
 				return nil
 			}

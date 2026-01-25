@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/BigSm0uk/GophKeeper/internal/client/tui"
 	pb "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1"
@@ -33,7 +34,7 @@ func init() {
 				return fmt.Errorf("client not initialized")
 			}
 			store := container.TokenStore
-			
+
 			// По умолчанию показываем меню выбора
 			mode := tui.ModeSelect
 			if tuiRegister {
@@ -41,11 +42,109 @@ func init() {
 			} else if tuiLogin {
 				mode = tui.ModeLogin
 			}
-			
+
 			model := tui.NewAuthModel(container.API, store, mode)
-			if _, err := tea.NewProgram(model, tea.WithAltScreen()).Run(); err != nil {
+			p := tea.NewProgram(model, tea.WithAltScreen())
+			finalModel, err := p.Run()
+			if err != nil {
+				if container.Logger != nil {
+					container.Logger.Debug("auth TUI program finished with error", zap.Error(err))
+				}
 				return fmt.Errorf("tui: %w", err)
 			}
+
+			if container.Logger != nil {
+				container.Logger.Debug("auth TUI program finished successfully")
+			}
+
+			if authResult, ok := tui.ExtractAuthResult(finalModel); ok && authResult.Success {
+				container.API.SetAccessToken(authResult.AccessToken)
+				if container.Logger != nil {
+					container.Logger.Info("starting main menu", zap.String("username", authResult.Username))
+				}
+
+				mainMenu := tui.NewMainMenuModel(container.API, store)
+				if _, err := tea.NewProgram(mainMenu, tea.WithAltScreen()).Run(); err != nil {
+					if container.Logger != nil {
+						container.Logger.Error("main menu program finished with error", zap.Error(err))
+					}
+					return fmt.Errorf("main menu: %w", err)
+				}
+
+				if container.Logger != nil {
+					container.Logger.Debug("main menu program finished successfully")
+				}
+				return nil
+			}
+
+			// После завершения программы авторизации проверяем, была ли успешная авторизация
+			// Задержка и повторные попытки, чтобы убедиться, что сохранение в keyring завершено
+			// На macOS keyring может требовать подтверждения пользователя
+			var username string
+			var token string
+			var errFetch error
+
+			// Пробуем до 5 раз с задержкой
+			for i := 0; i < 5; i++ {
+				time.Sleep(300 * time.Millisecond)
+
+				username, errFetch = store.GetCurrentUsername()
+				if errFetch == nil && username != "" {
+					token, errFetch = store.GetAccessToken(username)
+					if errFetch == nil && token != "" {
+						break // Успешно получили данные
+					}
+				}
+
+				if container.Logger != nil {
+					container.Logger.Debug("retrying to get auth data",
+						zap.Int("attempt", i+1),
+						zap.String("username", username),
+						zap.Error(errFetch),
+					)
+				}
+			}
+
+			// Проверяем, что мы успешно получили данные
+			if container.Logger != nil {
+				container.Logger.Debug("final auth data check",
+					zap.String("username", username),
+					zap.Bool("token_exists", token != ""),
+					zap.Error(errFetch),
+				)
+			}
+
+			if errFetch != nil || username == "" || token == "" {
+				// Не удалось получить данные - возможно, пользователь не авторизован или произошла ошибка
+				if container.Logger != nil {
+					container.Logger.Debug("auth data not found, exiting",
+						zap.String("username", username),
+						zap.Bool("has_token", token != ""),
+						zap.Error(errFetch),
+					)
+				}
+				return nil
+			}
+
+			// Устанавливаем токен в клиент перед запуском главного меню
+			container.API.SetAccessToken(token)
+			if container.Logger != nil {
+				container.Logger.Info("starting main menu", zap.String("username", username))
+			}
+
+			// Успешная авторизация - запускаем главное меню
+			mainMenu := tui.NewMainMenuModel(container.API, store)
+			if _, err := tea.NewProgram(mainMenu, tea.WithAltScreen()).Run(); err != nil {
+				if container.Logger != nil {
+					container.Logger.Error("main menu program finished with error", zap.Error(err))
+				}
+				return fmt.Errorf("main menu: %w", err)
+			}
+
+			if container.Logger != nil {
+				container.Logger.Debug("main menu program finished successfully")
+			}
+
 			return nil
 		},
 	}

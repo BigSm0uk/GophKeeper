@@ -22,17 +22,20 @@ const (
 )
 
 type authModel struct {
-	mode       AuthMode
-	username   textinput.Model
-	password   textinput.Model
-	email      textinput.Model
-	focused    int
-	loading    bool
-	err        error
-	success    string
-	client     *api.Client
-	tokenStore *storage.TokenStore
-	spinner    spinner.Model
+	mode        AuthMode
+	username    textinput.Model
+	password    textinput.Model
+	email       textinput.Model
+	focused     int
+	loading     bool
+	err         error
+	success     string
+	authUser    string
+	authAccess  string
+	authRefresh string
+	client      *api.Client
+	tokenStore  *storage.TokenStore
+	spinner     spinner.Model
 }
 
 var (
@@ -276,7 +279,7 @@ func (m authModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			newModel, cmd := m.startSubmit()
 			return newModel, cmd
 		}
-		
+
 		// ВСЕ остальные клавиши (включая обычные символы) передаем в активное поле ввода
 		var cmd tea.Cmd
 		switch m.focused {
@@ -305,6 +308,11 @@ func (m authModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = msg.err
 		} else {
 			m.success = msg.message
+			m.authUser = msg.username
+			m.authAccess = msg.accessToken
+			m.authRefresh = msg.refreshToken
+			// После успешной авторизации ждем немного и завершаем программу
+			// Главное меню запустится в auth.go после проверки токена
 			return m, tea.Sequence(
 				tea.Tick(2*time.Second, func(time.Time) tea.Msg {
 					return tea.Quit()
@@ -512,8 +520,11 @@ func (m *authModel) focus() tea.Cmd {
 }
 
 type submitResult struct {
-	message string
-	err     error
+	message      string
+	username     string
+	accessToken  string
+	refreshToken string
+	err          error
 }
 
 func (m authModel) startSubmit() (tea.Model, tea.Cmd) {
@@ -557,12 +568,21 @@ func (m authModel) startSubmit() (tea.Model, tea.Cmd) {
 		if err := m.tokenStore.SaveRefreshToken(username, tokens.RefreshToken); err != nil {
 			return submitResult{err: fmt.Errorf("failed to save refresh token: %w", err)}
 		}
+		// Сохраняем текущий username для последующего использования
+		if err := m.tokenStore.SaveCurrentUsername(username); err != nil {
+			return submitResult{err: fmt.Errorf("failed to save current username: %w", err)}
+		}
 		m.client.SetAccessToken(tokens.AccessToken)
 
 		action := "Successfully logged in!"
 		if m.mode == ModeRegister {
 			action = "Successfully registered and logged in!"
 		}
-		return submitResult{message: action}
+		return submitResult{
+			message:      action,
+			username:     username,
+			accessToken:  tokens.AccessToken,
+			refreshToken: tokens.RefreshToken,
+		}
 	}
 }

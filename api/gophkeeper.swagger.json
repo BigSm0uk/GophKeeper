@@ -2702,6 +2702,257 @@
           }
         ]
       }
+    },
+    "/user/sessions": {
+      "get": {
+        "summary": "GetActiveSessions returns all active sessions for the user.",
+        "operationId": "GetActiveSessions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetActiveSessionsResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or validation error",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required or token expired",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to the requested resource",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "404": {
+            "description": "Not Found - The requested resource does not exist",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "409": {
+            "description": "Conflict - Resource already exists or data conflict",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "413": {
+            "description": "Payload Too Large - Request body exceeds size limit",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Unexpected server error",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "503": {
+            "description": "Service Unavailable - Server temporarily unavailable",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/user/sessions/revoke-all": {
+      "post": {
+        "summary": "RevokeAllSessions revokes all sessions except current.",
+        "operationId": "RevokeAllSessions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RevokeAllSessionsResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or validation error",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required or token expired",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to the requested resource",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "404": {
+            "description": "Not Found - The requested resource does not exist",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "409": {
+            "description": "Conflict - Resource already exists or data conflict",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "413": {
+            "description": "Payload Too Large - Request body exceeds size limit",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Unexpected server error",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "503": {
+            "description": "Service Unavailable - Server temporarily unavailable",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "RevokeAllSessionsRequest requests to revoke all user sessions.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RevokeAllSessionsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/user/sessions/{session_id}": {
+      "delete": {
+        "summary": "RevokeSession revokes a specific session.",
+        "operationId": "RevokeSession",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RevokeSessionResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or validation error",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required or token expired",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to the requested resource",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "404": {
+            "description": "Not Found - The requested resource does not exist",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "409": {
+            "description": "Conflict - Resource already exists or data conflict",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "413": {
+            "description": "Payload Too Large - Request body exceeds size limit",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "429": {
+            "description": "Too Many Requests - Rate limit exceeded",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - Unexpected server error",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "503": {
+            "description": "Service Unavailable - Server temporarily unavailable",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "session_id",
+            "description": "session_id is the session identifier to revoke.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -3230,6 +3481,20 @@
       },
       "description": "CredentialUpdateRequest updates an existing credential."
     },
+    "v1GetActiveSessionsResponse": {
+      "type": "object",
+      "properties": {
+        "sessions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1SessionInfo"
+          },
+          "description": "sessions is the list of active sessions."
+        }
+      },
+      "description": "GetActiveSessionsResponse returns the list of active sessions."
+    },
     "v1PageRequest": {
       "type": "object",
       "properties": {
@@ -3308,6 +3573,27 @@
       },
       "description": "RegisterResponse represents registration result."
     },
+    "v1RevokeAllSessionsRequest": {
+      "type": "object",
+      "properties": {
+        "except_current": {
+          "type": "boolean",
+          "description": "except_current when true, keeps the current session active."
+        }
+      },
+      "description": "RevokeAllSessionsRequest requests to revoke all user sessions."
+    },
+    "v1RevokeAllSessionsResponse": {
+      "type": "object",
+      "properties": {
+        "revoked_count": {
+          "type": "integer",
+          "format": "int32",
+          "description": "revoked_count is the number of sessions that were revoked."
+        }
+      },
+      "description": "RevokeAllSessionsResponse returns the number of revoked sessions."
+    },
     "v1RevokeRequest": {
       "type": "object",
       "properties": {
@@ -3339,6 +3625,56 @@
         }
       },
       "description": "RevokeResponse represents a token revocation response."
+    },
+    "v1RevokeSessionResponse": {
+      "type": "object",
+      "properties": {
+        "revoked": {
+          "type": "boolean",
+          "description": "revoked indicates whether the session was successfully revoked."
+        }
+      },
+      "description": "RevokeSessionResponse confirms session revocation."
+    },
+    "v1SessionInfo": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "description": "session_id is the unique session identifier."
+        },
+        "device_id": {
+          "type": "string",
+          "description": "device_id is the unique device identifier."
+        },
+        "device_name": {
+          "type": "string",
+          "description": "device_name is the human-readable device name."
+        },
+        "device_type": {
+          "type": "string",
+          "description": "device_type is the type of device (mobile, desktop, web, etc.)."
+        },
+        "ip_address": {
+          "type": "string",
+          "description": "ip_address is the IP address used for this session."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "created_at is the session creation timestamp."
+        },
+        "last_used_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "last_used_at is the last session activity timestamp."
+        },
+        "is_current": {
+          "type": "boolean",
+          "description": "is_current indicates if this is the current session."
+        }
+      },
+      "description": "SessionInfo represents information about a user session."
     },
     "v1SyncChange": {
       "type": "object",
@@ -3644,10 +3980,6 @@
           "type": "string",
           "description": "password is required for password grant."
         },
-        "refresh_token": {
-          "type": "string",
-          "description": "refresh_token is required for refresh_token grant."
-        },
         "client_id": {
           "type": "string",
           "description": "client_id identifies a client application."
@@ -3659,6 +3991,10 @@
         "scope": {
           "type": "string",
           "description": "scope is a space-delimited list of scopes."
+        },
+        "device_id": {
+          "type": "string",
+          "title": "device_id is device fingerprint"
         }
       },
       "description": "TokenRequest represents OAuth2 token request."
@@ -3669,10 +4005,6 @@
         "access_token": {
           "type": "string",
           "description": "access_token is the issued access token."
-        },
-        "refresh_token": {
-          "type": "string",
-          "description": "refresh_token is the issued refresh token."
         },
         "token_type": {
           "type": "string",

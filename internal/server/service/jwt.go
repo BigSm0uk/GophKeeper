@@ -16,6 +16,7 @@ import (
 type JWTClaims struct {
 	UserID   string `json:"user_id"`
 	Username string `json:"username"`
+	ClientID string `json:"client_id"`
 	jwt.RegisteredClaims
 }
 
@@ -56,15 +57,16 @@ func NewJWTService(cfg config.JWTConfig) (*JWTService, error) {
 }
 
 // GenerateAccessToken generates an access JWT token for a user
-func (s *JWTService) GenerateAccessToken(user *models.User) (string, error) {
-	if user == nil || user.ID == "" {
-		return "", errors.New("invalid user")
+func (s *JWTService) GenerateAccessToken(user *models.User, clientID string) (string, error) {
+	if user == nil || user.ID == "" || clientID == "" {
+		return "", errors.New("invalid use or client id")
 	}
 
 	now := time.Now()
 	claims := JWTClaims{
 		UserID:   user.ID,
 		Username: user.Username,
+		ClientID: clientID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.config.Issuer,
 			Subject:   user.ID,
@@ -139,6 +141,15 @@ func (s *JWTService) ExtractUserID(tokenString string) (string, error) {
 	return claims.UserID, nil
 }
 
+// ExtractClientID extracts client ID from a valid token
+func (s *JWTService) ExtractClientID(tokenString string) (string, error) {
+	claims, err := s.ValidateToken(tokenString)
+	if err != nil {
+		return "", err
+	}
+	return claims.ClientID, nil
+}
+
 // ExtractUsername extracts username from a valid token
 func (s *JWTService) ExtractUsername(tokenString string) (string, error) {
 	claims, err := s.ValidateToken(tokenString)
@@ -170,5 +181,5 @@ func (s *JWTService) RefreshAccessToken(refreshToken string) (string, error) {
 		Username: claims.Username,
 	}
 
-	return s.GenerateAccessToken(user)
+	return s.GenerateAccessToken(user, claims.ClientID)
 }

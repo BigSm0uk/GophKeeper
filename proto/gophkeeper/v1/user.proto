@@ -88,6 +88,79 @@ service UserService {
       }
     };
   }
+  // GetActiveSessions returns all active sessions for the user.
+  rpc GetActiveSessions(GetActiveSessionsRequest) returns (GetActiveSessionsResponse) {
+    option (google.api.http) = {
+      get: "/user/sessions"
+    };
+  }
+  
+  // RevokeSession revokes a specific session.
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse) {
+    option (google.api.http) = {
+      delete: "/user/sessions/{session_id}"
+    };
+  }
+  
+  // RevokeAllSessions revokes all sessions except current.
+  rpc RevokeAllSessions(RevokeAllSessionsRequest) returns (RevokeAllSessionsResponse) {
+    option (google.api.http) = {
+      post: "/user/sessions/revoke-all"
+      body: "*"
+    };
+  }
+}
+// SessionInfo represents information about a user session.
+message SessionInfo {
+  // session_id is the unique session identifier.
+  string session_id = 1;
+  // device_id is the unique device identifier.
+  string device_id = 2;
+  // device_name is the human-readable device name.
+  string device_name = 3;
+  // device_type is the type of device (mobile, desktop, web, etc.).
+  string device_type = 4;
+  // ip_address is the IP address used for this session.
+  optional string ip_address = 5;
+  // created_at is the session creation timestamp.
+  google.protobuf.Timestamp created_at = 6;
+  // last_used_at is the last session activity timestamp.
+  google.protobuf.Timestamp last_used_at = 7;
+  // is_current indicates if this is the current session.
+  bool is_current = 8;
+}
+
+// GetActiveSessionsRequest requests all active sessions for the user.
+message GetActiveSessionsRequest {}
+
+// GetActiveSessionsResponse returns the list of active sessions.
+message GetActiveSessionsResponse {
+  // sessions is the list of active sessions.
+  repeated SessionInfo sessions = 1;
+}
+
+// RevokeSessionRequest requests to revoke a specific session.
+message RevokeSessionRequest {
+  // session_id is the session identifier to revoke.
+  string session_id = 1;
+}
+
+// RevokeSessionResponse confirms session revocation.
+message RevokeSessionResponse {
+  // revoked indicates whether the session was successfully revoked.
+  bool revoked = 1;
+}
+
+// RevokeAllSessionsRequest requests to revoke all user sessions.
+message RevokeAllSessionsRequest {
+  // except_current when true, keeps the current session active.
+  bool except_current = 1;
+}
+
+// RevokeAllSessionsResponse returns the number of revoked sessions.
+message RevokeAllSessionsResponse {
+  // revoked_count is the number of sessions that were revoked.
+  int32 revoked_count = 1;
 }
 
 // UserProfile represents user profile data.

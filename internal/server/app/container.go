@@ -34,6 +34,7 @@ type Container struct {
 	DB           *db.PostgresDb
 	UserRepo     interfaces.UserRepository
 	BinariesRepo interfaces.BinariesRepository
+	SessionRepo  interfaces.SessionRepository
 	// CredRepo        *repositories.CredentialsRepository
 	// MinioClient     *minio.Client
 }
@@ -69,9 +70,11 @@ func (c *Container) RegisterDatabase(db *db.PostgresDb) {
 func (c *Container) RegisterRepositories() {
 	ur := pg_repo.NewUserRepository(c.Logger, c.DB)
 	br := pg_repo.NewBinaryRepository(c.Logger, c.DB)
+	sr := pg_repo.NewSessionRepository(c.Logger, c.DB)
 
 	c.UserRepo = ur
 	c.BinariesRepo = br
+	c.SessionRepo = sr
 }
 
 func (c *Container) RegisterServices() error {
@@ -90,7 +93,7 @@ func (c *Container) RegisterServices() error {
 	c.JWTService = jwtSvc
 
 	// Initialize Auth Service
-	authSvc := service.NewAuthService(c.Logger, c.UserRepo, c.JWTService)
+	authSvc := service.NewAuthService(c.Logger, c.UserRepo, c.JWTService, c.SessionRepo)
 	c.AuthService = authSvc
 
 	// Initialize Binaries Service

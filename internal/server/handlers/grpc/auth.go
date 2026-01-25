@@ -56,9 +56,9 @@ func (h *AuthHandler) validateTokenRequest(req *pb.TokenRequest) error {
 		}
 
 	case pb.TokenGrantType_TOKEN_GRANT_TYPE_REFRESH_TOKEN:
-		// For refresh_token grant, refresh_token is required
-		if req.RefreshToken == "" {
-			return fmt.Errorf("refresh_token is required for refresh_token grant")
+		// For refresh_token grant, username is required
+		if req.Username == "" {
+			return fmt.Errorf("username is required for refresh_token grant")
 		}
 		// client_id is optional but if provided, must be valid
 		if req.ClientId != "" && (len(req.ClientId) < 1 || len(req.ClientId) > 255) {
@@ -103,6 +103,21 @@ func (h *AuthHandler) classifyServiceError(err error) error {
 	case errors.Is(err, models.ErrInvalidGrantType):
 		return status.Error(codes.InvalidArgument, "Invalid grant type")
 
+	case errors.Is(err, models.ErrSessionNotFound):
+		return status.Error(codes.Unauthenticated, "Session not found or expired")
+
+	case errors.Is(err, models.ErrSessionExpired):
+		return status.Error(codes.Unauthenticated, "Session expired")
+
+	case errors.Is(err, models.ErrSessionRevoked):
+		return status.Error(codes.Unauthenticated, "Session revoked")
+
+	case errors.Is(err, models.ErrDeviceMismatch):
+		return status.Error(codes.PermissionDenied, "Device mismatch detected - potential security breach")
+
+	case errors.Is(err, models.ErrTooManySessions):
+		return status.Error(codes.ResourceExhausted, "Too many active sessions")
+
 	default:
 		// For any other errors, don't expose internal details to client
 		h.logger.Error("Unexpected service error in handler", zap.Error(err))
@@ -112,11 +127,13 @@ func (h *AuthHandler) classifyServiceError(err error) error {
 
 // Register implements user registration
 func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
-	h.logger.Info("Register request received",
+	logger := GetLoggerFromContext(ctx, h.logger)
+
+	logger.Info("Register request received",
 		zap.String("username", req.Username))
 
 	if err := req.Validate(); err != nil {
-		h.logger.Warn("Invalid registration request data",
+		logger.Warn("Invalid registration request data",
 			zap.Error(err),
 			zap.String("username", req.Username))
 		// Extract detailed validation error message
@@ -126,7 +143,7 @@ func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 
 	user, err := entity.MapUserFromRequest(req)
 	if err != nil {
-		h.logger.Error("Failed to map request to user entity",
+		logger.Error("Failed to map request to user entity",
 			zap.Error(err),
 			zap.String("username", req.Username))
 		return nil, status.Error(codes.InvalidArgument, "Invalid user data")
@@ -137,7 +154,7 @@ func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 		return nil, h.classifyServiceError(err)
 	}
 
-	h.logger.Info("Registration request completed successfully",
+	logger.Info("Registration request completed successfully",
 		zap.String("user_id", res.ID),
 		zap.String("username", res.Username))
 
@@ -150,13 +167,15 @@ func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 
 // Token implements OAuth2 token endpoint
 func (h *AuthHandler) Token(ctx context.Context, req *pb.TokenRequest) (*pb.TokenResponse, error) {
-	h.logger.Info("Token request received",
+	logger := GetLoggerFromContext(ctx, h.logger)
+
+	logger.Info("Token request received",
 		zap.String("grant_type", req.GrantType.String()),
 		zap.String("username", req.Username),
 	)
 
 	if err := h.validateTokenRequest(req); err != nil {
-		h.logger.Warn("Invalid token request data", zap.Error(err))
+		logger.Warn("Invalid token request data", zap.Error(err))
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
@@ -170,22 +189,41 @@ func (h *AuthHandler) Token(ctx context.Context, req *pb.TokenRequest) (*pb.Toke
 		return nil, status.Error(codes.InvalidArgument, "Unsupported grant type")
 	}
 
-	accessToken, refreshToken, err := h.as.Token(ctx, grantType, req.Username, req.Password, req.RefreshToken)
+	ipAddress := GetClientIPFromContext(ctx)
+	userAgent := GetUserAgentFromContext(ctx)
+
+	// For refresh_token grant, extract access token from context or Authorization header
+	var accessTokenForRefresh string
+	if grantType == "refresh_token" {
+		// Try to get token from context first (if method was authenticated)
+		accessTokenForRefresh = GetAccessTokenFromContext(ctx)
+
+		// If not in context, extract from metadata (for public refresh_token endpoint)
+		if accessTokenForRefresh == "" {
+			token, err := extractTokenFromMetadata(ctx)
+			if err != nil {
+				logger.Warn("Failed to extract token for refresh_token grant", zap.Error(err))
+				return nil, err
+			}
+			accessTokenForRefresh = token
+		}
+	}
+
+	accessToken, err := h.as.Token(ctx, grantType, req.Username, req.Password, accessTokenForRefresh, ipAddress, userAgent)
 	if err != nil {
 		return nil, h.classifyServiceError(err)
 	}
 
-	h.logger.Info("Token request completed successfully",
+	logger.Info("Token request completed successfully",
 		zap.String("grant_type", grantType),
 		zap.String("username", req.Username),
 	)
 
 	return &pb.TokenResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		TokenType:    "Bearer",
-		ExpiresIn:    uint32(h.jwtConfig.AccessTokenTTL.Seconds()),
-		Scope:        req.Scope,
+		AccessToken: accessToken,
+		TokenType:   "Bearer",
+		ExpiresIn:   uint32(h.jwtConfig.AccessTokenTTL.Seconds()),
+		Scope:       req.Scope,
 	}, nil
 }
 

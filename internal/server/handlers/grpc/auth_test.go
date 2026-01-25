@@ -49,19 +49,19 @@ func TestValidateTokenRequest(t *testing.T) {
 		{
 			name: "valid refresh_token grant",
 			req: &pb.TokenRequest{
-				GrantType:    pb.TokenGrantType_TOKEN_GRANT_TYPE_REFRESH_TOKEN,
-				RefreshToken: "some-refresh-token",
-				ClientId:     "test-client",
+				GrantType: pb.TokenGrantType_TOKEN_GRANT_TYPE_REFRESH_TOKEN,
+				Username:  "testuser",
+				ClientId:  "test-client",
 			},
 			wantErr: false,
 		},
 		{
-			name: "refresh_token grant without token",
+			name: "refresh_token grant without username",
 			req: &pb.TokenRequest{
 				GrantType: pb.TokenGrantType_TOKEN_GRANT_TYPE_REFRESH_TOKEN,
 			},
 			wantErr: true,
-			errMsg:  "refresh_token is required for refresh_token grant",
+			errMsg:  "username is required for refresh_token grant",
 		},
 		{
 			name: "unsupported grant type",

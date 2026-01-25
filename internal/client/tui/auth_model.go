@@ -444,8 +444,9 @@ func (m authModel) viewSelect() string {
 	loginBtn := buttonStyle.Render("1. Login")
 	registerBtn := buttonStyle.Render("2. Register")
 
-	activeIndicator := lipgloss.NewStyle().Foreground(lipgloss.Color("62")).Render("→")
-	inactiveIndicator := "  "
+	indicatorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("62"))
+	activeIndicator := indicatorStyle.Render("→")
+	inactiveIndicator := indicatorStyle.Render(" ")
 
 	if m.focused == 0 {
 		loginBtn = selectedButtonStyle.Render("1. Login")
@@ -453,13 +454,13 @@ func (m authModel) viewSelect() string {
 		registerBtn = selectedButtonStyle.Render("2. Register")
 	}
 
-	loginLine := inactiveIndicator + loginBtn
-	registerLine := inactiveIndicator + registerBtn
+	loginLine := lipgloss.JoinHorizontal(lipgloss.Left, inactiveIndicator, loginBtn)
+	registerLine := lipgloss.JoinHorizontal(lipgloss.Left, inactiveIndicator, registerBtn)
 
 	if m.focused == 0 {
-		loginLine = activeIndicator + loginBtn
+		loginLine = lipgloss.JoinHorizontal(lipgloss.Left, activeIndicator, loginBtn)
 	} else if m.focused == 1 {
-		registerLine = activeIndicator + registerBtn
+		registerLine = lipgloss.JoinHorizontal(lipgloss.Left, activeIndicator, registerBtn)
 	}
 
 	// Создаем контент с выровненными кнопками

@@ -1,0 +1,45 @@
+version: "3"
+
+interval: 500ms
+
+vars:
+  BIN_DIR: "{{.ROOT_DIR}}/bin"
+  CLIENT_DIR: "{{.ROOT_DIR}}/cmd/client/*"
+
+tasks:
+  build:
+    cmds:
+      - go build -o {{.BIN_DIR}}/client {{.CLIENT_DIR}}
+    silent: true
+
+  run:
+    deps: [build]
+    cmds:
+      - "{{.BIN_DIR}}/client"
+    silent: true
+
+  run:w:
+    deps: [build]
+    watch: true
+    sources:
+      - 'internal/client/**/*.go'
+    cmds:
+      - "{{.BIN_DIR}}/client"
+    silent: true
+
+  run:dev:
+    desc: "Run client in development mode"
+    sources:
+      - 'internal/client/**/*.go'
+    cmds:
+      - "go run {{.CLIENT_DIR}}"
+    silent: true
+
+  run:watch:
+    desc: "Run client with file watching"
+    watch: true
+    sources:
+      - 'internal/client/**/*.go'
+    cmds:
+      - "go run {{.CLIENT_DIR}}"
+    silent: true

@@ -13,6 +13,7 @@ vars:
 
 includes:
   server: ./tasks/ServerTasks.yml
+  client: ./tasks/ClientTasks.yml
   docker: ./tasks/DockerTasks.yml
   proto: ./tasks/ProtoTasks.yml
   test: ./tasks/TestTasks.yml

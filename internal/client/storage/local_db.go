@@ -92,6 +92,21 @@ func (l *LocalDB) initSchema() error {
 		synced_at INTEGER
 	);
 
+	CREATE TABLE IF NOT EXISTS binaries (
+		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL,
+		filename TEXT NOT NULL,
+		file_path TEXT NOT NULL,
+		size INTEGER NOT NULL,
+		content_type TEXT NOT NULL,
+		checksum TEXT NOT NULL,
+		metadata TEXT,
+		sync_status TEXT NOT NULL DEFAULT 'pending',
+		created_at INTEGER NOT NULL,
+		updated_at INTEGER NOT NULL,
+		synced_at INTEGER
+	);
+
 	CREATE TABLE IF NOT EXISTS sync_queue (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		item_type TEXT NOT NULL,
@@ -106,6 +121,7 @@ func (l *LocalDB) initSchema() error {
 	CREATE INDEX IF NOT EXISTS idx_credentials_sync ON credentials(sync_status);
 	CREATE INDEX IF NOT EXISTS idx_cards_sync ON cards(sync_status);
 	CREATE INDEX IF NOT EXISTS idx_texts_sync ON texts(sync_status);
+	CREATE INDEX IF NOT EXISTS idx_binaries_sync ON binaries(sync_status);
 	CREATE INDEX IF NOT EXISTS idx_sync_queue_type ON sync_queue(item_type);
 	`
 

@@ -99,15 +99,16 @@ func TestTokenStore_EncryptionSalt(t *testing.T) {
 		t.Skipf("keyring not available: %v", err)
 	}
 
+	username := "testuser"
 	salt := []byte("test-salt-123456789012345678901234")
 
 	// Сохраняем
-	if err := ts.SaveEncryptionSalt(salt); err != nil {
+	if err := ts.SaveEncryptionSalt(username, salt); err != nil {
 		t.Fatalf("failed to save encryption salt: %v", err)
 	}
 
 	// Получаем
-	retrieved, err := ts.GetEncryptionSalt()
+	retrieved, err := ts.GetEncryptionSalt(username)
 	if err != nil {
 		t.Fatalf("failed to get encryption salt: %v", err)
 	}
@@ -116,5 +117,6 @@ func TestTokenStore_EncryptionSalt(t *testing.T) {
 		t.Errorf("expected salt %s, got %s", salt, retrieved)
 	}
 
-	// Cleanup - не удаляем, так как нет отдельного метода для удаления соли
+	// Cleanup
+	ts.ClearUserData(username)
 }

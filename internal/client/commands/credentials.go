@@ -330,6 +330,12 @@ func ensureEncryptor() error {
 		return nil
 	}
 
+	// Получаем текущего пользователя
+	username, err := container.TokenStore.GetCurrentUsername()
+	if err != nil || username == "" {
+		return fmt.Errorf("no authenticated user found, please login first")
+	}
+
 	masterPassword, err := promptSecret("Master Password (for encryption)")
 	if err != nil {
 		return fmt.Errorf("failed to read master password: %w", err)
@@ -338,7 +344,7 @@ func ensureEncryptor() error {
 		return fmt.Errorf("master password is required")
 	}
 
-	if err := container.InitEncryptor(masterPassword); err != nil {
+	if err := container.InitEncryptor(username, masterPassword); err != nil {
 		return fmt.Errorf("failed to init encryptor: %w", err)
 	}
 

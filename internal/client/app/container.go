@@ -34,14 +34,14 @@ func NewContainer(logger *zap.Logger, cfg *config.ClientConfig, client *api.Clie
 	}
 }
 
-// InitEncryptor инициализирует encryptor с заданным master password.
-func (c *Container) InitEncryptor(masterPassword string) error {
+// InitEncryptor инициализирует encryptor с заданным master password для пользователя.
+func (c *Container) InitEncryptor(username, masterPassword string) error {
 	if c.Encryptor != nil {
 		return nil // уже инициализирован
 	}
 
 	// Пробуем загрузить salt из keyring
-	salt, err := c.TokenStore.GetEncryptionSalt()
+	salt, err := c.TokenStore.GetEncryptionSalt(username)
 	if err != nil || salt == nil || len(salt) == 0 {
 		// Генерируем новый salt
 		salt, err = crypto.GenerateSalt()
@@ -49,7 +49,7 @@ func (c *Container) InitEncryptor(masterPassword string) error {
 			return fmt.Errorf("failed to generate salt: %w", err)
 		}
 		// Сохраняем salt в keyring
-		if err := c.TokenStore.SaveEncryptionSalt(salt); err != nil {
+		if err := c.TokenStore.SaveEncryptionSalt(username, salt); err != nil {
 			return fmt.Errorf("failed to save salt: %w", err)
 		}
 	}

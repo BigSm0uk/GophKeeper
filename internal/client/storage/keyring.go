@@ -79,17 +79,17 @@ func (s *TokenStore) GetCurrentUsername() (string, error) {
 	return string(item.Data), nil
 }
 
-// SaveEncryptionSalt сохраняет salt для шифрования.
-func (s *TokenStore) SaveEncryptionSalt(salt []byte) error {
+// SaveEncryptionSalt сохраняет salt для шифрования для конкретного пользователя.
+func (s *TokenStore) SaveEncryptionSalt(username string, salt []byte) error {
 	return s.ring.Set(keyring.Item{
-		Key:  "encryption_salt",
+		Key:  fmt.Sprintf("%s:encryption_salt", username),
 		Data: salt,
 	})
 }
 
-// GetEncryptionSalt загружает salt для шифрования.
-func (s *TokenStore) GetEncryptionSalt() ([]byte, error) {
-	item, err := s.ring.Get("encryption_salt")
+// GetEncryptionSalt загружает salt для шифрования для конкретного пользователя.
+func (s *TokenStore) GetEncryptionSalt(username string) ([]byte, error) {
+	item, err := s.ring.Get(fmt.Sprintf("%s:encryption_salt", username))
 	if err != nil {
 		if err == keyring.ErrKeyNotFound {
 			return nil, nil
@@ -97,4 +97,33 @@ func (s *TokenStore) GetEncryptionSalt() ([]byte, error) {
 		return nil, err
 	}
 	return item.Data, nil
+}
+
+// SaveMasterPasswordHash сохраняет хеш мастер-пароля для верификации.
+func (s *TokenStore) SaveMasterPasswordHash(username string, hash []byte) error {
+	return s.ring.Set(keyring.Item{
+		Key:  fmt.Sprintf("%s:master_password_hash", username),
+		Data: hash,
+	})
+}
+
+// GetMasterPasswordHash загружает хеш мастер-пароля.
+func (s *TokenStore) GetMasterPasswordHash(username string) ([]byte, error) {
+	item, err := s.ring.Get(fmt.Sprintf("%s:master_password_hash", username))
+	if err != nil {
+		if err == keyring.ErrKeyNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return item.Data, nil
+}
+
+// ClearUserData удаляет все данные пользователя из keyring.
+func (s *TokenStore) ClearUserData(username string) {
+	_ = s.ring.Remove(fmt.Sprintf("%s:access_token", username))
+	_ = s.ring.Remove(fmt.Sprintf("%s:refresh_token", username))
+	_ = s.ring.Remove(fmt.Sprintf("%s:encryption_salt", username))
+	_ = s.ring.Remove(fmt.Sprintf("%s:master_password_hash", username))
+	_ = s.ring.Remove("current_username")
 }

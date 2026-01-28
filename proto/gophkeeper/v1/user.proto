@@ -110,7 +110,6 @@ service UserService {
   rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse) {
     option (google.api.http) = {
       delete: "/oauth/revoke"
-      body: "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Revoke session"

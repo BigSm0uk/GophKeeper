@@ -76,7 +76,7 @@ tasks:
       - '"{{.BUF}}" lint'
       - echo "✨ .proto-файлы соответствуют стилю!"
   gen:
-    deps: [buf:install, install-plugins, lint]
+    deps: [buf:install, install-plugins, lint, update-deps]
     desc: Генерация Go-кода из .proto
     dir: proto
     cmds:

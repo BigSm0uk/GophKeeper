@@ -195,10 +195,8 @@ func (h *AuthHandler) Token(ctx context.Context, req *pb.TokenRequest) (*pb.Toke
 	// For refresh_token grant, extract access token from context or Authorization header
 	var accessTokenForRefresh string
 	if grantType == "refresh_token" {
-		// Try to get token from context first (if method was authenticated)
 		accessTokenForRefresh = GetAccessTokenFromContext(ctx)
 
-		// If not in context, extract from metadata (for public refresh_token endpoint)
 		if accessTokenForRefresh == "" {
 			token, err := extractTokenFromMetadata(ctx)
 			if err != nil {
@@ -227,26 +225,15 @@ func (h *AuthHandler) Token(ctx context.Context, req *pb.TokenRequest) (*pb.Toke
 	}, nil
 }
 
-// Revoke implements token revocation
+// Revoke implements token revocation (TODO:Denis)
 func (h *AuthHandler) Revoke(ctx context.Context, req *pb.RevokeRequest) (*pb.RevokeResponse, error) {
-	tokenPreview := req.Token
-	if len(tokenPreview) > 10 {
-		tokenPreview = tokenPreview[:10] + "..."
-	}
+	logger := GetLoggerFromContext(ctx, h.logger)
 
-	h.logger.Info("Revoke request received",
-		zap.String("token", tokenPreview),
-		zap.String("token_type_hint", req.TokenTypeHint.String()),
-	)
+	logger.Info("Register request received")
 
-	if err := req.Validate(); err != nil {
-		h.logger.Warn("Invalid revoke request data", zap.Error(err))
-		return nil, status.Error(codes.InvalidArgument, "Invalid revoke request data")
-	}
+	accessToken := GetAccessTokenFromContext(ctx)
 
-	// For JWT tokens, "revocation" means validating that the token is invalid
-	// JWT tokens are stateless, so we just check if they are valid
-	_, err := h.as.ValidateToken(ctx, req.Token)
+	_, err := h.as.ValidateToken(ctx, accessToken)
 	revoked := err != nil // Token is considered revoked if it's invalid
 
 	h.logger.Info("Revoke request completed",

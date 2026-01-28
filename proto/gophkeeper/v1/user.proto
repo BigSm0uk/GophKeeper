@@ -93,12 +93,53 @@ service UserService {
     option (google.api.http) = {
       get: "/user/sessions"
     };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Active Sessions"
+      description: "Permanently deletes user account and all associated data (requires password confirmation)"
+      tags: "User"
+      operation_id: "getActiveSessions"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
   }
   
   // RevokeSession revokes a specific session.
   rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse) {
     option (google.api.http) = {
-      delete: "/user/sessions/{session_id}"
+      delete: "/oauth/revoke"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Revoke session"
+      description: "Revokes refresh token (Logout / Revoke)"
+      tags: "Authentication"
+      operation_id: "revokeSession"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+      responses: {
+        key: "200"
+        value: {
+          description: "Token successfully revoked"
+        }
+      }
+      responses: {
+        key: "400"
+        value: {
+          description: "Missing id"
+        }
+      }
+      responses: {
+        key: "401"
+        value: {
+          description: "Invalid client credentials"
+        }
+      }
     };
   }
   
@@ -107,6 +148,29 @@ service UserService {
     option (google.api.http) = {
       post: "/user/sessions/revoke-all"
       body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Revoke all sessions"
+      description: "Revokes all refresh tokens (Logout / Revoke)"
+      tags: "Authentication"
+      operation_id: "revokeAllSessions"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+      responses: {
+        key: "200"
+        value: {
+          description: "Sessions successfully revoked"
+        }
+      }
+      responses: {
+        key: "401"
+        value: {
+          description: "Invalid client credentials"
+        }
+      }
     };
   }
 }

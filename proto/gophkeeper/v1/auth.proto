@@ -79,37 +79,6 @@ service AuthService {
       }
     };
   }
-  // Revoke invalidates access or refresh tokens.
-  rpc Revoke(RevokeRequest) returns (RevokeResponse) {
-    option (google.api.http) = {
-      post: "/oauth/revoke"
-      body: "*"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      summary: "Revoke token"
-      description: "Revokes access or refresh token (Logout / Revoke)"
-      tags: "Authentication"
-      operation_id: "revokeToken"
-      responses: {
-        key: "200"
-        value: {
-          description: "Token successfully revoked"
-        }
-      }
-      responses: {
-        key: "400"
-        value: {
-          description: "Missing token"
-        }
-      }
-      responses: {
-        key: "401"
-        value: {
-          description: "Invalid client credentials"
-        }
-      }
-    };
-  }
 }
 
 // TokenGrantType enumerates supported OAuth2 grant types.
@@ -122,15 +91,6 @@ enum TokenGrantType {
   TOKEN_GRANT_TYPE_REFRESH_TOKEN = 2;
 }
 
-// TokenTypeHint provides a hint for token revocation.
-enum TokenTypeHint {
-  // TOKEN_TYPE_HINT_UNSPECIFIED is an unknown hint.
-  TOKEN_TYPE_HINT_UNSPECIFIED = 0;
-  // TOKEN_TYPE_HINT_ACCESS_TOKEN hints an access token.
-  TOKEN_TYPE_HINT_ACCESS_TOKEN = 1;
-  // TOKEN_TYPE_HINT_REFRESH_TOKEN hints a refresh token.
-  TOKEN_TYPE_HINT_REFRESH_TOKEN = 2;
-}
 
 // RegisterRequest represents user registration data.
 message RegisterRequest {
@@ -193,24 +153,4 @@ message TokenResponse {
   uint32 expires_in = 3;
   // scope is a space-delimited list of scopes.
   optional string scope = 4;
-}
-
-// RevokeRequest represents a token revocation request.
-message RevokeRequest {
-  // token is the access or refresh token to revoke.
-  string token = 1 [(validate.rules).string.min_len = 1];
-  // token_type_hint hints the type of the token.
-  TokenTypeHint token_type_hint = 2;
-  // client_id identifies a client application.
-  string client_id = 3 [(validate.rules).string = {
-    min_len: 1,
-    max_len: 255
-  }];
-  // client_secret is optional for public clients.
-  optional string client_secret = 4;
-}
-// RevokeResponse represents a token revocation response.
-message RevokeResponse {
-  // revoked indicates whether the token was revoked.
-  bool revoked = 1;
 }

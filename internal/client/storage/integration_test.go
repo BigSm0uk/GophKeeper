@@ -333,13 +333,13 @@ func TestStorageManager_MasterPassword(t *testing.T) {
 		sm, err := storage.InitializeStorage(dbPath, username, "correct-password")
 		require.NoError(t, err)
 		require.NotNil(t, sm)
-		
+
 		// Clean up keyring data on test end
 		defer func() {
 			sm.TokenStore.ClearUserData(username)
 			sm.Close()
 		}()
-		
+
 		sm.Close()
 
 		// Try to open with wrong password
@@ -374,7 +374,7 @@ func TestStorageManager_MasterPassword(t *testing.T) {
 		sm2, err := storage.InitializeStorage(dbPath, username, password)
 		require.NoError(t, err)
 		require.NotNil(t, sm2)
-		
+
 		// Clean up keyring data on test end
 		defer func() {
 			sm2.TokenStore.ClearUserData(username)

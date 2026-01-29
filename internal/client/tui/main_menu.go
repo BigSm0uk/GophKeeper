@@ -19,10 +19,10 @@ func (i menuItem) Title() string       { return i.title }
 func (i menuItem) Description() string { return i.description }
 
 type mainMenuModel struct {
-	list     list.Model
-	client   *api.Client
+	list       list.Model
+	client     *api.Client
 	tokenStore *storage.TokenStore
-	quitting bool
+	quitting   bool
 }
 
 var (
@@ -79,8 +79,8 @@ func NewMainMenuModel(client *api.Client, tokenStore *storage.TokenStore) mainMe
 	l.Styles.Title = menuTitleStyle
 
 	return mainMenuModel{
-		list:      l,
-		client:    client,
+		list:       l,
+		client:     client,
 		tokenStore: tokenStore,
 	}
 }

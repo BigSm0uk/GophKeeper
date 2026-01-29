@@ -92,9 +92,11 @@ func (r *BinaryRepository) Create(ctx context.Context, binary *models.Binary) (*
 
 // FindByID finds a binary entry by ID.
 func (r *BinaryRepository) FindByID(ctx context.Context, id string) (*models.Binary, error) {
-	query, args, err := sq.Select("id", "user_id", "name", "filename", "size", "content_type", "metadata", "storage_path", "checksum", "created_at", "updated_at").
-		From("binaries").
-		Where(sq.Eq{"id": id}).
+	query, args, err := applySoftDeleteFilter(
+		sq.Select("id", "user_id", "name", "filename", "size", "content_type", "metadata", "storage_path", "checksum", "created_at", "updated_at").
+			From("binaries").
+			Where(sq.Eq{"id": id}),
+	).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
@@ -172,12 +174,14 @@ func (r *BinaryRepository) FindByID(ctx context.Context, id string) (*models.Bin
 
 // FindByUserID finds all binary entries for a specific user.
 func (r *BinaryRepository) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*models.Binary, error) {
-	query, args, err := sq.Select("id", "user_id", "name", "filename", "size", "content_type", "metadata", "storage_path", "checksum", "created_at", "updated_at").
-		From("binaries").
-		Where(sq.Eq{"user_id": userID}).
-		OrderBy("created_at DESC").
-		Limit(uint64(limit)).
-		Offset(uint64(offset)).
+	query, args, err := applySoftDeleteFilter(
+		sq.Select("id", "user_id", "name", "filename", "size", "content_type", "metadata", "storage_path", "checksum", "created_at", "updated_at").
+			From("binaries").
+			Where(sq.Eq{"user_id": userID}).
+			OrderBy("created_at DESC").
+			Limit(uint64(limit)).
+			Offset(uint64(offset)),
+	).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
@@ -276,11 +280,13 @@ func (r *BinaryRepository) Update(ctx context.Context, binary *models.Binary) er
 		return models.ErrInvalidUserID
 	}
 
-	query, args, err := sq.Update("binaries").
-		Set("name", binary.Name).
-		Set("metadata", binary.Metadata).
-		Set("updated_at", time.Now()).
-		Where(sq.Eq{"id": binary.ID}).
+	query, args, err := applySoftDeleteFilterToUpdate(
+		sq.Update("binaries").
+			Set("name", binary.Name).
+			Set("metadata", binary.Metadata).
+			Set("updated_at", time.Now()).
+			Where(sq.Eq{"id": binary.ID}),
+	).
 		Suffix("RETURNING updated_at").
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
@@ -344,8 +350,11 @@ func (r *BinaryRepository) Delete(ctx context.Context, id string) error {
 		return models.ErrInvalidUserID
 	}
 
-	query, args, err := sq.Delete("binaries").
+	// Soft delete: set deleted_at timestamp instead of physical deletion
+	query, args, err := sq.Update("binaries").
+		Set("deleted_at", time.Now()).
 		Where(sq.Eq{"id": id}).
+		Where(sq.Expr("deleted_at IS NULL")).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
@@ -412,9 +421,11 @@ func (r *BinaryRepository) Delete(ctx context.Context, id string) error {
 
 // CountByUserID counts the number of binaries for a specific user.
 func (r *BinaryRepository) CountByUserID(ctx context.Context, userID string) (int64, error) {
-	query, args, err := sq.Select("COUNT(*)").
-		From("binaries").
-		Where(sq.Eq{"user_id": userID}).
+	query, args, err := applySoftDeleteFilter(
+		sq.Select("COUNT(*)").
+			From("binaries").
+			Where(sq.Eq{"user_id": userID}),
+	).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
@@ -469,12 +480,14 @@ func (r *BinaryRepository) CountByUserID(ctx context.Context, userID string) (in
 
 // FindByChecksum finds a binary by its checksum (useful for deduplication).
 func (r *BinaryRepository) FindByChecksum(ctx context.Context, userID, checksum string) (*models.Binary, error) {
-	query, args, err := sq.Select("id", "user_id", "name", "filename", "size", "content_type", "metadata", "storage_path", "checksum", "created_at", "updated_at").
-		From("binaries").
-		Where(sq.And{
-			sq.Eq{"user_id": userID},
-			sq.Eq{"checksum": checksum},
-		}).
+	query, args, err := applySoftDeleteFilter(
+		sq.Select("id", "user_id", "name", "filename", "size", "content_type", "metadata", "storage_path", "checksum", "created_at", "updated_at").
+			From("binaries").
+			Where(sq.And{
+				sq.Eq{"user_id": userID},
+				sq.Eq{"checksum": checksum},
+			}),
+	).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {

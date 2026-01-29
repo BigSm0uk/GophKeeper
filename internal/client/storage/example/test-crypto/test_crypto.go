@@ -33,11 +33,11 @@ func main() {
 	// Шифрование данных
 	fmt.Println("\n3️⃣  Шифрование данных...")
 	testData := map[string]string{
-		"Login":        "john.doe@example.com",
-		"Password":     "super-secret-password-123",
-		"Card Number":  "4111111111111111",
-		"CVV":          "123",
-		"Secret Note":  "This is a very secret note that should be encrypted!",
+		"Login":       "john.doe@example.com",
+		"Password":    "super-secret-password-123",
+		"Card Number": "4111111111111111",
+		"CVV":         "123",
+		"Secret Note": "This is a very secret note that should be encrypted!",
 	}
 
 	encrypted := make(map[string]string)
@@ -59,7 +59,7 @@ func main() {
 			fmt.Printf("❌ Ошибка дешифрования %s: %v\n", key, err)
 			return
 		}
-		
+
 		if dec == testData[key] {
 			fmt.Printf("✅ %s: успешно расшифровано\n", key)
 		} else {
@@ -70,7 +70,7 @@ func main() {
 	// Попытка расшифровать с неправильным ключом
 	fmt.Println("\n5️⃣  Попытка расшифровать с НЕПРАВИЛЬНЫМ ключом...")
 	wrongEncryptor, _ := crypto.NewEncryptor("wrong-password", salt)
-	
+
 	for key, encValue := range encrypted {
 		dec, err := wrongEncryptor.Decrypt(encValue)
 		if err != nil {
@@ -86,7 +86,7 @@ func main() {
 	text := "Same text encrypted multiple times"
 	enc1, _ := encryptor.Encrypt(text)
 	enc2, _ := encryptor.Encrypt(text)
-	
+
 	if enc1 != enc2 {
 		fmt.Println("✅ Каждое шифрование использует уникальный nonce")
 		fmt.Printf("   Enc1: %s...\n", enc1[:40])

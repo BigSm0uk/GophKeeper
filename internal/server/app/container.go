@@ -28,14 +28,14 @@ type Container struct {
 	JWTService      *service.JWTService
 	BinariesService *service.BinaryService
 	FileService     *service.FileService
-	// CredService     *services.CredentialsService
+	CredService     *service.CredentialsService
 
 	// Data Layer
 	DB           *db.PostgresDb
 	UserRepo     interfaces.UserRepository
 	BinariesRepo interfaces.BinariesRepository
 	SessionRepo  interfaces.SessionRepository
-	// CredRepo        *repositories.CredentialsRepository
+	CredRepo     interfaces.CredentialRepository
 	// MinioClient     *minio.Client
 }
 
@@ -50,7 +50,7 @@ func NewContainer(logger *zap.Logger, cfg *config.ServerConfig) *Container {
 
 // RegisterGRPCServer registers the gRPC server component.
 func (c *Container) RegisterGRPCServer() {
-	server := NewGRPCServer(c.Config, c.Logger, c.AuthService, c.BinariesService)
+	server := NewGRPCServer(c.Config, c.Logger, c.AuthService, c.BinariesService, c.CredService)
 	c.GRPCServer = server
 	c.App.AddComponent(server)
 }
@@ -61,7 +61,6 @@ func (c *Container) RegisterHTTPServer(server *HTTPServer) {
 	c.App.AddComponent(server)
 }
 
-// TODO: Add methods for registering other components
 func (c *Container) RegisterDatabase(db *db.PostgresDb) {
 	c.DB = db
 	c.App.AddComponent(db)
@@ -71,10 +70,13 @@ func (c *Container) RegisterRepositories() {
 	ur := pg_repo.NewUserRepository(c.Logger, c.DB)
 	br := pg_repo.NewBinaryRepository(c.Logger, c.DB)
 	sr := pg_repo.NewSessionRepository(c.Logger, c.DB)
+	cr := pg_repo.NewCredentialsRepository(c.Logger, c.DB)
 
 	c.UserRepo = ur
 	c.BinariesRepo = br
 	c.SessionRepo = sr
+	c.CredRepo = cr
+
 }
 
 func (c *Container) RegisterServices() error {
@@ -99,6 +101,9 @@ func (c *Container) RegisterServices() error {
 	// Initialize Binaries Service
 	binSvc := service.NewBinaryService(c.Logger, c.BinariesRepo, c.FileService, c.Config.Storage.MaxFileSize)
 	c.BinariesService = binSvc
+
+	credSvc := service.NewCredentialsService(c.Logger, c.CredRepo)
+	c.CredService = credSvc
 
 	return nil
 }

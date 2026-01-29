@@ -15,14 +15,15 @@ import (
 )
 
 type GRPCServer struct {
-	server          *grpc.Server
-	logger          *zap.Logger
-	config          *config.ServerConfig
-	authHandler     *grpchandlers.AuthHandler
-	binariesHandler *grpchandlers.BinariesHandler
+	server             *grpc.Server
+	logger             *zap.Logger
+	config             *config.ServerConfig
+	authHandler        *grpchandlers.AuthHandler
+	binariesHandler    *grpchandlers.BinariesHandler
+	credentialsHandler *grpchandlers.CredentialsHandler
 }
 
-func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *service.AuthService, binariesService *service.BinaryService) *GRPCServer {
+func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *service.AuthService, binariesService *service.BinaryService, credentialsService *service.CredentialsService) *GRPCServer {
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			grpchandlers.RequestIDInterceptor(logger),                   // First: generate request ID
@@ -34,9 +35,11 @@ func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *se
 
 	authHandler := grpchandlers.NewAuthHandler(logger, authService, cfg.JWT)
 	binariesHandler := grpchandlers.NewBinariesHandler(logger, binariesService)
+	credentialsHandler := grpchandlers.NewCredentialsHandler(logger, credentialsService)
 
 	pb.RegisterAuthServiceServer(server, authHandler)
 	pb.RegisterBinariesServiceServer(server, binariesHandler)
+	pb.RegisterCredentialsServiceServer(server, credentialsHandler)
 
 	// TODO: Регистрировать другие сервисы
 	// pb.RegisterCredentialsServiceServer(server, credHandler)

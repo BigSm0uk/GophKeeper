@@ -380,9 +380,8 @@ func (c *Client) RefreshToken(ctx context.Context, refreshToken, clientID, clien
 	defer cancel()
 
 	req := &pb.TokenRequest{
-		GrantType:    pb.TokenGrantType_TOKEN_GRANT_TYPE_REFRESH_TOKEN,
-		RefreshToken: refreshToken,
-		ClientId:     clientID,
+		GrantType: pb.TokenGrantType_TOKEN_GRANT_TYPE_REFRESH_TOKEN,
+		ClientId:  clientID,
 	}
 	if clientSecret != "" {
 		req.ClientSecret = &clientSecret
@@ -397,29 +396,29 @@ func (c *Client) RefreshToken(ctx context.Context, refreshToken, clientID, clien
 	return resp, err
 }
 
-// Revoke отзывает access/refresh токен.
-func (c *Client) Revoke(ctx context.Context, token, clientID, clientSecret string, hint pb.TokenTypeHint) (*pb.RevokeResponse, error) {
-	ctx, cancel := c.timeoutCtx(ctx)
-	defer cancel()
+// // Revoke отзывает access/refresh токен.
+// func (c *Client) Revoke(ctx context.Context, token, clientID, clientSecret string, hint pb.TokenTypeHint) (*pb.RevokeResponse, error) {
+// 	ctx, cancel := c.timeoutCtx(ctx)
+// 	defer cancel()
 
-	req := &pb.RevokeRequest{
-		Token:         token,
-		TokenTypeHint: hint,
-		ClientId:      clientID,
-	}
-	if clientSecret != "" {
-		req.ClientSecret = &clientSecret
-	}
+// 	req := &pb.RevokeRequest{
+// 		Token:         token,
+// 		TokenTypeHint: hint,
+// 		ClientId:      clientID,
+// 	}
+// 	if clientSecret != "" {
+// 		req.ClientSecret = &clientSecret
+// 	}
 
-	ctx = c.withAuth(ctx)
-	var resp *pb.RevokeResponse
-	err := c.callWithRetry(ctx, func(rctx context.Context) error {
-		var err error
-		resp, err = c.auth.Revoke(rctx, req)
-		return err
-	})
-	return resp, err
-}
+// 	ctx = c.withAuth(ctx)
+// 	var resp *pb.RevokeResponse
+// 	err := c.callWithRetry(ctx, func(rctx context.Context) error {
+// 		var err error
+// 		resp, err = c.auth.Revoke(rctx, req)
+// 		return err
+// 	})
+// 	return resp, err
+// }
 
 // callWithRetry выполняет fn с простым повтором при ошибке.
 func (c *Client) callWithRetry(ctx context.Context, fn func(context.Context) error) error {

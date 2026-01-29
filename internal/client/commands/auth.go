@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/BigSm0uk/GophKeeper/internal/client/tui"
-	pb "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -203,9 +202,6 @@ func init() {
 			if err := container.TokenStore.SaveAccessToken(username, tokens.AccessToken); err != nil {
 				return fmt.Errorf("save access token: %w", err)
 			}
-			if err := container.TokenStore.SaveRefreshToken(username, tokens.RefreshToken); err != nil {
-				return fmt.Errorf("save refresh token: %w", err)
-			}
 
 			container.API.SetAccessToken(tokens.AccessToken)
 			container.Logger.Info("user logged in", zap.String("username", username))
@@ -226,14 +222,7 @@ func init() {
 			if container.TokenStore == nil {
 				return fmt.Errorf("token store not initialized")
 			}
-			refresh, err := container.TokenStore.GetRefreshToken(username)
-			if err != nil {
-				return fmt.Errorf("get refresh token: %w", err)
-			}
 
-			if _, err := container.API.Revoke(context.Background(), refresh, "gophkeeper-cli", "", pb.TokenTypeHint_TOKEN_TYPE_HINT_REFRESH_TOKEN); err != nil {
-				return fmt.Errorf("revoke: %w", err)
-			}
 			container.TokenStore.DeleteTokens(username)
 			container.Logger.Info("user logged out", zap.String("username", username))
 			fmt.Println("✅ Logged out")

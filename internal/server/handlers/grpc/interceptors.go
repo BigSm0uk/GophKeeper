@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"net"
 	"strings"
 	"time"
 
@@ -145,13 +146,21 @@ func extractClientIP(ctx context.Context) string {
 	if !ok {
 		return ""
 	}
-	// Extract IP address from peer.Addr
-	addr := p.Addr.String()
-	// Remove port if present (format: "ip:port")
-	if idx := strings.LastIndex(addr, ":"); idx != -1 {
-		addr = addr[:idx]
+	// Extract IP address from peer.Addr using SplitHostPort to correctly handle IPv4/IPv6
+	host, _, err := net.SplitHostPort(p.Addr.String())
+	if err != nil {
+		// If address is without port or in unexpected format, fall back to trimming brackets
+		addr := p.Addr.String()
+		// Remove port if present (format: "ip:port" or "[ip]:port")
+		if idx := strings.LastIndex(addr, ":"); idx != -1 {
+			addr = addr[:idx]
+		}
+		// Trim IPv6 brackets if any
+		addr = strings.Trim(addr, "[]")
+		return addr
 	}
-	return addr
+	// Trim IPv6 brackets if any (just in case)
+	return strings.Trim(host, "[]")
 }
 
 func extractUserAgent(ctx context.Context) string {

@@ -224,23 +224,3 @@ func (h *AuthHandler) Token(ctx context.Context, req *pb.TokenRequest) (*pb.Toke
 		Scope:       req.Scope,
 	}, nil
 }
-
-// Revoke implements token revocation (TODO:Denis)
-func (h *AuthHandler) Revoke(ctx context.Context, req *pb.RevokeRequest) (*pb.RevokeResponse, error) {
-	logger := GetLoggerFromContext(ctx, h.logger)
-
-	logger.Info("Register request received")
-
-	accessToken := GetAccessTokenFromContext(ctx)
-
-	_, err := h.as.ValidateToken(ctx, accessToken)
-	revoked := err != nil // Token is considered revoked if it's invalid
-
-	h.logger.Info("Revoke request completed",
-		zap.Bool("revoked", revoked),
-	)
-
-	return &pb.RevokeResponse{
-		Revoked: revoked,
-	}, nil
-}

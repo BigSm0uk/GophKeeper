@@ -129,7 +129,7 @@ func (s *JWTService) ValidateToken(tokenString string) (*JWTClaims, error) {
 		return claims, nil
 	}
 
-	return nil, errors.New("invalid token")
+	return nil, jwt.ErrTokenExpired
 }
 
 // ExtractUserID extracts user ID from a valid token

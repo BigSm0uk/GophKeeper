@@ -54,10 +54,7 @@ func (h *AuthHandler) validateTokenRequest(req *pb.TokenRequest) error {
 		}
 
 	case pb.TokenGrantType_TOKEN_GRANT_TYPE_REFRESH_TOKEN:
-		// For refresh_token grant, username is required
-		if req.Username == "" {
-			return fmt.Errorf("username is required for refresh_token grant")
-		}
+		// For refresh_token grant, user is identified by Bearer token in Authorization header (username not required)
 		// client_id is optional but if provided, must be valid
 		if req.ClientId != "" && (len(req.ClientId) < 1 || len(req.ClientId) > 255) {
 			return fmt.Errorf("client_id must be between 1 and 255 characters if provided")

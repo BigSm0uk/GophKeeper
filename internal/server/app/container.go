@@ -29,6 +29,9 @@ type Container struct {
 	BinariesService *service.BinaryService
 	FileService     *service.FileService
 	CredService     *service.CredentialsService
+	CardsService    *service.CardsService
+	TextsService    *service.TextsService
+	UserService     *service.UserService
 
 	// Data Layer
 	DB           *db.PostgresDb
@@ -36,6 +39,8 @@ type Container struct {
 	BinariesRepo interfaces.BinariesRepository
 	SessionRepo  interfaces.SessionRepository
 	CredRepo     interfaces.CredentialRepository
+	CardRepo     interfaces.CardRepository
+	TextRepo     interfaces.TextRepository
 	// MinioClient     *minio.Client
 }
 
@@ -50,7 +55,7 @@ func NewContainer(logger *zap.Logger, cfg *config.ServerConfig) *Container {
 
 // RegisterGRPCServer registers the gRPC server component.
 func (c *Container) RegisterGRPCServer() {
-	server := NewGRPCServer(c.Config, c.Logger, c.AuthService, c.BinariesService, c.CredService)
+	server := NewGRPCServer(c.Config, c.Logger, c.AuthService, c.BinariesService, c.CredService, c.CardsService, c.TextsService, c.UserService, c.JWTService)
 	c.GRPCServer = server
 	c.App.AddComponent(server)
 }
@@ -71,12 +76,15 @@ func (c *Container) RegisterRepositories() {
 	br := pg_repo.NewBinaryRepository(c.Logger, c.DB)
 	sr := pg_repo.NewSessionRepository(c.Logger, c.DB)
 	cr := pg_repo.NewCredentialsRepository(c.Logger, c.DB)
+	cardRepo := pg_repo.NewCardRepository(c.Logger, c.DB)
+	textRepo := pg_repo.NewTextRepository(c.Logger, c.DB)
 
 	c.UserRepo = ur
 	c.BinariesRepo = br
 	c.SessionRepo = sr
 	c.CredRepo = cr
-
+	c.CardRepo = cardRepo
+	c.TextRepo = textRepo
 }
 
 func (c *Container) RegisterServices() error {
@@ -104,6 +112,15 @@ func (c *Container) RegisterServices() error {
 
 	credSvc := service.NewCredentialsService(c.Logger, c.CredRepo)
 	c.CredService = credSvc
+
+	cardsSvc := service.NewCardsService(c.Logger, c.CardRepo)
+	c.CardsService = cardsSvc
+
+	textsSvc := service.NewTextsService(c.Logger, c.TextRepo)
+	c.TextsService = textsSvc
+
+	userSvc := service.NewUserService(c.Logger, c.UserRepo, c.SessionRepo)
+	c.UserService = userSvc
 
 	return nil
 }

@@ -21,9 +21,12 @@ type GRPCServer struct {
 	authHandler        *grpchandlers.AuthHandler
 	binariesHandler    *grpchandlers.BinariesHandler
 	credentialsHandler *grpchandlers.CredentialsHandler
+	cardsHandler       *grpchandlers.CardsHandler
+	textsHandler       *grpchandlers.TextsHandler
+	userHandler        *grpchandlers.UserHandler
 }
 
-func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *service.AuthService, binariesService *service.BinaryService, credentialsService *service.CredentialsService) *GRPCServer {
+func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *service.AuthService, binariesService *service.BinaryService, credentialsService *service.CredentialsService, cardsService *service.CardsService, textsService *service.TextsService, userService *service.UserService, jwtService *service.JWTService) *GRPCServer {
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			grpchandlers.RequestIDInterceptor(logger),                   // First: generate request ID
@@ -36,15 +39,16 @@ func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *se
 	authHandler := grpchandlers.NewAuthHandler(logger, authService, cfg.JWT)
 	binariesHandler := grpchandlers.NewBinariesHandler(logger, binariesService)
 	credentialsHandler := grpchandlers.NewCredentialsHandler(logger, credentialsService)
+	cardsHandler := grpchandlers.NewCardsHandler(logger, cardsService)
+	textsHandler := grpchandlers.NewTextsHandler(logger, textsService)
+	userHandler := grpchandlers.NewUserHandler(logger, userService, jwtService, cfg.Storage.MaxFileSize)
 
 	pb.RegisterAuthServiceServer(server, authHandler)
 	pb.RegisterBinariesServiceServer(server, binariesHandler)
 	pb.RegisterCredentialsServiceServer(server, credentialsHandler)
-
-	// TODO: Регистрировать другие сервисы
-	// pb.RegisterCredentialsServiceServer(server, credHandler)
-	// pb.RegisterTextsServiceServer(server, textsHandler)
-	// и т.д.
+	pb.RegisterCardsServiceServer(server, cardsHandler)
+	pb.RegisterTextsServiceServer(server, textsHandler)
+	pb.RegisterUserServiceServer(server, userHandler)
 
 	if cfg.IsDevelopment() {
 		reflection.Register(server)
@@ -52,11 +56,15 @@ func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *se
 	}
 
 	return &GRPCServer{
-		server:          server,
-		logger:          logger,
-		config:          cfg,
-		authHandler:     authHandler,
-		binariesHandler: binariesHandler,
+		server:             server,
+		logger:             logger,
+		config:             cfg,
+		authHandler:        authHandler,
+		binariesHandler:    binariesHandler,
+		credentialsHandler: credentialsHandler,
+		cardsHandler:       cardsHandler,
+		textsHandler:       textsHandler,
+		userHandler:        userHandler,
 	}
 }
 
@@ -119,4 +127,24 @@ func (s *GRPCServer) Name() string {
 // GetAuthHandler returns the auth handler for in-process gateway registration
 func (s *GRPCServer) GetAuthHandler() pb.AuthServiceServer {
 	return s.authHandler
+}
+
+// GetCredentialsHandler returns the credentials handler for in-process gateway registration
+func (s *GRPCServer) GetCredentialsHandler() pb.CredentialsServiceServer {
+	return s.credentialsHandler
+}
+
+// GetCardsHandler returns the cards handler for in-process gateway registration
+func (s *GRPCServer) GetCardsHandler() pb.CardsServiceServer {
+	return s.cardsHandler
+}
+
+// GetTextsHandler returns the texts handler for in-process gateway registration
+func (s *GRPCServer) GetTextsHandler() pb.TextsServiceServer {
+	return s.textsHandler
+}
+
+// GetUserHandler returns the user handler for in-process gateway registration
+func (s *GRPCServer) GetUserHandler() pb.UserServiceServer {
+	return s.userHandler
 }

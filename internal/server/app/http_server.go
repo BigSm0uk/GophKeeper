@@ -120,15 +120,18 @@ func (s *HTTPServer) registerGatewayHandlers(
 	if err := pb.RegisterAuthServiceHandlerServer(ctx, mux, s.grpcServer.GetAuthHandler()); err != nil {
 		return fmt.Errorf("failed to register AuthService handler: %w", err)
 	}
-
-	// TODO: Регистрируем остальные сервисы по мере их реализации
-	// if err := pb.RegisterCredentialsServiceHandlerServer(ctx, mux, s.grpcServer.GetCredentialsHandler()); err != nil {
-	// 	return fmt.Errorf("failed to register CredentialsService handler: %w", err)
-	// }
-	// if err := pb.RegisterTextsServiceHandlerServer(ctx, mux, s.grpcServer.GetTextsHandler()); err != nil {
-	// 	return fmt.Errorf("failed to register TextsService handler: %w", err)
-	// }
-	// ... и т.д.
+	if err := pb.RegisterCredentialsServiceHandlerServer(ctx, mux, s.grpcServer.GetCredentialsHandler()); err != nil {
+		return fmt.Errorf("failed to register CredentialsService handler: %w", err)
+	}
+	if err := pb.RegisterCardsServiceHandlerServer(ctx, mux, s.grpcServer.GetCardsHandler()); err != nil {
+		return fmt.Errorf("failed to register CardsService handler: %w", err)
+	}
+	if err := pb.RegisterTextsServiceHandlerServer(ctx, mux, s.grpcServer.GetTextsHandler()); err != nil {
+		return fmt.Errorf("failed to register TextsService handler: %w", err)
+	}
+	if err := pb.RegisterUserServiceHandlerServer(ctx, mux, s.grpcServer.GetUserHandler()); err != nil {
+		return fmt.Errorf("failed to register UserService handler: %w", err)
+	}
 
 	s.logger.Info("Gateway handlers registered successfully (in-process)")
 	return nil
@@ -162,7 +165,7 @@ func (s *HTTPServer) createHandler(gatewayMux *runtime.ServeMux) http.Handler {
 }
 
 // healthCheckHandler health check endpoint
-func (s *HTTPServer) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+func (s *HTTPServer) healthCheckHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(`{"status":"ok","service":"GophKeeper"}`))

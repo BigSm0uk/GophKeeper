@@ -173,24 +173,22 @@ service UserService {
     };
   }
 }
-// SessionInfo represents information about a user session.
+// SessionInfo represents information about a user session (refresh_tokens row).
 message SessionInfo {
-  // session_id is the unique session identifier.
+  // session_id is the unique session identifier (id).
   string session_id = 1;
-  // device_id is the unique device identifier.
-  string device_id = 2;
-  // device_name is the human-readable device name.
-  string device_name = 3;
-  // device_type is the type of device (mobile, desktop, web, etc.).
-  string device_type = 4;
+  // client_id is the device fingerprint.
+  string client_id = 2;
   // ip_address is the IP address used for this session.
-  optional string ip_address = 5;
+  optional string ip_address = 3;
+  // user_agent is the client User-Agent string.
+  optional string user_agent = 4;
   // created_at is the session creation timestamp.
-  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp created_at = 5;
   // last_used_at is the last session activity timestamp.
-  google.protobuf.Timestamp last_used_at = 7;
+  google.protobuf.Timestamp last_used_at = 6;
   // is_current indicates if this is the current session.
-  bool is_current = 8;
+  bool is_current = 7;
 }
 
 // GetActiveSessionsRequest requests all active sessions for the user.

@@ -113,28 +113,48 @@ func (s *JWTService) GenerateRefreshToken(user *models.User) (string, error) {
 	return tokenString, nil
 }
 
-// ValidateToken validates a JWT token and returns the claims
-func (s *JWTService) ValidateToken(tokenString string) (*JWTClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return s.publicKey, nil
-	})
+// ValidateAccessToken validates an access token and returns the claims
+func (s *JWTService) ValidateAccessToken(tokenString string) (*JWTClaims, error) {
+	claims, err := s.ParseToken(tokenString)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse token: %w", err)
+		return nil, err
 	}
 
-	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
-		return claims, nil
+	if claims.ExpiresAt.Before(time.Now()) {
+		return nil, jwt.ErrTokenExpired
 	}
 
-	return nil, jwt.ErrTokenExpired
+	return claims, nil
+}
+
+// ParseToken parses a JWT token and returns the claims
+func (s *JWTService) ParseToken(tokenString string) (*JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&JWTClaims{},
+		func(token *jwt.Token) (any, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return s.publicKey, nil
+		},
+		jwt.WithoutClaimsValidation(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*JWTClaims)
+	if !ok {
+		return nil, errors.New("invalid claims type")
+	}
+
+	return claims, nil
 }
 
 // ExtractUserID extracts user ID from a valid token
 func (s *JWTService) ExtractUserID(tokenString string) (string, error) {
-	claims, err := s.ValidateToken(tokenString)
+	claims, err := s.ParseToken(tokenString)
 	if err != nil {
 		return "", err
 	}
@@ -143,7 +163,7 @@ func (s *JWTService) ExtractUserID(tokenString string) (string, error) {
 
 // ExtractClientID extracts client ID from a valid token
 func (s *JWTService) ExtractClientID(tokenString string) (string, error) {
-	claims, err := s.ValidateToken(tokenString)
+	claims, err := s.ParseToken(tokenString)
 	if err != nil {
 		return "", err
 	}
@@ -152,7 +172,7 @@ func (s *JWTService) ExtractClientID(tokenString string) (string, error) {
 
 // ExtractUsername extracts username from a valid token
 func (s *JWTService) ExtractUsername(tokenString string) (string, error) {
-	claims, err := s.ValidateToken(tokenString)
+	claims, err := s.ParseToken(tokenString)
 	if err != nil {
 		return "", err
 	}
@@ -161,7 +181,7 @@ func (s *JWTService) ExtractUsername(tokenString string) (string, error) {
 
 // IsTokenExpired checks if a token is expired
 func (s *JWTService) IsTokenExpired(tokenString string) bool {
-	claims, err := s.ValidateToken(tokenString)
+	claims, err := s.ValidateAccessToken(tokenString)
 	if err != nil {
 		return true
 	}
@@ -171,7 +191,7 @@ func (s *JWTService) IsTokenExpired(tokenString string) bool {
 
 // RefreshAccessToken creates a new access token from a valid refresh token
 func (s *JWTService) RefreshAccessToken(refreshToken string) (string, error) {
-	claims, err := s.ValidateToken(refreshToken)
+	claims, err := s.ValidateAccessToken(refreshToken)
 	if err != nil {
 		return "", fmt.Errorf("invalid refresh token: %w", err)
 	}

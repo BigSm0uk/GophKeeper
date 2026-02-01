@@ -1,12 +1,89 @@
 # https://taskfile.dev
+# Tasks for running tests (unit, integration, lint)
 
-version: '3'
+version: "3"
 
 vars:
-  GREETING: Hello, World!
+  ROOT_DIR: "{{.PWD}}"
+  BIN_DIR: "{{.ROOT_DIR}}/bin"
+
+  MOCKGEN_VERSION: "v0.6.0"
+  MOCKGEN: "{{.BIN_DIR}}/mockgen"
+
+  COVERAGE_UNIT: "{{.ROOT_DIR}}/coverage-unit.out"
+  COVERAGE_INTEGRATION: "{{.ROOT_DIR}}/coverage-integration.out"
 
 tasks:
-  hello:
+  # Install mockgen binary into ./bin (go.uber.org/mock)
+  mockgen:install:
+    desc: Install mockgen binary into ./bin
     cmds:
-      - echo "{{.GREETING}}"
-    silent: true
+      - mkdir -p "{{.BIN_DIR}}"
+      - |
+        [ -f "{{.MOCKGEN}}" ] || {
+          echo '📦 Installing mockgen...'
+          GOBIN="{{.BIN_DIR}}" go install go.uber.org/mock/mockgen@{{.MOCKGEN_VERSION}}
+        }
+
+  # Generate mocks for domain interfaces into internal/server/domain/mocks
+  mockgen:gen:
+    deps: [mockgen:install]
+    desc: Generate mocks for domain interfaces
+    dir: internal/server/domain
+    cmds:
+      - mkdir -p mocks
+      - |
+        "{{.MOCKGEN}}" -source=interfaces/user_repo.go -destination=mocks/user_repo.go -package=mocks
+        "{{.MOCKGEN}}" -source=interfaces/session_repo.go -destination=mocks/session_repo.go -package=mocks
+        "{{.MOCKGEN}}" -source=interfaces/binaries_repo.go -destination=mocks/binaries_repo.go -package=mocks
+        "{{.MOCKGEN}}" -source=interfaces/cards_repo.go -destination=mocks/cards_repo.go -package=mocks
+        "{{.MOCKGEN}}" -source=interfaces/credentials_repo.go -destination=mocks/credentials_repo.go -package=mocks
+        "{{.MOCKGEN}}" -source=interfaces/texts_repo.go -destination=mocks/texts_repo.go -package=mocks
+        "{{.MOCKGEN}}" -source=interfaces/lifecycle.go -destination=mocks/lifecycle.go -package=mocks
+
+  # Run all tests (unit + integration)
+  default:
+    desc: Run unit and integration tests
+    cmds:
+      - task: test:unit
+      - task: test:integration
+
+  # Unit tests only (fast, -short skips integration)
+  unit:
+    desc: Run unit tests
+    cmds:
+      - go test -short -v -race ./...
+
+  # Unit tests with coverage
+  unit:cover:
+    desc: Run unit tests with coverage report
+    cmds:
+      - go test -short -v -race -coverprofile={{.COVERAGE_UNIT}} -covermode=atomic ./...
+      - go tool cover -func={{.COVERAGE_UNIT}}
+
+  # Integration tests (require DB, see tests/integration)
+  integration:
+    desc: Run integration tests
+    cmds:
+      - go test -v -race ./tests/integration/...
+
+  # Integration tests with coverage
+  integration:cover:
+    desc: Run integration tests with coverage
+    cmds:
+      - go test -v -race -coverprofile={{.COVERAGE_INTEGRATION}} -covermode=atomic ./tests/integration/...
+      - go tool cover -func={{.COVERAGE_INTEGRATION}}
+
+  # Lint (golangci-lint)
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run --timeout=5m ./...
+
+  # All checks: unit, integration, lint
+  all:
+    desc: Run unit tests, integration tests and lint
+    cmds:
+      - task: test:unit
+      - task: test:integration
+      - task: test:lint

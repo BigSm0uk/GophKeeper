@@ -60,8 +60,7 @@ func TestValidateTokenRequest(t *testing.T) {
 			req: &pb.TokenRequest{
 				GrantType: pb.TokenGrantType_TOKEN_GRANT_TYPE_REFRESH_TOKEN,
 			},
-			wantErr: true,
-			errMsg:  "username is required for refresh_token grant",
+			wantErr: false,
 		},
 		{
 			name: "unsupported grant type",

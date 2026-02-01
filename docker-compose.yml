@@ -24,7 +24,8 @@ services:
                -c idle_in_transaction_session_timeout=${PG_IDLE_TRANSACTION_TIMEOUT}
                -c lock_timeout=${PG_LOCK_TIMEOUT}
                -c wal_writer_delay=${PG_WAL_WRITER_DELAY}
-               -c checkpoint_timeout=${PG_CHECKPOINT_TIMEOUT}                                                                      -c wal_buffers=${PG_WAL_BUFFERS}
+               -c checkpoint_timeout=${PG_CHECKPOINT_TIMEOUT}
+               -c wal_buffers=${PG_WAL_BUFFERS}
     # Sets the maximum number of connections (PG_MAX_CONNECTIONS)
     # Shared memory size (PG_SHARED_BUFFERS)
     # Memory allocated per query (PG_WORK_MEM)

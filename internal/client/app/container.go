@@ -1,12 +1,14 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/BigSm0uk/GophKeeper/internal/client/api"
 	"github.com/BigSm0uk/GophKeeper/internal/client/app/config"
 	"github.com/BigSm0uk/GophKeeper/internal/client/crypto"
+	"github.com/BigSm0uk/GophKeeper/internal/client/service"
 	"github.com/BigSm0uk/GophKeeper/internal/client/storage"
 	"github.com/BigSm0uk/GophKeeper/internal/client/sync"
 	"go.uber.org/zap"
@@ -14,13 +16,17 @@ import (
 
 // Container хранит зависимости клиента.
 type Container struct {
-	Logger      *zap.Logger
-	Config      *config.ClientConfig
-	API         *api.Client
-	TokenStore  *storage.TokenStore
-	LocalDB     *storage.LocalDB
-	Encryptor   *crypto.Encryptor // может быть nil, инициализируется при необходимости
-	SyncManager *sync.Manager     // менеджер фоновой синхронизации
+	Logger          *zap.Logger
+	Config          *config.ClientConfig
+	API             *api.Client
+	TokenStore      *storage.TokenStore
+	LocalDB         *storage.LocalDB
+	Encryptor       *crypto.Encryptor        // может быть nil, инициализируется при необходимости
+	StorageManager  *storage.StorageManager  // полный стек локального хранилища с шифрованием
+	SyncManager     *sync.Manager            // менеджер фоновой синхронизации
+	IsOnline        bool                     // текущий статус подключения к серверу
+	LastHealthCheck time.Time                // время последней проверки доступности
+	offlineMode     bool                     // принудительный офлайн режим
 }
 
 func NewContainer(logger *zap.Logger, cfg *config.ClientConfig, client *api.Client, tokenStore *storage.TokenStore) *Container {
@@ -120,4 +126,96 @@ func (c *Container) StopSync() error {
 		return c.SyncManager.Stop()
 	}
 	return nil
+}
+
+// CheckOnlineStatus проверяет доступность сервера и обновляет статус.
+func (c *Container) CheckOnlineStatus(ctx context.Context) bool {
+	if c.API == nil {
+		c.IsOnline = false
+		c.LastHealthCheck = time.Now()
+		return false
+	}
+
+	isOnline := c.API.IsServerAvailable(ctx)
+	c.IsOnline = isOnline
+	c.LastHealthCheck = time.Now()
+
+	return isOnline
+}
+
+// GetOnlineStatus возвращает текущий статус подключения.
+// Если проверка устарела (более 30 секунд), делает новую проверку.
+func (c *Container) GetOnlineStatus(ctx context.Context) bool {
+	if time.Since(c.LastHealthCheck) > 30*time.Second {
+		return c.CheckOnlineStatus(ctx)
+	}
+	return c.IsOnline
+}
+
+// Close закрывает все ресурсы Container.
+func (c *Container) Close() error {
+	var errs []error
+
+	// Останавливаем синхронизацию
+	if err := c.StopSync(); err != nil {
+		errs = append(errs, fmt.Errorf("stop sync: %w", err))
+	}
+
+	// Закрываем StorageManager
+	if c.StorageManager != nil {
+		if err := c.StorageManager.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close storage manager: %w", err))
+		}
+	}
+
+	// Закрываем LocalDB если она была инициализирована отдельно
+	if c.LocalDB != nil && c.StorageManager == nil {
+		if err := c.LocalDB.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close local db: %w", err))
+		}
+	}
+
+	// Закрываем API соединение
+	if c.API != nil {
+		if err := c.API.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("close api: %w", err))
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("close container: %v", errs)
+	}
+
+	return nil
+}
+
+// SetOfflineMode включает принудительный офлайн режим.
+func (c *Container) SetOfflineMode(offline bool) {
+	c.offlineMode = offline
+}
+
+// IsOfflineMode возвращает true если работаем в офлайн режиме.
+// Учитывает как принудительный offline, так и недоступность сервера.
+func (c *Container) IsOfflineMode() bool {
+	return c.offlineMode || !c.IsOnline
+}
+
+// GetOfflineService возвращает сервис для офлайн операций.
+func (c *Container) GetOfflineService() *service.OfflineService {
+	if c.StorageManager == nil || c.StorageManager.Encrypted == nil {
+		return nil
+	}
+	return service.NewOfflineService(c.StorageManager.Encrypted)
+}
+
+// UpdateOnlineStatus обновляет статус подключения при запуске.
+func (c *Container) UpdateOnlineStatus(ctx context.Context) {
+	c.CheckOnlineStatus(ctx)
+	if c.Logger != nil {
+		status := "offline"
+		if c.IsOnline {
+			status = "online"
+		}
+		c.Logger.Info("connection status", zap.String("mode", status))
+	}
 }

@@ -3,6 +3,7 @@ package storage
 import (
 	"crypto/sha256"
 	"fmt"
+	"path/filepath"
 
 	"github.com/BigSm0uk/GophKeeper/internal/client/crypto"
 )
@@ -12,6 +13,7 @@ type StorageManager struct {
 	DB          *LocalDB
 	Encrypted   *EncryptedStorage
 	TokenStore  *TokenStore
+	FileManager *FileManager
 	username    string
 	initialized bool
 }
@@ -92,10 +94,19 @@ func InitializeStorage(dbPath, username, masterPassword string) (*StorageManager
 	// Create encrypted storage wrapper
 	encryptedStorage := NewEncryptedStorage(db, encryptor)
 
+	// Создаем файловый менеджер для binaries
+	filesDir := filepath.Join(filepath.Dir(dbPath), "files")
+	fileManager, err := NewFileManager(filesDir, encryptor)
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to create file manager: %w", err)
+	}
+
 	return &StorageManager{
 		DB:          db,
 		Encrypted:   encryptedStorage,
 		TokenStore:  tokenStore,
+		FileManager: fileManager,
 		username:    username,
 		initialized: true,
 	}, nil

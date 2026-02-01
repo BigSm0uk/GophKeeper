@@ -16,13 +16,14 @@ import (
 
 // Client обёртка вокруг gRPC клиента.
 type Client struct {
-	conn        *grpc.ClientConn
-	auth        pb.AuthServiceClient
-	credentials pb.CredentialsServiceClient
-	cards       pb.CardsServiceClient
-	texts       pb.TextsServiceClient
-	accessToken string
-	timeout     time.Duration
+	conn          *grpc.ClientConn
+	auth          pb.AuthServiceClient
+	credentials   pb.CredentialsServiceClient
+	cards         pb.CardsServiceClient
+	texts         pb.TextsServiceClient
+	healthChecker *HealthChecker
+	accessToken   string
+	timeout       time.Duration
 }
 
 const (
@@ -47,12 +48,13 @@ func New(address string, insecureTLS bool, timeout time.Duration, logger *zap.Lo
 	_ = logger // используется для будущих клиентов
 
 	return &Client{
-		conn:        conn,
-		auth:        pb.NewAuthServiceClient(conn),
-		credentials: pb.NewCredentialsServiceClient(conn),
-		cards:       pb.NewCardsServiceClient(conn),
-		texts:       pb.NewTextsServiceClient(conn),
-		timeout:     timeout,
+		conn:          conn,
+		auth:          pb.NewAuthServiceClient(conn),
+		credentials:   pb.NewCredentialsServiceClient(conn),
+		cards:         pb.NewCardsServiceClient(conn),
+		texts:         pb.NewTextsServiceClient(conn),
+		healthChecker: NewHealthChecker(conn),
+		timeout:       timeout,
 	}, nil
 }
 
@@ -69,6 +71,16 @@ func (c *Client) GetConn() *grpc.ClientConn {
 // SetAccessToken обновляет токен для будущих запросов.
 func (c *Client) SetAccessToken(token string) {
 	c.accessToken = token
+}
+
+// IsServerAvailable проверяет доступность сервера через health check.
+func (c *Client) IsServerAvailable(ctx context.Context) bool {
+	return c.healthChecker.IsHealthy(ctx)
+}
+
+// QuickPing делает быстрый пинг сервера для проверки связи.
+func (c *Client) QuickPing() bool {
+	return c.healthChecker.QuickPing()
 }
 
 // CreateCredential создаёт новый credentials entry.

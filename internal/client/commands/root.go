@@ -34,10 +34,39 @@ var (
 				if authResult, ok := tui.ExtractAuthResult(finalModel); ok && authResult.Success {
 					container.API.SetAccessToken(authResult.AccessToken)
 
-					mainMenu := tui.NewMainMenuModel(container.API, container.TokenStore)
+					// Запрашиваем мастер-пароль для инициализации локального хранилища
+					dbPath, err := container.Config.GetLocalDBPath()
+					if err != nil {
+						return fmt.Errorf("failed to get db path: %w", err)
+					}
+
+					masterPassModel := tui.NewMasterPasswordModel(authResult.Username, dbPath, container.TokenStore)
+					mpFinal, err := tea.NewProgram(masterPassModel, tea.WithAltScreen()).Run()
+					if err != nil {
+						return fmt.Errorf("master password: %w", err)
+					}
+
+					// Проверяем успешность ввода мастер-пароля
+					if mpModel, ok := mpFinal.(tui.MasterPasswordModel); ok && mpModel.IsSuccess() {
+						storageManager := mpModel.GetStorageManager()
+						if storageManager != nil {
+							container.StorageManager = storageManager
+						}
+					} else {
+						return fmt.Errorf("master password entry failed or cancelled")
+					}
+
+					offlineService := container.GetOfflineService()
+					mainMenu := tui.NewMainMenuModel(container.API, container.TokenStore, offlineService, container.StorageManager, container.SyncManager)
 					if _, err := tea.NewProgram(mainMenu, tea.WithAltScreen()).Run(); err != nil {
 						return fmt.Errorf("main menu: %w", err)
 					}
+					
+					// Очищаем ресурсы после выхода
+					if err := container.Close(); err != nil {
+						return fmt.Errorf("failed to close container: %w", err)
+					}
+					
 					return nil
 				}
 
@@ -59,10 +88,40 @@ var (
 					return nil
 				}
 				container.API.SetAccessToken(token)
-				mainMenu := tui.NewMainMenuModel(container.API, container.TokenStore)
+
+				// Запрашиваем мастер-пароль для разблокировки хранилища
+				dbPath, err := container.Config.GetLocalDBPath()
+				if err != nil {
+					return fmt.Errorf("failed to get db path: %w", err)
+				}
+
+				masterPassModel := tui.NewMasterPasswordModel(username, dbPath, container.TokenStore)
+				mpFinal, err := tea.NewProgram(masterPassModel, tea.WithAltScreen()).Run()
+				if err != nil {
+					return fmt.Errorf("master password: %w", err)
+				}
+
+				// Проверяем успешность ввода мастер-пароля
+				if mpModel, ok := mpFinal.(tui.MasterPasswordModel); ok && mpModel.IsSuccess() {
+					storageManager := mpModel.GetStorageManager()
+					if storageManager != nil {
+						container.StorageManager = storageManager
+					}
+				} else {
+					return fmt.Errorf("master password entry failed or cancelled")
+				}
+
+				offlineService := container.GetOfflineService()
+				mainMenu := tui.NewMainMenuModel(container.API, container.TokenStore, offlineService, container.StorageManager, container.SyncManager)
 				if _, err := tea.NewProgram(mainMenu, tea.WithAltScreen()).Run(); err != nil {
 					return fmt.Errorf("main menu: %w", err)
 				}
+				
+				// Очищаем ресурсы после выхода
+				if err := container.Close(); err != nil {
+					return fmt.Errorf("failed to close container: %w", err)
+				}
+				
 				return nil
 			}
 			return cmd.Help()

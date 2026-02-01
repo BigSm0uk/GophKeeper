@@ -21,6 +21,7 @@ type Manager struct {
 	cancel    context.CancelFunc
 	stopChan  chan struct{}
 	forceChan chan struct{}
+	wasOffline bool // флаг для отслеживания восстановления связи
 }
 
 // NewManager создает новый менеджер синхронизации.
@@ -79,27 +80,58 @@ func (m *Manager) ForceSync() {
 
 // syncAll синхронизирует все типы данных.
 func (m *Manager) syncAll() {
-	m.logger.Debug("starting sync cycle")
+	// Проверяем доступность сервера перед синхронизацией
+	checkCtx, cancel := context.WithTimeout(m.ctx, 3*time.Second)
+	isOnline := m.api.IsServerAvailable(checkCtx)
+	cancel()
 
-	// Синхронизируем credentials
-	if err := m.syncCredentials(); err != nil {
-		m.logger.Error("failed to sync credentials", zap.Error(err))
+	if !isOnline {
+		if !m.wasOffline {
+			m.logger.Debug("server unavailable, skipping sync")
+			m.wasOffline = true
+		}
+		return
 	}
 
-	// TODO: Синхронизация cards, texts, binaries
+	// Сервер доступен
+	if m.wasOffline {
+		// Восстановление связи - принудительная синхронизация
+		m.logger.Info("connection restored, starting full sync")
+		m.wasOffline = false
+	}
 
-	m.logger.Debug("sync cycle completed")
+	m.logger.Debug("starting sync cycle")
+
+	// Синхронизируем все типы данных
+	syncedCount := 0
+
+	// Credentials
+	if count, err := m.syncCredentials(); err != nil {
+		m.logger.Error("failed to sync credentials", zap.Error(err))
+	} else {
+		syncedCount += count
+	}
+
+	// TODO: Cards, Texts, Binaries - будут добавлены позже аналогично
+
+	m.logger.Debug("sync cycle completed", zap.Int("synced", syncedCount))
 }
 
 // syncCredentials синхронизирует credentials с сервером.
-func (m *Manager) syncCredentials() error {
+// Возвращает количество синхронизированных элементов.
+func (m *Manager) syncCredentials() (int, error) {
 	pending, err := m.localDB.GetPendingCredentials()
 	if err != nil {
-		return fmt.Errorf("get pending credentials: %w", err)
+		return 0, fmt.Errorf("get pending credentials: %w", err)
+	}
+
+	if len(pending) == 0 {
+		return 0, nil
 	}
 
 	m.logger.Debug("syncing credentials", zap.Int("count", len(pending)))
 
+	syncedCount := 0
 	for _, cred := range pending {
 		if err := m.syncCredential(cred); err != nil {
 			m.logger.Error("failed to sync credential",
@@ -108,9 +140,10 @@ func (m *Manager) syncCredentials() error {
 			)
 			continue
 		}
+		syncedCount++
 	}
 
-	return nil
+	return syncedCount, nil
 }
 
 // syncCredential синхронизирует отдельный credential с сервером.
@@ -145,4 +178,21 @@ func (m *Manager) syncCredential(cred *storage.LocalCredential) error {
 
 	m.logger.Debug("credential synced", zap.String("id", cred.ID))
 	return nil
+}
+
+// GetSyncStats возвращает статистику pending элементов.
+func (m *Manager) GetSyncStats() (credentials, cards, texts, binaries int, err error) {
+	pendingCreds, err := m.localDB.GetPendingCredentials()
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("get pending credentials: %w", err)
+	}
+
+	pendingBinaries, err := m.localDB.GetPendingBinaries()
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("get pending binaries: %w", err)
+	}
+
+	// TODO: Добавить cards и texts когда будут реализованы методы GetPendingCards/GetPendingTexts
+
+	return len(pendingCreds), 0, 0, len(pendingBinaries), nil
 }

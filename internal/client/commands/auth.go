@@ -59,10 +59,43 @@ func init() {
 			if authResult, ok := tui.ExtractAuthResult(finalModel); ok && authResult.Success {
 				container.API.SetAccessToken(authResult.AccessToken)
 				if container.Logger != nil {
+					container.Logger.Info("authentication successful", zap.String("username", authResult.Username))
+				}
+
+				// Запрашиваем мастер-пароль для инициализации локального хранилища
+				dbPath, err := container.Config.GetLocalDBPath()
+				if err != nil {
+					return fmt.Errorf("failed to get db path: %w", err)
+				}
+
+				masterPassModel := tui.NewMasterPasswordModel(authResult.Username, dbPath, store)
+				mpFinal, err := tea.NewProgram(masterPassModel, tea.WithAltScreen()).Run()
+				if err != nil {
+					if container.Logger != nil {
+						container.Logger.Error("master password program finished with error", zap.Error(err))
+					}
+					return fmt.Errorf("master password: %w", err)
+				}
+
+				// Проверяем успешность ввода мастер-пароля
+				if mpModel, ok := mpFinal.(tui.MasterPasswordModel); ok && mpModel.IsSuccess() {
+					storageManager := mpModel.GetStorageManager()
+					if storageManager != nil {
+						container.StorageManager = storageManager
+						if container.Logger != nil {
+							container.Logger.Info("storage initialized successfully", zap.String("username", authResult.Username))
+						}
+					}
+				} else {
+					return fmt.Errorf("master password entry failed or cancelled")
+				}
+
+				if container.Logger != nil {
 					container.Logger.Info("starting main menu", zap.String("username", authResult.Username))
 				}
 
-				mainMenu := tui.NewMainMenuModel(container.API, store)
+				offlineService := container.GetOfflineService()
+				mainMenu := tui.NewMainMenuModel(container.API, store, offlineService, container.StorageManager, container.SyncManager)
 				if _, err := tea.NewProgram(mainMenu, tea.WithAltScreen()).Run(); err != nil {
 					if container.Logger != nil {
 						container.Logger.Error("main menu program finished with error", zap.Error(err))
@@ -73,6 +106,15 @@ func init() {
 				if container.Logger != nil {
 					container.Logger.Debug("main menu program finished successfully")
 				}
+				
+				// Очищаем ресурсы после выхода
+				if err := container.Close(); err != nil {
+					if container.Logger != nil {
+						container.Logger.Error("failed to close container", zap.Error(err))
+					}
+					return fmt.Errorf("failed to close container: %w", err)
+				}
+				
 				return nil
 			}
 
@@ -125,14 +167,47 @@ func init() {
 				return nil
 			}
 
-			// Устанавливаем токен в клиент перед запуском главного меню
+			// Устанавливаем токен в клиент
 			container.API.SetAccessToken(token)
+			if container.Logger != nil {
+				container.Logger.Info("authentication successful", zap.String("username", username))
+			}
+
+			// Запрашиваем мастер-пароль для разблокировки хранилища
+			dbPath, err := container.Config.GetLocalDBPath()
+			if err != nil {
+				return fmt.Errorf("failed to get db path: %w", err)
+			}
+
+			masterPassModel := tui.NewMasterPasswordModel(username, dbPath, store)
+			mpFinal, err := tea.NewProgram(masterPassModel, tea.WithAltScreen()).Run()
+			if err != nil {
+				if container.Logger != nil {
+					container.Logger.Error("master password program finished with error", zap.Error(err))
+				}
+				return fmt.Errorf("master password: %w", err)
+			}
+
+			// Проверяем успешность ввода мастер-пароля
+			if mpModel, ok := mpFinal.(tui.MasterPasswordModel); ok && mpModel.IsSuccess() {
+				storageManager := mpModel.GetStorageManager()
+				if storageManager != nil {
+					container.StorageManager = storageManager
+					if container.Logger != nil {
+						container.Logger.Info("storage initialized successfully", zap.String("username", username))
+					}
+				}
+			} else {
+				return fmt.Errorf("master password entry failed or cancelled")
+			}
+
 			if container.Logger != nil {
 				container.Logger.Info("starting main menu", zap.String("username", username))
 			}
 
-			// Успешная авторизация - запускаем главное меню
-			mainMenu := tui.NewMainMenuModel(container.API, store)
+			// Запускаем главное меню
+			offlineService := container.GetOfflineService()
+			mainMenu := tui.NewMainMenuModel(container.API, store, offlineService, container.StorageManager, container.SyncManager)
 			if _, err := tea.NewProgram(mainMenu, tea.WithAltScreen()).Run(); err != nil {
 				if container.Logger != nil {
 					container.Logger.Error("main menu program finished with error", zap.Error(err))
@@ -142,6 +217,14 @@ func init() {
 
 			if container.Logger != nil {
 				container.Logger.Debug("main menu program finished successfully")
+			}
+
+			// Очищаем ресурсы после выхода
+			if err := container.Close(); err != nil {
+				if container.Logger != nil {
+					container.Logger.Error("failed to close container", zap.Error(err))
+				}
+				return fmt.Errorf("failed to close container: %w", err)
 			}
 
 			return nil

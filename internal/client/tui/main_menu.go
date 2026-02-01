@@ -2,7 +2,9 @@ package tui
 
 import (
 	"github.com/BigSm0uk/GophKeeper/internal/client/api"
+	"github.com/BigSm0uk/GophKeeper/internal/client/service"
 	"github.com/BigSm0uk/GophKeeper/internal/client/storage"
+	"github.com/BigSm0uk/GophKeeper/internal/client/sync"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -19,11 +21,17 @@ func (i menuItem) Title() string       { return i.title }
 func (i menuItem) Description() string { return i.description }
 
 type mainMenuModel struct {
-	list       list.Model
-	client     *api.Client
-	tokenStore *storage.TokenStore
-	quitting   bool
+	list           list.Model
+	client         *api.Client
+	tokenStore     *storage.TokenStore
+	offlineService *service.OfflineService
+	storageManager *storage.StorageManager
+	syncManager    *sync.Manager
+	quitting       bool
 }
+
+type logoutMsg struct{}
+type subProgramReturnedMsg struct{}
 
 var (
 	menuTitleStyle = lipgloss.NewStyle().
@@ -38,7 +46,7 @@ var (
 			Italic(true)
 )
 
-func NewMainMenuModel(client *api.Client, tokenStore *storage.TokenStore) mainMenuModel {
+func NewMainMenuModel(client *api.Client, tokenStore *storage.TokenStore, offlineService *service.OfflineService, storageManager *storage.StorageManager, syncManager *sync.Manager) mainMenuModel {
 	items := []list.Item{
 		menuItem{
 			title:       "🔐 Credentials",
@@ -79,9 +87,12 @@ func NewMainMenuModel(client *api.Client, tokenStore *storage.TokenStore) mainMe
 	l.Styles.Title = menuTitleStyle
 
 	return mainMenuModel{
-		list:       l,
-		client:     client,
-		tokenStore: tokenStore,
+		list:           l,
+		client:         client,
+		tokenStore:     tokenStore,
+		offlineService: offlineService,
+		storageManager: storageManager,
+		syncManager:    syncManager,
 	}
 }
 
@@ -94,6 +105,10 @@ func (m mainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.list.SetWidth(msg.Width)
 		m.list.SetHeight(msg.Height - 4)
+		return m, nil
+
+	case subProgramReturnedMsg:
+		// Подпрограмма завершилась, просто обновляем view
 		return m, nil
 
 	case tea.KeyMsg:
@@ -117,12 +132,66 @@ func (m mainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.tokenStore.DeleteTokens(username)
 				}
 				m.quitting = true
-				return m, tea.Quit
+				// Отправляем сообщение о logout для очистки ресурсов
+				return m, tea.Sequence(
+					func() tea.Msg { return logoutMsg{} },
+					tea.Quit,
+				)
 
-			case "credentials", "texts", "cards", "binaries", "sync":
-				// TODO: Переход на соответствующие экраны
-				// Пока просто показываем сообщение
-				return m, nil
+			case "credentials":
+				// Открываем экран credentials
+				if m.offlineService == nil {
+					return m, nil
+				}
+				credView := NewCredentialsViewModel(m.offlineService)
+				return m, func() tea.Msg {
+					tea.NewProgram(credView, tea.WithAltScreen()).Run()
+					return subProgramReturnedMsg{}
+				}
+
+			case "cards":
+				// Открываем экран cards
+				if m.offlineService == nil {
+					return m, nil
+				}
+				cardView := NewCardsViewModel(m.offlineService)
+				return m, func() tea.Msg {
+					tea.NewProgram(cardView, tea.WithAltScreen()).Run()
+					return subProgramReturnedMsg{}
+				}
+
+			case "texts":
+				// Открываем экран texts
+				if m.offlineService == nil {
+					return m, nil
+				}
+				textView := NewTextsViewModel(m.offlineService)
+				return m, func() tea.Msg {
+					tea.NewProgram(textView, tea.WithAltScreen()).Run()
+					return subProgramReturnedMsg{}
+				}
+
+			case "sync":
+				// Открываем экран синхронизации
+				if m.storageManager == nil {
+					return m, nil
+				}
+				syncView := NewSyncViewModel(m.storageManager, m.syncManager)
+				return m, func() tea.Msg {
+					tea.NewProgram(syncView, tea.WithAltScreen()).Run()
+					return subProgramReturnedMsg{}
+				}
+
+			case "binaries":
+				// Открываем экран binaries
+				if m.storageManager == nil {
+					return m, nil
+				}
+				binaryView := NewBinariesViewModel(m.storageManager)
+				return m, func() tea.Msg {
+					tea.NewProgram(binaryView, tea.WithAltScreen()).Run()
+					return subProgramReturnedMsg{}
+				}
 			}
 		}
 	}

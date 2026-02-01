@@ -40,6 +40,7 @@ tasks:
         "{{.MOCKGEN}}" -source=interfaces/credentials_repo.go -destination=mocks/credentials_repo.go -package=mocks
         "{{.MOCKGEN}}" -source=interfaces/texts_repo.go -destination=mocks/texts_repo.go -package=mocks
         "{{.MOCKGEN}}" -source=interfaces/lifecycle.go -destination=mocks/lifecycle.go -package=mocks
+        "{{.MOCKGEN}}" -source=interfaces/token_service.go -destination=mocks/token_service.go -package=mocks
 
   # Run all tests (unit + integration)
   default:

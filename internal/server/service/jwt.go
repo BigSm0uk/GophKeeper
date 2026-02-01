@@ -8,17 +8,10 @@ import (
 	"time"
 
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/config"
+	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/models"
 	"github.com/golang-jwt/jwt/v5"
 )
-
-// JWTClaims represents the JWT claims
-type JWTClaims struct {
-	UserID   string `json:"user_id"`
-	Username string `json:"username"`
-	ClientID string `json:"client_id"`
-	jwt.RegisteredClaims
-}
 
 // JWTService handles JWT token operations
 type JWTService struct {
@@ -26,6 +19,8 @@ type JWTService struct {
 	publicKey  *rsa.PublicKey
 	config     config.JWTConfig
 }
+
+var _ interfaces.TokenService = (*JWTService)(nil)
 
 // NewJWTService creates a new JWT service
 func NewJWTService(cfg config.JWTConfig) (*JWTService, error) {
@@ -63,7 +58,7 @@ func (s *JWTService) GenerateAccessToken(user *models.User, clientID string) (st
 	}
 
 	now := time.Now()
-	claims := JWTClaims{
+	claims := models.JWTClaims{
 		UserID:   user.ID,
 		Username: user.Username,
 		ClientID: clientID,
@@ -92,7 +87,7 @@ func (s *JWTService) GenerateRefreshToken(user *models.User) (string, error) {
 	}
 
 	now := time.Now()
-	claims := JWTClaims{
+	claims := models.JWTClaims{
 		UserID:   user.ID,
 		Username: user.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -114,7 +109,7 @@ func (s *JWTService) GenerateRefreshToken(user *models.User) (string, error) {
 }
 
 // ValidateAccessToken validates an access token and returns the claims
-func (s *JWTService) ValidateAccessToken(tokenString string) (*JWTClaims, error) {
+func (s *JWTService) ValidateAccessToken(tokenString string) (*models.JWTClaims, error) {
 	claims, err := s.ParseToken(tokenString)
 	if err != nil {
 		return nil, err
@@ -128,10 +123,10 @@ func (s *JWTService) ValidateAccessToken(tokenString string) (*JWTClaims, error)
 }
 
 // ParseToken parses a JWT token and returns the claims
-func (s *JWTService) ParseToken(tokenString string) (*JWTClaims, error) {
+func (s *JWTService) ParseToken(tokenString string) (*models.JWTClaims, error) {
 	token, err := jwt.ParseWithClaims(
 		tokenString,
-		&JWTClaims{},
+		&models.JWTClaims{},
 		func(token *jwt.Token) (any, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -144,7 +139,7 @@ func (s *JWTService) ParseToken(tokenString string) (*JWTClaims, error) {
 		return nil, err
 	}
 
-	claims, ok := token.Claims.(*JWTClaims)
+	claims, ok := token.Claims.(*models.JWTClaims)
 	if !ok {
 		return nil, errors.New("invalid claims type")
 	}
@@ -202,4 +197,7 @@ func (s *JWTService) RefreshAccessToken(refreshToken string) (string, error) {
 	}
 
 	return s.GenerateAccessToken(user, claims.ClientID)
+}
+func (s *JWTService) GetRefreshTokenTTL() time.Duration {
+	return s.config.RefreshTokenTTL
 }

@@ -22,10 +22,10 @@ type AuthService struct {
 	logger     *zap.Logger
 	ur         interfaces.UserRepository
 	sr         interfaces.SessionRepository
-	jwtService *JWTService
+	jwtService interfaces.TokenService
 }
 
-func NewAuthService(logger *zap.Logger, ur interfaces.UserRepository, jwtService *JWTService, sr interfaces.SessionRepository) *AuthService {
+func NewAuthService(logger *zap.Logger, ur interfaces.UserRepository, jwtService interfaces.TokenService, sr interfaces.SessionRepository) *AuthService {
 	return &AuthService{
 		logger:     logger,
 		ur:         ur,
@@ -152,7 +152,7 @@ func (as *AuthService) Login(ctx context.Context, username, password, ipAddress,
 		ClientID:  clientID,
 		IPAddress: ipAddressPtr,
 		UserAgent: userAgentPtr,
-		ExpiresAt: time.Now().Add(as.jwtService.config.RefreshTokenTTL),
+		ExpiresAt: time.Now().Add(as.jwtService.GetRefreshTokenTTL()),
 		Revoked:   false,
 	}
 
@@ -279,7 +279,7 @@ func (as *AuthService) Token(ctx context.Context, grantType, username, password,
 			ClientID:  session.ClientID, // Keep same client_id
 			IPAddress: ipAddressPtr,
 			UserAgent: userAgentPtr,
-			ExpiresAt: time.Now().Add(as.jwtService.config.RefreshTokenTTL),
+			ExpiresAt: time.Now().Add(as.jwtService.GetRefreshTokenTTL()),
 			Revoked:   false,
 		}
 		_, err = as.sr.Create(ctx, newSession)

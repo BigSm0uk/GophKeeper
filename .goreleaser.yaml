@@ -1,0 +1,160 @@
+# GoReleaser configuration for GophKeeper
+# https://goreleaser.com
+
+version: 2
+
+# Перед началом сборки - запускаем тесты и проверки
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+
+# Сборка бинарников
+builds:
+  # Клиент GophKeeper
+  - id: gophkeeper-client
+    main: ./cmd/client
+    binary: gophkeeper-client
+    env:
+      - CGO_ENABLED=1
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.buildDate={{.Date}}
+      - -X main.commit={{.FullCommit}}
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    # Исключаем неподдерживаемые комбинации
+    ignore:
+      # CGO на Windows ARM64 проблематично
+      - goos: windows
+        goarch: arm64
+
+  # Сервер GophKeeper
+  - id: gophkeeper-server
+    main: ./cmd/server
+    binary: gophkeeper-server
+    env:
+      - CGO_ENABLED=1
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.buildDate={{.Date}}
+      - -X main.commit={{.FullCommit}}
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+# Создание архивов
+archives:
+  - id: default
+    # Для Windows используем zip, для остальных tar.gz
+    format_overrides:
+      - goos: windows
+    # Имя архива
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # Что включаем в архив
+    files:
+      - README.md
+      - LICENSE
+      - configs/*
+
+# Checksums для проверки целостности
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+# Changelog
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "merge conflict"
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+  groups:
+    - title: "New Features"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug Fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "Performance Improvements"
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: "Other Changes"
+      order: 999
+
+# Настройки релиза на GitHub
+release:
+  github:
+    owner: BigSm0uk
+    name: GophKeeper
+  draft: false
+  prerelease: auto
+  mode: replace
+  name_template: "Release {{.Version}}"
+  footer: |
+    ## Installation
+    
+    ### Linux/macOS
+    ```bash
+    # Распаковать архив
+    tar -xzf gophkeeper_*_linux_x86_64.tar.gz
+    
+    # Или для macOS
+    tar -xzf gophkeeper_*_darwin_x86_64.tar.gz
+    
+    # Переместить бинарники в PATH
+    sudo mv gophkeeper-client gophkeeper-server /usr/local/bin/
+    ```
+    
+    ### Windows
+    ```powershell
+    # Распаковать zip архив
+    # Добавить путь к бинарникам в PATH
+    ```
+    
+    ## Usage
+    
+    ### Client
+    ```bash
+    gophkeeper-client --help
+    ```
+    
+    ### Server
+    ```bash
+    gophkeeper-server --help
+    ```
+
+# Snapshot - для локальных сборок без тега
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+# Метаданные
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"

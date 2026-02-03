@@ -51,3 +51,6 @@ proto/.gitignore
 # Binary files
 /client
 /server
+
+# GoReleaser
+dist/

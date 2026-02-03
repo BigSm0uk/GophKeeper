@@ -5,6 +5,12 @@ import (
 	"os"
 )
 
+var (
+	version   = "dev"
+	buildDate = "unknown"
+	commit    = "unknown"
+)
+
 func main() {
 	// Initialize application
 	container, err := bootstrap()

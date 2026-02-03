@@ -17,6 +17,7 @@ includes:
   docker: ./tasks/DockerTasks.yml
   proto: ./tasks/ProtoTasks.yml
   test: ./tasks/TestTasks.yml
+  release: ./tasks/ReleaseTasks.yml
   format:
     taskfile: ./tasks/FormatTasks.yml
     flatten: true

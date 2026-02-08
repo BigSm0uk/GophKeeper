@@ -18,7 +18,7 @@ func main() {
 	fmt.Println("=====================")
 	fmt.Println()
 
-	sm, err := storage.InitializeStorage(dbPath, username, masterPassword)
+	sm, err := storage.InitializeStorage(dbPath, username, masterPassword, nil)
 	if err != nil {
 		fmt.Printf("❌ Ошибка: %v\n", err)
 		return

@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// MasterPasswordModel представляет экран ввода мастер-пароля для шифрования.
+// MasterPasswordModel represents the master password input screen.
 type MasterPasswordModel struct {
 	username      string
 	password      textinput.Model
@@ -21,10 +21,12 @@ type MasterPasswordModel struct {
 	tokenStore    *storage.TokenStore
 	dbPath        string
 	storageResult *storage.StorageManager
+	saltProvider  storage.SaltProvider
 }
 
 // NewMasterPasswordModel creates a new master password input screen.
-func NewMasterPasswordModel(username, dbPath string, tokenStore *storage.TokenStore) MasterPasswordModel {
+// saltProvider may be nil if server is unavailable (offline mode).
+func NewMasterPasswordModel(username, dbPath string, tokenStore *storage.TokenStore, saltProvider storage.SaltProvider) MasterPasswordModel {
 	p := textinput.New()
 	p.Placeholder = "Master Password"
 	p.CharLimit = 128
@@ -53,13 +55,14 @@ func NewMasterPasswordModel(username, dbPath string, tokenStore *storage.TokenSt
 	p.Focus()
 
 	return MasterPasswordModel{
-		username:    username,
-		password:    p,
-		confirmPass: cp,
-		focused:     0,
-		isNewUser:   isNewUser,
-		tokenStore:  tokenStore,
-		dbPath:      dbPath,
+		username:     username,
+		password:     p,
+		confirmPass:  cp,
+		focused:      0,
+		isNewUser:    isNewUser,
+		tokenStore:   tokenStore,
+		dbPath:       dbPath,
+		saltProvider: saltProvider,
 	}
 }
 
@@ -236,8 +239,8 @@ func (m MasterPasswordModel) initStorage() tea.Cmd {
 			return storageInitResult{err: fmt.Errorf("master password is required")}
 		}
 
-		// Инициализация StorageManager
-		sm, err := storage.InitializeStorage(m.dbPath, m.username, masterPassword)
+		// Initialize StorageManager with optional server salt provider
+		sm, err := storage.InitializeStorage(m.dbPath, m.username, masterPassword, m.saltProvider)
 		if err != nil {
 			return storageInitResult{err: fmt.Errorf("failed to initialize storage: %w", err)}
 		}

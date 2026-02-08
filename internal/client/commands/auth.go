@@ -68,7 +68,7 @@ func init() {
 					return fmt.Errorf("failed to get db path: %w", err)
 				}
 
-				masterPassModel := tui.NewMasterPasswordModel(authResult.Username, dbPath, store)
+				masterPassModel := tui.NewMasterPasswordModel(authResult.Username, dbPath, store, nil)
 				mpFinal, err := tea.NewProgram(masterPassModel, tea.WithAltScreen()).Run()
 				if err != nil {
 					if container.Logger != nil {
@@ -179,7 +179,7 @@ func init() {
 				return fmt.Errorf("failed to get db path: %w", err)
 			}
 
-			masterPassModel := tui.NewMasterPasswordModel(username, dbPath, store)
+			masterPassModel := tui.NewMasterPasswordModel(username, dbPath, store, nil)
 			mpFinal, err := tea.NewProgram(masterPassModel, tea.WithAltScreen()).Run()
 			if err != nil {
 				if container.Logger != nil {

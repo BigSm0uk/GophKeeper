@@ -19,7 +19,7 @@ func main() {
 
 	// Попытка 1: Правильный пароль
 	fmt.Println("1️⃣  Попытка с ПРАВИЛЬНЫМ паролем...")
-	sm, err := storage.InitializeStorage(dbPath, username, "my-super-secret-password")
+	sm, err := storage.InitializeStorage(dbPath, username, "my-super-secret-password", nil)
 	if err != nil {
 		fmt.Printf("❌ Ошибка: %v\n", err)
 		return
@@ -37,7 +37,7 @@ func main() {
 	sm.Close()
 
 	fmt.Println("\n2️⃣  Попытка с НЕПРАВИЛЬНЫМ паролем...")
-	sm2, err := storage.InitializeStorage(dbPath, username, "wrong-password-123")
+	sm2, err := storage.InitializeStorage(dbPath, username, "wrong-password-123", nil)
 	if err != nil {
 		fmt.Println("✅ Отлично! Доступ запрещен")
 		fmt.Printf("   Ошибка: %v\n", err)

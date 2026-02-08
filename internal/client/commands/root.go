@@ -40,7 +40,7 @@ var (
 						return fmt.Errorf("failed to get db path: %w", err)
 					}
 
-					masterPassModel := tui.NewMasterPasswordModel(authResult.Username, dbPath, container.TokenStore)
+					masterPassModel := tui.NewMasterPasswordModel(authResult.Username, dbPath, container.TokenStore, nil)
 					mpFinal, err := tea.NewProgram(masterPassModel, tea.WithAltScreen()).Run()
 					if err != nil {
 						return fmt.Errorf("master password: %w", err)
@@ -95,7 +95,7 @@ var (
 					return fmt.Errorf("failed to get db path: %w", err)
 				}
 
-				masterPassModel := tui.NewMasterPasswordModel(username, dbPath, container.TokenStore)
+				masterPassModel := tui.NewMasterPasswordModel(username, dbPath, container.TokenStore, nil)
 				mpFinal, err := tea.NewProgram(masterPassModel, tea.WithAltScreen()).Run()
 				if err != nil {
 					return fmt.Errorf("master password: %w", err)

@@ -13,10 +13,10 @@ var (
 
 // Стили для статусов
 var (
-	syncedStyle = lipgloss.NewStyle().Foreground(colorSynced).Bold(true)
-	pendingStyle = lipgloss.NewStyle().Foreground(colorPending).Bold(true)
-	uploadingStyle = lipgloss.NewStyle().Foreground(colorUploading).Bold(true)
-	updatedStyle = lipgloss.NewStyle().Foreground(colorUpdated).Bold(true)
+	syncedStyle      = lipgloss.NewStyle().Foreground(colorSynced).Bold(true)
+	pendingStyle     = lipgloss.NewStyle().Foreground(colorPending).Bold(true)
+	uploadingStyle   = lipgloss.NewStyle().Foreground(colorUploading).Bold(true)
+	updatedStyle     = lipgloss.NewStyle().Foreground(colorUpdated).Bold(true)
 	errorStatusStyle = lipgloss.NewStyle().Foreground(colorError).Bold(true)
 )
 

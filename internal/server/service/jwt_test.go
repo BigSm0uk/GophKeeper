@@ -31,7 +31,7 @@ func setupJWTServiceWithKeys(t *testing.T) (*JWTService, *rsa.PrivateKey, config
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	})
 	privatePath := filepath.Join(dir, "private.pem")
-	require.NoError(t, os.WriteFile(privatePath, privatePEM, 0600))
+	require.NoError(t, os.WriteFile(privatePath, privatePEM, 0o600))
 
 	publicDER, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
 	require.NoError(t, err)
@@ -40,7 +40,7 @@ func setupJWTServiceWithKeys(t *testing.T) (*JWTService, *rsa.PrivateKey, config
 		Bytes: publicDER,
 	})
 	publicPath := filepath.Join(dir, "public.pem")
-	require.NoError(t, os.WriteFile(publicPath, publicPEM, 0600))
+	require.NoError(t, os.WriteFile(publicPath, publicPEM, 0o600))
 
 	cfg := config.JWTConfig{
 		PrivateKeyPath:  privatePath,
@@ -88,7 +88,7 @@ func TestNewJWTService_PrivateKeyFileMissing(t *testing.T) {
 	// Create public key so we fail on private first
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	publicDER, _ := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
-	require.NoError(t, os.WriteFile(cfg.PublicKeyPath, pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicDER}), 0600))
+	require.NoError(t, os.WriteFile(cfg.PublicKeyPath, pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicDER}), 0o600))
 
 	svc, err := NewJWTService(cfg)
 	require.Error(t, err)
@@ -99,11 +99,11 @@ func TestNewJWTService_PrivateKeyFileMissing(t *testing.T) {
 func TestNewJWTService_PrivateKeyInvalidPEM(t *testing.T) {
 	dir := t.TempDir()
 	privatePath := filepath.Join(dir, "private.pem")
-	require.NoError(t, os.WriteFile(privatePath, []byte("not pem"), 0600))
+	require.NoError(t, os.WriteFile(privatePath, []byte("not pem"), 0o600))
 	publicPath := filepath.Join(dir, "public.pem")
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	publicDER, _ := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
-	require.NoError(t, os.WriteFile(publicPath, pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicDER}), 0600))
+	require.NoError(t, os.WriteFile(publicPath, pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicDER}), 0o600))
 
 	cfg := config.JWTConfig{
 		PrivateKeyPath:  privatePath,
@@ -126,7 +126,7 @@ func TestNewJWTService_PublicKeyFileMissing(t *testing.T) {
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	})
 	privatePath := filepath.Join(dir, "private.pem")
-	require.NoError(t, os.WriteFile(privatePath, privatePEM, 0600))
+	require.NoError(t, os.WriteFile(privatePath, privatePEM, 0o600))
 	cfg := config.JWTConfig{
 		PrivateKeyPath:  privatePath,
 		PublicKeyPath:   filepath.Join(dir, "nonexistent.pem"),

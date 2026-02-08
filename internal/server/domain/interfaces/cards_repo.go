@@ -29,6 +29,6 @@ type CardRepository interface {
 	// ExistsByUserID checks if cards exist for a given user ID.
 	ExistsByUserID(ctx context.Context, userID string) (bool, error)
 
-	// Count returns the total number of cards.
-	Count(ctx context.Context) (int64, error)
+	// CountByUserID returns the total number of cards for a given user ID.
+	CountByUserID(ctx context.Context, userID string) (int64, error)
 }

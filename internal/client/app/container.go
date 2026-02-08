@@ -21,12 +21,12 @@ type Container struct {
 	API             *api.Client
 	TokenStore      *storage.TokenStore
 	LocalDB         *storage.LocalDB
-	Encryptor       *crypto.Encryptor        // может быть nil, инициализируется при необходимости
-	StorageManager  *storage.StorageManager  // полный стек локального хранилища с шифрованием
-	SyncManager     *sync.Manager            // менеджер фоновой синхронизации
-	IsOnline        bool                     // текущий статус подключения к серверу
-	LastHealthCheck time.Time                // время последней проверки доступности
-	offlineMode     bool                     // принудительный офлайн режим
+	Encryptor       *crypto.Encryptor       // может быть nil, инициализируется при необходимости
+	StorageManager  *storage.StorageManager // полный стек локального хранилища с шифрованием
+	SyncManager     *sync.Manager           // менеджер фоновой синхронизации
+	IsOnline        bool                    // текущий статус подключения к серверу
+	LastHealthCheck time.Time               // время последней проверки доступности
+	offlineMode     bool                    // принудительный офлайн режим
 }
 
 func NewContainer(logger *zap.Logger, cfg *config.ClientConfig, client *api.Client, tokenStore *storage.TokenStore) *Container {

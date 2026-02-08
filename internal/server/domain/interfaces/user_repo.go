@@ -8,7 +8,7 @@ import (
 
 // UserRepository defines the interface for user data operations.
 type UserRepository interface {
-	// Create creates a new user and returns the created user with generated ID.
+	// Create creates a new user and returns the created user with generated GetID.
 	Create(ctx context.Context, user *models.User) (*models.User, error)
 
 	// FindByID retrieves a user by their unique identifier.

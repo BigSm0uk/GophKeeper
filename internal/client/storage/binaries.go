@@ -53,7 +53,7 @@ func (l *LocalDB) SaveBinary(binary *LocalBinary) error {
 	return err
 }
 
-// GetBinary retrieves a binary by ID.
+// GetBinary retrieves a binary by GetID.
 func (l *LocalDB) GetBinary(id string) (*LocalBinary, error) {
 	query := `
 		SELECT id, name, filename, file_path, size, content_type, checksum, metadata, sync_status,

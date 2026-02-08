@@ -68,7 +68,7 @@ var credAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✓ Credential created successfully!\n")
-		fmt.Printf("  ID:    %s\n", resp.Credential.Id)
+		fmt.Printf("  GetID:    %s\n", resp.Credential.Id)
 		fmt.Printf("  Name:  %s\n", resp.Credential.Name)
 		fmt.Printf("  Login: %s\n", resp.Credential.Login)
 
@@ -107,7 +107,7 @@ var credListCmd = &cobra.Command{
 		fmt.Printf("Total credentials: %d\n\n", resp.Page.Total)
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "ID\tNAME\tLOGIN\tURL\tUPDATED")
+		fmt.Fprintln(w, "GetID\tNAME\tLOGIN\tURL\tUPDATED")
 		fmt.Fprintln(w, "--\t----\t-----\t---\t-------")
 
 		for _, item := range resp.Items {
@@ -141,7 +141,7 @@ var credListCmd = &cobra.Command{
 
 var credGetCmd = &cobra.Command{
 	Use:   "get <id>",
-	Short: "Get a credential by ID",
+	Short: "Get a credential by GetID",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if container == nil {
@@ -172,7 +172,7 @@ var credGetCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Credential Details:\n")
-		fmt.Printf("  ID:       %s\n", cred.Id)
+		fmt.Printf("  GetID:       %s\n", cred.Id)
 		fmt.Printf("  Name:     %s\n", cred.Name)
 		fmt.Printf("  Login:    %s\n", cred.Login)
 		fmt.Printf("  Password: %s\n", decryptedPassword)
@@ -277,7 +277,7 @@ var credUpdateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✓ Credential updated successfully!\n")
-		fmt.Printf("  ID:    %s\n", resp.Credential.Id)
+		fmt.Printf("  GetID:    %s\n", resp.Credential.Id)
 		fmt.Printf("  Name:  %s\n", resp.Credential.Name)
 		fmt.Printf("  Login: %s\n", resp.Credential.Login)
 

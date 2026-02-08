@@ -8,13 +8,13 @@ import (
 
 // TextRepository defines the interface for text data operations.
 type TextRepository interface {
-	// Create creates a new text and returns the created text with generated ID.
+	// Create creates a new text and returns the created text with generated GetID.
 	Create(ctx context.Context, text *models.Text) (*models.Text, error)
 
 	// FindByID retrieves a text by its unique identifier.
 	FindByID(ctx context.Context, id string) (*models.Text, error)
 
-	// FindByUserID retrieves all texts by user ID.
+	// FindByUserID retrieves all texts by user GetID.
 	FindByUserID(ctx context.Context, userID string) ([]*models.Text, error)
 
 	// Update modifies an existing text's information.
@@ -29,6 +29,6 @@ type TextRepository interface {
 	// ExistsByUserID checks if texts exist for a given user ID.
 	ExistsByUserID(ctx context.Context, userID string) (bool, error)
 
-	// Count returns the total number of texts.
-	Count(ctx context.Context) (int64, error)
+	// CountByUserID returns the total number of texts for a given user ID.
+	CountByUserID(ctx context.Context, userID string) (int64, error)
 }

@@ -147,7 +147,7 @@ func (s *JWTService) ParseToken(tokenString string) (*models.JWTClaims, error) {
 	return claims, nil
 }
 
-// ExtractUserID extracts user ID from a valid token
+// ExtractUserID extracts user GetID from a valid token
 func (s *JWTService) ExtractUserID(tokenString string) (string, error) {
 	claims, err := s.ParseToken(tokenString)
 	if err != nil {
@@ -156,7 +156,7 @@ func (s *JWTService) ExtractUserID(tokenString string) (string, error) {
 	return claims.UserID, nil
 }
 
-// ExtractClientID extracts client ID from a valid token
+// ExtractClientID extracts client GetID from a valid token
 func (s *JWTService) ExtractClientID(tokenString string) (string, error) {
 	claims, err := s.ParseToken(tokenString)
 	if err != nil {
@@ -198,6 +198,7 @@ func (s *JWTService) RefreshAccessToken(refreshToken string) (string, error) {
 
 	return s.GenerateAccessToken(user, claims.ClientID)
 }
+
 func (s *JWTService) GetRefreshTokenTTL() time.Duration {
 	return s.config.RefreshTokenTTL
 }

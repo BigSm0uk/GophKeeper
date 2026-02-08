@@ -33,6 +33,7 @@ func (i binaryItem) Title() string {
 	size := formatFileSize(i.binary.Size)
 	return fmt.Sprintf("%s %s (%s)", statusIcon, i.binary.Name, size)
 }
+
 func (i binaryItem) Description() string {
 	return fmt.Sprintf("File: %s | Type: %s | Updated: %s",
 		i.binary.Filename,
@@ -557,7 +558,7 @@ func (m *BinariesViewModel) uploadFile() tea.Cmd {
 
 		// Создаем запись в БД
 		binary := storage.CreateBinaryWithEncryption(
-			name, // используем name как ID временно
+			name, // используем name как GetID временно
 			name,
 			filename,
 			destPath,

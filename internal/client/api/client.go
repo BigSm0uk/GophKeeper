@@ -98,7 +98,7 @@ func (c *Client) CreateCredential(ctx context.Context, req *pb.CredentialCreateR
 	return resp, err
 }
 
-// GetCredential получает credentials по ID.
+// GetCredential получает credentials по GetID.
 func (c *Client) GetCredential(ctx context.Context, id string) (*pb.CredentialGetResponse, error) {
 	ctx, cancel := c.timeoutCtx(ctx)
 	defer cancel()
@@ -178,7 +178,7 @@ func (c *Client) CreateCard(ctx context.Context, req *pb.CardCreateRequest) (*pb
 	return resp, err
 }
 
-// GetCard получает карту по ID.
+// GetCard получает карту по GetID.
 func (c *Client) GetCard(ctx context.Context, id string) (*pb.CardGetResponse, error) {
 	ctx, cancel := c.timeoutCtx(ctx)
 	defer cancel()
@@ -258,7 +258,7 @@ func (c *Client) CreateText(ctx context.Context, req *pb.TextCreateRequest) (*pb
 	return resp, err
 }
 
-// GetText получает текст по ID.
+// GetText получает текст по GetID.
 func (c *Client) GetText(ctx context.Context, id string) (*pb.TextGetResponse, error) {
 	ctx, cancel := c.timeoutCtx(ctx)
 	defer cancel()

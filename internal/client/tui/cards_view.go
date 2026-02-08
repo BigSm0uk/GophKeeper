@@ -33,6 +33,7 @@ func (i cardItem) Title() string {
 	masked := maskCardNumber(i.card.CardNumber)
 	return fmt.Sprintf("%s %s (%s)", statusIcon, i.card.Name, masked)
 }
+
 func (i cardItem) Description() string {
 	return fmt.Sprintf("Holder: %s | Exp: %s | Updated: %s",
 		i.card.CardholderName,

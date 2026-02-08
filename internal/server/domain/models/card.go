@@ -19,6 +19,19 @@ type Card struct {
 	Metadata       *string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	DeletedAt      *time.Time
+}
+
+func (c *Card) GetID() string {
+	return c.ID
+}
+
+func (c *Card) SetID(id string) {
+	c.ID = id
+}
+
+func (c *Card) GetUserID() string {
+	return c.UserID
 }
 
 // NewCard creates a new card entry with validation.
@@ -109,11 +122,6 @@ func (c *Card) UpdateBankName(bankName *string) {
 func (c *Card) UpdateMetadata(metadata *string) {
 	c.Metadata = metadata
 	c.UpdatedAt = time.Now()
-}
-
-// IsOwnedBy checks if the card is owned by the specified user.
-func (c *Card) IsOwnedBy(userID string) bool {
-	return c.UserID == userID
 }
 
 // GetMaskedCardNumber returns the card number with sensitive digits masked.

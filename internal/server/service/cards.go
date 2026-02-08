@@ -29,7 +29,7 @@ func NewCardsService(logger *zap.Logger, repo interfaces.CardRepository) *CardsS
 // CreateCard creates a new card entry.
 func (s *CardsService) CreateCard(ctx context.Context, userID string, card *entity.Card) (*entity.Card, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if card == nil {
 		return nil, status.Error(codes.InvalidArgument, "card is required")
@@ -80,13 +80,13 @@ func (s *CardsService) CreateCard(ctx context.Context, userID string, card *enti
 	return cardModelToEntity(created), nil
 }
 
-// GetCard retrieves a card by ID.
+// GetCard retrieves a card by GetID.
 func (s *CardsService) GetCard(ctx context.Context, userID, cardID string) (*entity.Card, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if cardID == "" {
-		return nil, status.Error(codes.InvalidArgument, "card ID is required")
+		return nil, status.Error(codes.InvalidArgument, "card GetID is required")
 	}
 
 	card, err := s.repo.FindByID(ctx, cardID)
@@ -110,7 +110,7 @@ func (s *CardsService) GetCard(ctx context.Context, userID, cardID string) (*ent
 // ListCards retrieves all cards for a user.
 func (s *CardsService) ListCards(ctx context.Context, userID string) ([]*entity.Card, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 
 	cards, err := s.repo.FindByUserID(ctx, userID)
@@ -131,13 +131,13 @@ func (s *CardsService) ListCards(ctx context.Context, userID string) ([]*entity.
 // UpdateCard updates an existing card.
 func (s *CardsService) UpdateCard(ctx context.Context, userID string, card *entity.Card) (*entity.Card, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if card == nil {
 		return nil, status.Error(codes.InvalidArgument, "card is required")
 	}
 	if card.ID == "" {
-		return nil, status.Error(codes.InvalidArgument, "card ID is required")
+		return nil, status.Error(codes.InvalidArgument, "card GetID is required")
 	}
 
 	existing, err := s.repo.FindByID(ctx, card.ID)
@@ -151,7 +151,7 @@ func (s *CardsService) UpdateCard(ctx context.Context, userID string, card *enti
 		return nil, status.Error(codes.Internal, "failed to retrieve card")
 	}
 
-	if existing.UserID != userID {
+	if existing.GetUserID() != userID {
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
@@ -204,13 +204,13 @@ func (s *CardsService) UpdateCard(ctx context.Context, userID string, card *enti
 	return cardModelToEntity(updated), nil
 }
 
-// DeleteCard deletes a card by ID.
+// DeleteCard deletes a card by GetID.
 func (s *CardsService) DeleteCard(ctx context.Context, userID, cardID string) error {
 	if userID == "" {
-		return status.Error(codes.InvalidArgument, "user ID is required")
+		return status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if cardID == "" {
-		return status.Error(codes.InvalidArgument, "card ID is required")
+		return status.Error(codes.InvalidArgument, "card GetID is required")
 	}
 
 	card, err := s.repo.FindByID(ctx, cardID)
@@ -224,7 +224,7 @@ func (s *CardsService) DeleteCard(ctx context.Context, userID, cardID string) er
 		return status.Error(codes.Internal, "failed to retrieve card")
 	}
 
-	if card.UserID != userID {
+	if card.GetUserID() != userID {
 		return status.Error(codes.PermissionDenied, "access denied")
 	}
 
@@ -250,8 +250,8 @@ func cardModelToEntity(c *models.Card) *entity.Card {
 		return nil
 	}
 	return &entity.Card{
-		ID:             c.ID,
-		UserID:         c.UserID,
+		ID:             c.GetID(),
+		UserID:         c.GetUserID(),
 		Name:           c.Name,
 		CardNumber:     c.CardNumber,
 		CardholderName: c.CardholderName,

@@ -4,7 +4,7 @@ import "errors"
 
 // Domain errors for validation
 var (
-	ErrInvalidUserID         = errors.New("invalid user ID")
+	ErrInvalidUserID         = errors.New("invalid user GetID")
 	ErrInvalidUsername       = errors.New("invalid username: cannot be empty")
 	ErrInvalidName           = errors.New("invalid name: cannot be empty")
 	ErrInvalidLogin          = errors.New("invalid login: cannot be empty")

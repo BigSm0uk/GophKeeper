@@ -34,6 +34,7 @@ func (i textItem) Title() string {
 	statusIcon := getSyncStatusIcon(i.text.SyncStatus)
 	return fmt.Sprintf("%s %s", statusIcon, i.text.Name)
 }
+
 func (i textItem) Description() string {
 	preview := strings.ReplaceAll(i.text.Content, "\n", " ")
 	if len(preview) > 60 {

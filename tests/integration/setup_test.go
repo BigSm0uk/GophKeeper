@@ -67,12 +67,12 @@ func (tc *TestContext) StartTestGRPCServer(t *testing.T) string {
 
 	return tc.GRPCAddress
 }
+
 func StartTestApp(
 	t *testing.T,
 	ctx context.Context,
 	cfg *config.ServerConfig,
 ) *app.Container {
-
 	logger := zap.NewNop()
 	c := app.NewContainer(logger, cfg)
 
@@ -94,12 +94,12 @@ func StartTestApp(
 
 	return c
 }
+
 func NewTestConfig(
 	t *testing.T,
 	tc *TestContext,
 	jwtPriv, jwtPub string,
 ) *config.ServerConfig {
-
 	cfg := config.NewDefaultServerConfig()
 	cfg.Env = config.EnvDevelopment
 	cfg.DB.ConnectionString = tc.Container.ConnectionString
@@ -142,6 +142,7 @@ func (tc *TestContext) SeedTestData(t *testing.T, queries ...string) {
 		require.NoError(t, err, "Failed to execute seed query")
 	}
 }
+
 func freePort(t *testing.T) int {
 	t.Helper()
 
@@ -155,6 +156,7 @@ func freePort(t *testing.T) int {
 	addr := l.Addr().(*net.TCPAddr)
 	return addr.Port
 }
+
 func CreateTestJWTKeys(t *testing.T, dir string) (priv, pub string) {
 	t.Helper()
 
@@ -168,14 +170,14 @@ func CreateTestJWTKeys(t *testing.T, dir string) (priv, pub string) {
 		pem.EncodeToMemory(&pem.Block{
 			Type:  "RSA PRIVATE KEY",
 			Bytes: x509.MarshalPKCS1PrivateKey(key),
-		}), 0600))
+		}), 0o600))
 
 	pubDER, _ := x509.MarshalPKIXPublicKey(&key.PublicKey)
 	require.NoError(t, os.WriteFile(pubPath,
 		pem.EncodeToMemory(&pem.Block{
 			Type:  "PUBLIC KEY",
 			Bytes: pubDER,
-		}), 0600))
+		}), 0o600))
 
 	return privPath, pubPath
 }

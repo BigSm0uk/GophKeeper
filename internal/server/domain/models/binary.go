@@ -20,6 +20,19 @@ type Binary struct {
 	Checksum    string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	DeletedAt   *time.Time
+}
+
+func (b *Binary) GetID() string {
+	return b.ID
+}
+
+func (b *Binary) SetID(id string) {
+	b.ID = id
+}
+
+func (b *Binary) GetUserID() string {
+	return b.UserID
 }
 
 // NewBinary creates a new binary entry with validation.

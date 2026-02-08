@@ -126,7 +126,7 @@ func (m TextsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case textViewList:
 			return m.handleListKeys(key)
 		case textViewAdd, textViewEdit:
-			return m.handleFormKeys(key)
+			return m.handleFormKeys(msg)
 		case textViewDetail:
 			return m.handleDetailKeys(key)
 		case textViewConfirmDelete:
@@ -348,7 +348,8 @@ func (m TextsViewModel) viewForm(title string) string {
 	)
 }
 
-func (m *TextsViewModel) handleFormKeys(key string) (tea.Model, tea.Cmd) {
+func (m *TextsViewModel) handleFormKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
 	switch key {
 	case "esc":
 		if m.focusedField != 1 || !m.contentArea.Focused() {
@@ -372,7 +373,7 @@ func (m *TextsViewModel) handleFormKeys(key string) (tea.Model, tea.Cmd) {
 		return m, m.saveText()
 	}
 
-	return m.updateActiveInput(tea.KeyMsg{})
+	return m.updateActiveInput(msg)
 }
 
 func (m *TextsViewModel) focusField() tea.Cmd {

@@ -122,7 +122,7 @@ func (m BinariesViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case binaryViewList:
 			return m.handleListKeys(key)
 		case binaryViewAdd:
-			return m.handleFormKeys(key)
+			return m.handleFormKeys(msg)
 		case binaryViewDetail:
 			return m.handleDetailKeys(key)
 		case binaryViewConfirmDelete:
@@ -315,7 +315,8 @@ func (m BinariesViewModel) renderField(label string, input textinput.Model, fiel
 	)
 }
 
-func (m *BinariesViewModel) handleFormKeys(key string) (tea.Model, tea.Cmd) {
+func (m *BinariesViewModel) handleFormKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
 	switch key {
 	case "esc":
 		m.mode = binaryViewList
@@ -336,7 +337,7 @@ func (m *BinariesViewModel) handleFormKeys(key string) (tea.Model, tea.Cmd) {
 		return m, m.uploadFile()
 	}
 
-	return m.updateActiveInput(tea.KeyMsg{})
+	return m.updateActiveInput(msg)
 }
 
 func (m *BinariesViewModel) focusField() tea.Cmd {

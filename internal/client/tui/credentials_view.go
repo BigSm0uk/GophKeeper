@@ -134,7 +134,7 @@ func (m CredentialsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case credViewList:
 			return m.handleListKeys(key)
 		case credViewAdd, credViewEdit:
-			return m.handleFormKeys(key)
+			return m.handleFormKeys(msg)
 		case credViewDetail:
 			return m.handleDetailKeys(key)
 		case credViewConfirmDelete:
@@ -362,7 +362,8 @@ func (m CredentialsViewModel) renderField(label string, input textinput.Model, f
 	)
 }
 
-func (m *CredentialsViewModel) handleFormKeys(key string) (tea.Model, tea.Cmd) {
+func (m *CredentialsViewModel) handleFormKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
 	switch key {
 	case "esc":
 		m.mode = credViewList
@@ -383,7 +384,7 @@ func (m *CredentialsViewModel) handleFormKeys(key string) (tea.Model, tea.Cmd) {
 		return m, m.saveCredential()
 	}
 
-	return m.updateActiveInput(tea.KeyMsg{})
+	return m.updateActiveInput(msg)
 }
 
 func (m *CredentialsViewModel) focusField() tea.Cmd {

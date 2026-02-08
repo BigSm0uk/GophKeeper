@@ -147,7 +147,7 @@ func (m CardsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case cardViewList:
 			return m.handleListKeys(key)
 		case cardViewAdd, cardViewEdit:
-			return m.handleFormKeys(key)
+			return m.handleFormKeys(msg)
 		case cardViewDetail:
 			return m.handleDetailKeys(key)
 		case cardViewConfirmDelete:
@@ -363,7 +363,8 @@ func (m CardsViewModel) renderField(label string, input textinput.Model, fieldIn
 	)
 }
 
-func (m *CardsViewModel) handleFormKeys(key string) (tea.Model, tea.Cmd) {
+func (m *CardsViewModel) handleFormKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
 	switch key {
 	case "esc":
 		m.mode = cardViewList
@@ -384,7 +385,7 @@ func (m *CardsViewModel) handleFormKeys(key string) (tea.Model, tea.Cmd) {
 		return m, m.saveCard()
 	}
 
-	return m.updateActiveInput(tea.KeyMsg{})
+	return m.updateActiveInput(msg)
 }
 
 func (m *CardsViewModel) focusField() tea.Cmd {

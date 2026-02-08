@@ -59,6 +59,9 @@ type CardsViewModel struct {
 	metadataInput   textinput.Model
 	focusedField    int
 
+	width  int
+	height int
+
 	err      error
 	message  string
 	quitting bool
@@ -131,6 +134,8 @@ func (m CardsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 		m.list.SetWidth(msg.Width)
 		m.list.SetHeight(msg.Height - 4)
 		return m, nil
@@ -145,7 +150,12 @@ func (m CardsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch m.mode {
 		case cardViewList:
-			return m.handleListKeys(key)
+			if key == "esc" || key == "q" || key == "a" || key == "e" || key == "d" || key == "enter" {
+				return m.handleListKeys(key)
+			}
+			var listCmd tea.Cmd
+			m.list, listCmd = m.list.Update(msg)
+			return m, listCmd
 		case cardViewAdd, cardViewEdit:
 			return m.handleFormKeys(msg)
 		case cardViewDetail:
@@ -187,16 +197,6 @@ func (m CardsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = "Card deleted successfully!"
 		m.mode = cardViewList
 		return m, m.loadCards()
-	}
-
-	if m.mode == cardViewList {
-		var cmd tea.Cmd
-		m.list, cmd = m.list.Update(msg)
-		return m, cmd
-	}
-
-	if m.mode == cardViewAdd || m.mode == cardViewEdit {
-		return m.updateActiveInput(msg)
 	}
 
 	return m, nil
@@ -339,9 +339,16 @@ func (m CardsViewModel) viewForm(title string) string {
 		help,
 	)
 
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 100
+	}
+	if h <= 0 {
+		h = 24
+	}
 	return lipgloss.Place(
-		100,
-		40,
+		w,
+		h,
 		lipgloss.Center,
 		lipgloss.Center,
 		content,
@@ -383,6 +390,9 @@ func (m *CardsViewModel) handleFormKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "enter":
 		return m, m.saveCard()
+
+	case "up", "down":
+		return m.updateActiveInput(msg)
 	}
 
 	return m.updateActiveInput(msg)
@@ -440,6 +450,14 @@ func (m *CardsViewModel) clearForm() {
 	m.cvvInput.SetValue("")
 	m.bankInput.SetValue("")
 	m.metadataInput.SetValue("")
+	m.nameInput.Blur()
+	m.cardNumberInput.Blur()
+	m.holderInput.Blur()
+	m.expiryInput.Blur()
+	m.cvvInput.Blur()
+	m.bankInput.Blur()
+	m.metadataInput.Blur()
+	m.focusedField = 0
 }
 
 func (m *CardsViewModel) loadFormFromCard(card *storage.LocalCard) {
@@ -502,13 +520,14 @@ func (m CardsViewModel) viewDetail() string {
 		help,
 	)
 
-	return lipgloss.Place(
-		100,
-		35,
-		lipgloss.Center,
-		lipgloss.Center,
-		content,
-	)
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 100
+	}
+	if h <= 0 {
+		h = 24
+	}
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, content)
 }
 
 func (m *CardsViewModel) handleDetailKeys(key string) (tea.Model, tea.Cmd) {
@@ -558,13 +577,14 @@ func (m CardsViewModel) viewConfirmDelete() string {
 		help,
 	)
 
-	return lipgloss.Place(
-		80,
-		20,
-		lipgloss.Center,
-		lipgloss.Center,
-		content,
-	)
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 80
+	}
+	if h <= 0 {
+		h = 24
+	}
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, content)
 }
 
 func (m *CardsViewModel) handleConfirmKeys(key string) (tea.Model, tea.Cmd) {

@@ -53,6 +53,9 @@ type CredentialsViewModel struct {
 	metadataInput textinput.Model
 	focusedField  int
 
+	width  int
+	height int
+
 	err      error
 	message  string
 	quitting bool
@@ -116,6 +119,8 @@ func (m CredentialsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 		m.list.SetWidth(msg.Width)
 		m.list.SetHeight(msg.Height - 4)
 		return m, nil
@@ -132,7 +137,12 @@ func (m CredentialsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Обработка в зависимости от режима
 		switch m.mode {
 		case credViewList:
-			return m.handleListKeys(key)
+			if key == "esc" || key == "q" || key == "a" || key == "e" || key == "d" || key == "enter" {
+				return m.handleListKeys(key)
+			}
+			var listCmd tea.Cmd
+			m.list, listCmd = m.list.Update(msg)
+			return m, listCmd
 		case credViewAdd, credViewEdit:
 			return m.handleFormKeys(msg)
 		case credViewDetail:
@@ -174,18 +184,6 @@ func (m CredentialsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = "Credential deleted successfully!"
 		m.mode = credViewList
 		return m, m.loadCredentials()
-	}
-
-	// Обновление списка
-	if m.mode == credViewList {
-		var cmd tea.Cmd
-		m.list, cmd = m.list.Update(msg)
-		return m, cmd
-	}
-
-	// Обновление активного поля ввода
-	if m.mode == credViewAdd || m.mode == credViewEdit {
-		return m.updateActiveInput(msg)
 	}
 
 	return m, nil
@@ -338,9 +336,16 @@ func (m CredentialsViewModel) viewForm(title string) string {
 		help,
 	)
 
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 100
+	}
+	if h <= 0 {
+		h = 24
+	}
 	return lipgloss.Place(
-		100,
-		30,
+		w,
+		h,
 		lipgloss.Center,
 		lipgloss.Center,
 		content,
@@ -382,6 +387,9 @@ func (m *CredentialsViewModel) handleFormKeys(msg tea.KeyMsg) (tea.Model, tea.Cm
 
 	case "enter":
 		return m, m.saveCredential()
+
+	case "up", "down":
+		return m.updateActiveInput(msg)
 	}
 
 	return m.updateActiveInput(msg)
@@ -436,6 +444,7 @@ func (m *CredentialsViewModel) clearForm() {
 	m.passwordInput.Blur()
 	m.urlInput.Blur()
 	m.metadataInput.Blur()
+	m.focusedField = 0
 }
 
 func (m *CredentialsViewModel) loadFormFromCredential(cred *storage.LocalCredential) {
@@ -499,13 +508,14 @@ func (m CredentialsViewModel) viewDetail() string {
 		help,
 	)
 
-	return lipgloss.Place(
-		100,
-		30,
-		lipgloss.Center,
-		lipgloss.Center,
-		content,
-	)
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 100
+	}
+	if h <= 0 {
+		h = 24
+	}
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, content)
 }
 
 func (m *CredentialsViewModel) handleDetailKeys(key string) (tea.Model, tea.Cmd) {
@@ -561,13 +571,14 @@ func (m CredentialsViewModel) viewConfirmDelete() string {
 		help,
 	)
 
-	return lipgloss.Place(
-		80,
-		20,
-		lipgloss.Center,
-		lipgloss.Center,
-		content,
-	)
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 80
+	}
+	if h <= 0 {
+		h = 24
+	}
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, content)
 }
 
 func (m *CredentialsViewModel) handleConfirmKeys(key string) (tea.Model, tea.Cmd) {

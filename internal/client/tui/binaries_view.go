@@ -55,7 +55,10 @@ type BinariesViewModel struct {
 	metadataInput textinput.Model
 	focusedField  int
 
-	err      error
+	width  int
+	height int
+
+	err error
 	message  string
 	quitting bool
 	loading  bool
@@ -106,6 +109,8 @@ func (m BinariesViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 		m.list.SetWidth(msg.Width)
 		m.list.SetHeight(msg.Height - 4)
 		return m, nil
@@ -120,7 +125,12 @@ func (m BinariesViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch m.mode {
 		case binaryViewList:
-			return m.handleListKeys(key)
+			if key == "esc" || key == "q" || key == "u" || key == "d" || key == "enter" {
+				return m.handleListKeys(key)
+			}
+			var listCmd tea.Cmd
+			m.list, listCmd = m.list.Update(msg)
+			return m, listCmd
 		case binaryViewAdd:
 			return m.handleFormKeys(msg)
 		case binaryViewDetail:
@@ -162,16 +172,6 @@ func (m BinariesViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = "File deleted successfully!"
 		m.mode = binaryViewList
 		return m, m.loadBinaries()
-	}
-
-	if m.mode == binaryViewList {
-		var cmd tea.Cmd
-		m.list, cmd = m.list.Update(msg)
-		return m, cmd
-	}
-
-	if m.mode == binaryViewAdd {
-		return m.updateActiveInput(msg)
 	}
 
 	return m, nil
@@ -291,13 +291,14 @@ func (m BinariesViewModel) viewForm(title string) string {
 		help,
 	)
 
-	return lipgloss.Place(
-		100,
-		30,
-		lipgloss.Center,
-		lipgloss.Center,
-		content,
-	)
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 100
+	}
+	if h <= 0 {
+		h = 24
+	}
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, content)
 }
 
 func (m BinariesViewModel) renderField(label string, input textinput.Model, fieldIndex int, activeStyle, inactiveStyle lipgloss.Style) string {
@@ -335,6 +336,9 @@ func (m *BinariesViewModel) handleFormKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) 
 
 	case "enter":
 		return m, m.uploadFile()
+
+	case "up", "down":
+		return m.updateActiveInput(msg)
 	}
 
 	return m.updateActiveInput(msg)
@@ -376,6 +380,10 @@ func (m *BinariesViewModel) clearForm() {
 	m.nameInput.SetValue("")
 	m.filePathInput.SetValue("")
 	m.metadataInput.SetValue("")
+	m.nameInput.Blur()
+	m.filePathInput.Blur()
+	m.metadataInput.Blur()
+	m.focusedField = 0
 }
 
 func (m BinariesViewModel) viewDetail() string {
@@ -420,13 +428,14 @@ func (m BinariesViewModel) viewDetail() string {
 		help,
 	)
 
-	return lipgloss.Place(
-		100,
-		35,
-		lipgloss.Center,
-		lipgloss.Center,
-		content,
-	)
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 100
+	}
+	if h <= 0 {
+		h = 24
+	}
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, content)
 }
 
 func (m *BinariesViewModel) handleDetailKeys(key string) (tea.Model, tea.Cmd) {
@@ -475,13 +484,14 @@ func (m BinariesViewModel) viewConfirmDelete() string {
 		help,
 	)
 
-	return lipgloss.Place(
-		80,
-		20,
-		lipgloss.Center,
-		lipgloss.Center,
-		content,
-	)
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 80
+	}
+	if h <= 0 {
+		h = 24
+	}
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, content)
 }
 
 func (m *BinariesViewModel) handleConfirmKeys(key string) (tea.Model, tea.Cmd) {

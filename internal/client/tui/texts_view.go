@@ -57,6 +57,10 @@ type TextsViewModel struct {
 	metadataInput textinput.Model
 	focusedField  int
 
+	// Window size for layout (form fits on screen)
+	width  int
+	height int
+
 	err      error
 	message  string
 	quitting bool
@@ -110,6 +114,8 @@ func (m TextsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 		m.list.SetWidth(msg.Width)
 		m.list.SetHeight(msg.Height - 4)
 		return m, nil
@@ -124,7 +130,13 @@ func (m TextsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch m.mode {
 		case textViewList:
-			return m.handleListKeys(key)
+			// Action keys handled by handleListKeys; up/down and others go to list
+			if key == "esc" || key == "q" || key == "a" || key == "e" || key == "d" || key == "enter" {
+				return m.handleListKeys(key)
+			}
+			var listCmd tea.Cmd
+			m.list, listCmd = m.list.Update(msg)
+			return m, listCmd
 		case textViewAdd, textViewEdit:
 			return m.handleFormKeys(msg)
 		case textViewDetail:
@@ -166,16 +178,6 @@ func (m TextsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = "Text note deleted successfully!"
 		m.mode = textViewList
 		return m, m.loadTexts()
-	}
-
-	if m.mode == textViewList {
-		var cmd tea.Cmd
-		m.list, cmd = m.list.Update(msg)
-		return m, cmd
-	}
-
-	if m.mode == textViewAdd || m.mode == textViewEdit {
-		return m.updateActiveInput(msg)
 	}
 
 	return m, nil
@@ -339,9 +341,17 @@ func (m TextsViewModel) viewForm(title string) string {
 		help,
 	)
 
+	// Use actual window size so all fields fit on screen (no fixed 40-line box)
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 100
+	}
+	if h <= 0 {
+		h = 24
+	}
 	return lipgloss.Place(
-		100,
-		40,
+		w,
+		h,
 		lipgloss.Center,
 		lipgloss.Center,
 		content,
@@ -352,12 +362,10 @@ func (m *TextsViewModel) handleFormKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 	switch key {
 	case "esc":
-		if m.focusedField != 1 || !m.contentArea.Focused() {
-			m.mode = textViewList
-			m.clearForm()
-			m.err = nil
-			return m, nil
-		}
+		m.mode = textViewList
+		m.clearForm()
+		m.err = nil
+		return m, nil
 
 	case "tab":
 		m.err = nil
@@ -371,6 +379,10 @@ func (m *TextsViewModel) handleFormKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "ctrl+s":
 		return m, m.saveText()
+
+	case "up", "down":
+		// Arrows go only to the active field (e.g. textarea line navigation), never switch to list
+		return m.updateActiveInput(msg)
 	}
 
 	return m.updateActiveInput(msg)
@@ -413,6 +425,10 @@ func (m *TextsViewModel) clearForm() {
 	m.nameInput.SetValue("")
 	m.contentArea.SetValue("")
 	m.metadataInput.SetValue("")
+	m.nameInput.Blur()
+	m.contentArea.Blur()
+	m.metadataInput.Blur()
+	m.focusedField = 0
 }
 
 func (m *TextsViewModel) loadFormFromText(text *storage.LocalText) {
@@ -473,13 +489,14 @@ func (m TextsViewModel) viewDetail() string {
 		help,
 	)
 
-	return lipgloss.Place(
-		100,
-		40,
-		lipgloss.Center,
-		lipgloss.Top,
-		content,
-	)
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 100
+	}
+	if h <= 0 {
+		h = 24
+	}
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Top, content)
 }
 
 func (m *TextsViewModel) handleDetailKeys(key string) (tea.Model, tea.Cmd) {
@@ -529,13 +546,14 @@ func (m TextsViewModel) viewConfirmDelete() string {
 		help,
 	)
 
-	return lipgloss.Place(
-		80,
-		20,
-		lipgloss.Center,
-		lipgloss.Center,
-		content,
-	)
+	w, h := m.width, m.height
+	if w <= 0 {
+		w = 80
+	}
+	if h <= 0 {
+		h = 24
+	}
+	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, content)
 }
 
 func (m *TextsViewModel) handleConfirmKeys(key string) (tea.Model, tea.Cmd) {

@@ -173,7 +173,7 @@ func (l *LocalDB) SaveCredential(cred *LocalCredential) error {
 	return err
 }
 
-// GetCredential retrieves a credential by ID.
+// GetCredential retrieves a credential by GetID.
 func (l *LocalDB) GetCredential(id string) (*LocalCredential, error) {
 	query := `
 		SELECT id, name, login, password, url, metadata, sync_status, 

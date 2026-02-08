@@ -56,7 +56,7 @@ var textAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✓ Text note created successfully!\n")
-		fmt.Printf("  ID:      %s\n", resp.Text.Id)
+		fmt.Printf("  GetID:      %s\n", resp.Text.Id)
 		fmt.Printf("  Name:    %s\n", resp.Text.Name)
 		fmt.Printf("  Content: %s\n", truncate(resp.Text.Content, 50))
 
@@ -95,7 +95,7 @@ var textListCmd = &cobra.Command{
 		fmt.Printf("Total text notes: %d\n\n", resp.Page.Total)
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "ID\tNAME\tCONTENT\tUPDATED")
+		fmt.Fprintln(w, "GetID\tNAME\tCONTENT\tUPDATED")
 		fmt.Fprintln(w, "--\t----\t-------\t-------")
 
 		for _, item := range resp.Items {
@@ -126,7 +126,7 @@ var textListCmd = &cobra.Command{
 
 var textGetCmd = &cobra.Command{
 	Use:   "get <id>",
-	Short: "Get a text note by ID",
+	Short: "Get a text note by GetID",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if container == nil {
@@ -157,7 +157,7 @@ var textGetCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Text Note Details:\n")
-		fmt.Printf("  ID:      %s\n", text.Id)
+		fmt.Printf("  GetID:      %s\n", text.Id)
 		fmt.Printf("  Name:    %s\n", text.Name)
 		fmt.Printf("  Content:\n%s\n", decryptedContent)
 
@@ -232,7 +232,7 @@ var textUpdateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✓ Text note updated successfully!\n")
-		fmt.Printf("  ID:      %s\n", resp.Text.Id)
+		fmt.Printf("  GetID:      %s\n", resp.Text.Id)
 		fmt.Printf("  Name:    %s\n", resp.Text.Name)
 		fmt.Printf("  Content: %s\n", truncate(resp.Text.Content, 50))
 

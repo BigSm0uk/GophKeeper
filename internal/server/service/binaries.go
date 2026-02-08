@@ -240,7 +240,7 @@ func (s *BinaryService) DownloadStream(ctx context.Context, userID, binaryID str
 	return written, nil
 }
 
-// GetBinary retrieves binary metadata by ID
+// GetBinary retrieves binary metadata by GetID
 func (s *BinaryService) GetBinary(ctx context.Context, userID, binaryID string) (*entity.Binary, error) {
 	binary, err := s.repo.FindByID(ctx, binaryID)
 	if err != nil {
@@ -372,7 +372,7 @@ func (s *BinaryService) DeleteBinary(ctx context.Context, userID, binaryID strin
 // validateUploadRequest validates the upload request
 func (s *BinaryService) validateUploadRequest(req *entity.StreamUploadRequest) error {
 	if req.UserID == "" {
-		return status.Error(codes.InvalidArgument, "user ID is required")
+		return status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if req.Name == "" {
 		return status.Error(codes.InvalidArgument, "name is required")

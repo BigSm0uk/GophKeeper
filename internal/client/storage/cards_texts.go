@@ -53,7 +53,7 @@ func (l *LocalDB) SaveCard(card *LocalCard) error {
 	return err
 }
 
-// GetCard retrieves a card by ID.
+// GetCard retrieves a card by GetID.
 func (l *LocalDB) GetCard(id string) (*LocalCard, error) {
 	query := `
 		SELECT id, name, card_number, cardholder_name, expiry_date, cvv, bank_name, metadata, sync_status,
@@ -138,7 +138,7 @@ func (l *LocalDB) SaveText(text *LocalText) error {
 	return err
 }
 
-// GetText retrieves a text by ID.
+// GetText retrieves a text by GetID.
 func (l *LocalDB) GetText(id string) (*LocalText, error) {
 	query := `
 		SELECT id, name, content, metadata, sync_status,

@@ -13,6 +13,19 @@ type Text struct {
 	Metadata  *string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	DeletedAt *time.Time
+}
+
+func (t *Text) GetID() string {
+	return t.ID
+}
+
+func (t *Text) SetID(id string) {
+	t.ID = id
+}
+
+func (t *Text) GetUserID() string {
+	return t.UserID
 }
 
 // NewText creates a new text entry with validation.

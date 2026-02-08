@@ -29,7 +29,7 @@ func NewTextsService(logger *zap.Logger, repo interfaces.TextRepository) *TextsS
 // CreateText creates a new text entry.
 func (s *TextsService) CreateText(ctx context.Context, userID string, text *entity.Text) (*entity.Text, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if text == nil {
 		return nil, status.Error(codes.InvalidArgument, "text is required")
@@ -67,13 +67,13 @@ func (s *TextsService) CreateText(ctx context.Context, userID string, text *enti
 	return textModelToEntity(created), nil
 }
 
-// GetText retrieves a text by ID.
+// GetText retrieves a text by GetID.
 func (s *TextsService) GetText(ctx context.Context, userID, textID string) (*entity.Text, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if textID == "" {
-		return nil, status.Error(codes.InvalidArgument, "text ID is required")
+		return nil, status.Error(codes.InvalidArgument, "text GetID is required")
 	}
 
 	text, err := s.repo.FindByID(ctx, textID)
@@ -97,7 +97,7 @@ func (s *TextsService) GetText(ctx context.Context, userID, textID string) (*ent
 // ListTexts retrieves all texts for a user.
 func (s *TextsService) ListTexts(ctx context.Context, userID string) ([]*entity.Text, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 
 	texts, err := s.repo.FindByUserID(ctx, userID)
@@ -118,13 +118,13 @@ func (s *TextsService) ListTexts(ctx context.Context, userID string) ([]*entity.
 // UpdateText updates an existing text.
 func (s *TextsService) UpdateText(ctx context.Context, userID string, text *entity.Text) (*entity.Text, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if text == nil {
 		return nil, status.Error(codes.InvalidArgument, "text is required")
 	}
 	if text.ID == "" {
-		return nil, status.Error(codes.InvalidArgument, "text ID is required")
+		return nil, status.Error(codes.InvalidArgument, "text GetID is required")
 	}
 
 	existing, err := s.repo.FindByID(ctx, text.ID)
@@ -178,13 +178,13 @@ func (s *TextsService) UpdateText(ctx context.Context, userID string, text *enti
 	return textModelToEntity(updated), nil
 }
 
-// DeleteText deletes a text by ID.
+// DeleteText deletes a text by GetID.
 func (s *TextsService) DeleteText(ctx context.Context, userID, textID string) error {
 	if userID == "" {
-		return status.Error(codes.InvalidArgument, "user ID is required")
+		return status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if textID == "" {
-		return status.Error(codes.InvalidArgument, "text ID is required")
+		return status.Error(codes.InvalidArgument, "text GetID is required")
 	}
 
 	text, err := s.repo.FindByID(ctx, textID)

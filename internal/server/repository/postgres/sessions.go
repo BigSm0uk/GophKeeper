@@ -49,16 +49,16 @@ func (r *SessionRepository) FindByTokenHash(ctx context.Context, tokenHash strin
 		return nil, err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return nil, err
-	}
-	defer conn.Release()
-
 	session := &models.Session{}
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
 			return conn.QueryRow(ctx, query, args...).Scan(
 				&session.ID, &session.UserID, &session.TokenHash, &session.ClientID,
 				&session.IPAddress, &session.UserAgent,
@@ -98,7 +98,7 @@ func (r *SessionRepository) FindByTokenHash(ctx context.Context, tokenHash strin
 	return session, nil
 }
 
-// FindByID retrieves a session by ID
+// FindByID retrieves a session by GetID
 func (r *SessionRepository) FindByID(ctx context.Context, id string) (*models.Session, error) {
 	query, args, err := sq.Select(
 		"id", "user_id", "token_hash", "client_id",
@@ -110,20 +110,20 @@ func (r *SessionRepository) FindByID(ctx context.Context, id string) (*models.Se
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
-		r.logger.Error("Failed to build find session by ID query", zap.Error(err))
+		r.logger.Error("Failed to build find session by GetID query", zap.Error(err))
 		return nil, err
 	}
-
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return nil, err
-	}
-	defer conn.Release()
 
 	session := &models.Session{}
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
 			return conn.QueryRow(ctx, query, args...).Scan(
 				&session.ID, &session.UserID, &session.TokenHash, &session.ClientID,
 				&session.IPAddress, &session.UserAgent,
@@ -154,10 +154,10 @@ func (r *SessionRepository) FindByID(ctx context.Context, id string) (*models.Se
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			r.logger.Warn("Session not found by ID", zap.String("session_id", id))
+			r.logger.Warn("Session not found by GetID", zap.String("session_id", id))
 			return nil, models.ErrSessionNotFound
 		}
-		r.logger.Error("Failed to find session by ID after retries",
+		r.logger.Error("Failed to find session by GetID after retries",
 			zap.Error(err),
 			zap.String("session_id", id))
 		return nil, models.ErrSessionNotFound
@@ -166,7 +166,7 @@ func (r *SessionRepository) FindByID(ctx context.Context, id string) (*models.Se
 	return session, nil
 }
 
-// FindByUserIDAndClientID retrieves an active session by user ID and client ID
+// FindByUserIDAndClientID retrieves an active session by user GetID and client GetID
 func (r *SessionRepository) FindByUserIDAndClientID(ctx context.Context, userID, clientID string) (*models.Session, error) {
 	query, args, err := sq.Select(
 		"id", "user_id", "token_hash", "client_id",
@@ -189,16 +189,15 @@ func (r *SessionRepository) FindByUserIDAndClientID(ctx context.Context, userID,
 		return nil, err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return nil, err
-	}
-	defer conn.Release()
-
 	session := &models.Session{}
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
 			return conn.QueryRow(ctx, query, args...).Scan(
 				&session.ID, &session.UserID, &session.TokenHash, &session.ClientID,
 				&session.IPAddress, &session.UserAgent,
@@ -267,16 +266,15 @@ func (r *SessionRepository) FindActiveByUserID(ctx context.Context, userID strin
 		return nil, err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return nil, err
-	}
-	defer conn.Release()
-
 	var sessions []*models.Session
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
 			rows, err := conn.Query(ctx, query, args...)
 			if err != nil {
 				return err
@@ -342,16 +340,15 @@ func (r *SessionRepository) UpdateActivity(ctx context.Context, id string) error
 		return err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return err
-	}
-	defer conn.Release()
-
 	err = retry.Do(
 		func() error {
-			_, err := conn.Exec(ctx, query, args...)
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+			_, err = conn.Exec(ctx, query, args...)
 			return err
 		},
 		retry.Attempts(3),
@@ -398,16 +395,15 @@ func (r *SessionRepository) Revoke(ctx context.Context, id, reason string) error
 		return err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return err
-	}
-	defer conn.Release()
-
 	err = retry.Do(
 		func() error {
-			_, err := conn.Exec(ctx, query, args...)
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+			_, err = conn.Exec(ctx, query, args...)
 			return err
 		},
 		retry.Attempts(3),
@@ -457,16 +453,15 @@ func (r *SessionRepository) RevokeByTokenHash(ctx context.Context, tokenHash, re
 		return err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return err
-	}
-	defer conn.Release()
-
 	err = retry.Do(
 		func() error {
-			_, err := conn.Exec(ctx, query, args...)
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+			_, err = conn.Exec(ctx, query, args...)
 			return err
 		},
 		retry.Attempts(3),
@@ -506,16 +501,15 @@ func (r *SessionRepository) RevokeAllByUserID(ctx context.Context, userID, reaso
 		return err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return err
-	}
-	defer conn.Release()
-
 	err = retry.Do(
 		func() error {
-			_, err := conn.Exec(ctx, query, args...)
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+			_, err = conn.Exec(ctx, query, args...)
 			return err
 		},
 		retry.Attempts(3),
@@ -565,16 +559,15 @@ func (r *SessionRepository) RevokeAllExceptCurrent(ctx context.Context, userID, 
 		return err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return err
-	}
-	defer conn.Release()
-
 	err = retry.Do(
 		func() error {
-			_, err := conn.Exec(ctx, query, args...)
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+			_, err = conn.Exec(ctx, query, args...)
 			return err
 		},
 		retry.Attempts(3),
@@ -625,16 +618,15 @@ func (r *SessionRepository) DeleteExpired(ctx context.Context, before time.Time)
 		return err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return err
-	}
-	defer conn.Release()
-
 	var rowsAffected int64
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
 			cmdTag, err := conn.Exec(ctx, query, args...)
 			if err != nil {
 				return err
@@ -686,16 +678,15 @@ func (r *SessionRepository) CountActiveByUserID(ctx context.Context, userID stri
 		return 0, err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return 0, err
-	}
-	defer conn.Release()
-
 	var count int
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
 			return conn.QueryRow(ctx, query, args...).Scan(&count)
 		},
 		retry.Attempts(3),
@@ -741,18 +732,18 @@ func (r *SessionRepository) Create(ctx context.Context, session *models.Session)
 		return nil, err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return nil, err
-	}
-	defer conn.Release()
-
 	var id string
 	var createdAt, lastUsedAt time.Time
 
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
 			return conn.QueryRow(ctx, query, args...).Scan(&id, &createdAt, &lastUsedAt)
 		},
 		retry.Attempts(3),

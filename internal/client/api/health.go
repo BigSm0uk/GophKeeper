@@ -39,7 +39,6 @@ func (h *HealthChecker) IsHealthy(ctx context.Context) bool {
 	resp, err := h.client.Check(checkCtx, &grpc_health_v1.HealthCheckRequest{
 		Service: "", // пустой означает проверку всего сервера
 	})
-
 	if err != nil {
 		return false
 	}

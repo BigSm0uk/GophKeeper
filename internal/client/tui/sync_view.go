@@ -16,15 +16,15 @@ import (
 type SyncViewModel struct {
 	storageManager *storage.StorageManager
 	syncManager    *sync.Manager
-	
-	pendingCreds     []*storage.LocalCredential
-	pendingBinaries  []*storage.LocalBinary
-	
-	syncing      bool
-	progress     progress.Model
-	currentItem  int
-	totalItems   int
-	
+
+	pendingCreds    []*storage.LocalCredential
+	pendingBinaries []*storage.LocalBinary
+
+	syncing     bool
+	progress    progress.Model
+	currentItem int
+	totalItems  int
+
 	err      error
 	message  string
 	quitting bool
@@ -33,7 +33,7 @@ type SyncViewModel struct {
 // NewSyncViewModel creates a new sync view model.
 func NewSyncViewModel(storageManager *storage.StorageManager, syncManager *sync.Manager) SyncViewModel {
 	prog := progress.New(progress.WithDefaultGradient())
-	
+
 	return SyncViewModel{
 		storageManager: storageManager,
 		syncManager:    syncManager,
@@ -64,7 +64,7 @@ func (m SyncViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.quitting = true
 			return m, tea.Quit
 		}
-		
+
 		if key == "esc" || key == "q" {
 			// Возврат в главное меню
 			m.quitting = true
@@ -221,9 +221,9 @@ func (m SyncViewModel) viewSyncing() string {
 // ====================
 
 type pendingItemsLoadedMsg struct {
-	creds     []*storage.LocalCredential
-	binaries  []*storage.LocalBinary
-	err       error
+	creds    []*storage.LocalCredential
+	binaries []*storage.LocalBinary
+	err      error
 }
 
 type syncStartedMsg struct{}

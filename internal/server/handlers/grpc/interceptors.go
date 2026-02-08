@@ -116,7 +116,7 @@ func RecoveryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-// RequestIDInterceptor generates unique request ID for each gRPC call and adds it to context
+// RequestIDInterceptor generates unique request GetID for each gRPC call and adds it to context
 func RequestIDInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		requestID := uuid.New().String()
@@ -220,7 +220,7 @@ func GetUserFromContext(ctx context.Context) (*models.User, error) {
 	return user, nil
 }
 
-// GetRequestIDFromContext extracts request ID from context
+// GetRequestIDFromContext extracts request GetID from context
 func GetRequestIDFromContext(ctx context.Context) string {
 	requestID, ok := ctx.Value(requestIDKey{}).(string)
 	if !ok || requestID == "" {

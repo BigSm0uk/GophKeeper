@@ -56,7 +56,7 @@ func TestLocalDB_SaveAndGetCredential(t *testing.T) {
 	}
 
 	if retrieved.ID != cred.ID {
-		t.Errorf("expected ID %s, got %s", cred.ID, retrieved.ID)
+		t.Errorf("expected GetID %s, got %s", cred.ID, retrieved.ID)
 	}
 	if retrieved.Name != cred.Name {
 		t.Errorf("expected Name %s, got %s", cred.Name, retrieved.Name)

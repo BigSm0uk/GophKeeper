@@ -20,7 +20,7 @@ type FileManager struct {
 // NewFileManager creates a new file manager.
 func NewFileManager(baseDir string, encryptor *crypto.Encryptor) (*FileManager, error) {
 	// Создаем базовую директорию если не существует
-	if err := os.MkdirAll(baseDir, 0700); err != nil {
+	if err := os.MkdirAll(baseDir, 0o700); err != nil {
 		return nil, fmt.Errorf("failed to create base directory: %w", err)
 	}
 
@@ -53,7 +53,7 @@ func (fm *FileManager) SaveFile(id, sourcePath string) (destPath, checksum strin
 
 	// Сохраняем зашифрованный файл
 	destPath = filepath.Join(fm.baseDir, id+".enc")
-	if err := os.WriteFile(destPath, encryptedData, 0600); err != nil {
+	if err := os.WriteFile(destPath, encryptedData, 0o600); err != nil {
 		return "", "", 0, fmt.Errorf("failed to write encrypted file: %w", err)
 	}
 
@@ -86,7 +86,7 @@ func (fm *FileManager) ExportFile(encryptedFilePath, destPath string) error {
 	}
 
 	// Сохраняем расшифрованный файл
-	if err := os.WriteFile(destPath, decryptedData, 0600); err != nil {
+	if err := os.WriteFile(destPath, decryptedData, 0o600); err != nil {
 		return fmt.Errorf("failed to write decrypted file: %w", err)
 	}
 
@@ -137,7 +137,7 @@ func (fm *FileManager) CopyFile(id, sourcePath string) (destPath, checksum strin
 	// Создаем временный буфер для чтения и вычисления checksum
 	hasher := sha256.New()
 	var data []byte
-	
+
 	// Читаем файл и вычисляем checksum одновременно
 	data, err = io.ReadAll(io.TeeReader(srcFile, hasher))
 	if err != nil {
@@ -155,7 +155,7 @@ func (fm *FileManager) CopyFile(id, sourcePath string) (destPath, checksum strin
 
 	// Сохраняем
 	destPath = filepath.Join(fm.baseDir, id+".enc")
-	if err := os.WriteFile(destPath, encryptedData, 0600); err != nil {
+	if err := os.WriteFile(destPath, encryptedData, 0o600); err != nil {
 		return "", "", 0, fmt.Errorf("failed to write encrypted file: %w", err)
 	}
 

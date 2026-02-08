@@ -13,14 +13,14 @@ import (
 
 // Manager управляет синхронизацией данных с сервером.
 type Manager struct {
-	api       *api.Client
-	localDB   *storage.LocalDB
-	logger    *zap.Logger
-	interval  time.Duration
-	ctx       context.Context
-	cancel    context.CancelFunc
-	stopChan  chan struct{}
-	forceChan chan struct{}
+	api        *api.Client
+	localDB    *storage.LocalDB
+	logger     *zap.Logger
+	interval   time.Duration
+	ctx        context.Context
+	cancel     context.CancelFunc
+	stopChan   chan struct{}
+	forceChan  chan struct{}
 	wasOffline bool // флаг для отслеживания восстановления связи
 }
 

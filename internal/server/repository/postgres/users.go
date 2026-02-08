@@ -44,18 +44,18 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) (*models
 		return nil, err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return nil, err
-	}
-	defer conn.Release()
-
 	var id string
 	var createdAt, updatedAt time.Time
 
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
 			return conn.QueryRow(ctx, query, args...).Scan(&id, &createdAt, &updatedAt)
 		},
 		retry.Attempts(3),
@@ -101,16 +101,9 @@ func (r *UserRepository) FindByID(ctx context.Context, id string) (*models.User,
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
-		r.logger.Error("Failed to build find user by ID query", zap.Error(err))
+		r.logger.Error("Failed to build find user by GetID query", zap.Error(err))
 		return nil, err
 	}
-
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return nil, err
-	}
-	defer conn.Release()
 
 	var user models.User
 	var email pgtype.Text
@@ -118,6 +111,13 @@ func (r *UserRepository) FindByID(ctx context.Context, id string) (*models.User,
 
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
 			return conn.QueryRow(ctx, query, args...).Scan(
 				&user.ID,
 				&user.Username,
@@ -182,19 +182,19 @@ func (r *UserRepository) FindByUsername(ctx context.Context, username string) (*
 		return nil, err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return nil, err
-	}
-	defer conn.Release()
-
 	var user models.User
 	var email pgtype.Text
 	var hashedPassword string
 
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
 			return conn.QueryRow(ctx, query, args...).Scan(
 				&user.ID,
 				&user.Username,
@@ -267,17 +267,17 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 		return err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return err
-	}
-	defer conn.Release()
-
 	var updatedAt time.Time
 
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
 			return conn.QueryRow(ctx, query, args...).Scan(&updatedAt)
 		},
 		retry.Attempts(3),
@@ -330,17 +330,17 @@ func (r *UserRepository) Delete(ctx context.Context, id string) error {
 		return err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return err
-	}
-	defer conn.Release()
-
 	var affectedRows int64
 
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
 			result, err := conn.Exec(ctx, query, args...)
 			if err != nil {
 				return err
@@ -404,18 +404,18 @@ func (r *UserRepository) Exists(ctx context.Context, id string) (bool, error) {
 		return false, err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return false, err
-	}
-	defer conn.Release()
-
 	var exists bool
 
 	err = retry.Do(
 		func() error {
-			err := conn.QueryRow(ctx, query, args...).Scan(&exists)
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
+			err = conn.QueryRow(ctx, query, args...).Scan(&exists)
 			if err == nil {
 				return nil
 			}
@@ -469,18 +469,18 @@ func (r *UserRepository) ExistsByUsername(ctx context.Context, username string) 
 		return false, err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return false, err
-	}
-	defer conn.Release()
-
 	var exists bool
 
 	err = retry.Do(
 		func() error {
-			err := conn.QueryRow(ctx, query, args...).Scan(&exists)
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
+			err = conn.QueryRow(ctx, query, args...).Scan(&exists)
 			if err == nil {
 				return nil
 			}
@@ -528,18 +528,16 @@ func (r *UserRepository) Count(ctx context.Context) (int64, error) {
 		r.logger.Error("Failed to build count users query", zap.Error(err))
 		return 0, err
 	}
-
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return 0, err
-	}
-	defer conn.Release()
-
 	var count int64
 
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
 			return conn.QueryRow(ctx, query, args...).Scan(&count)
 		},
 		retry.Attempts(3),

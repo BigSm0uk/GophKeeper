@@ -13,6 +13,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/samber/lo"
 	"go.uber.org/zap"
 )
 
@@ -20,6 +21,7 @@ import (
 var _ interfaces.CardRepository = (*CardRepository)(nil)
 
 type CardRepository struct {
+	base            *BaseRepository[*models.Card]
 	logger          *zap.Logger
 	db              *db.PostgresDb
 	errorClassifier *pgerrors.PostgresErrorClassifier
@@ -28,10 +30,65 @@ type CardRepository struct {
 // NewCardRepository creates a new card repository.
 func NewCardRepository(logger *zap.Logger, db *db.PostgresDb) *CardRepository {
 	return &CardRepository{
+		base:            NewBaseRepository[*models.Card](db, logger, "cards", CardScanner),
 		logger:          logger,
 		db:              db,
 		errorClassifier: pgerrors.NewPostgresErrorClassifier(),
 	}
+}
+
+func CardScanner(row pgx.Row) (*models.Card, error) {
+	var card models.Card
+	var bankName pgtype.Text
+	var metadata pgtype.Text
+	var deletedAt pgtype.Timestamptz
+
+	if err := row.Scan(
+		&card.ID,
+		&card.UserID,
+		&card.Name,
+		&card.CardNumber,
+		&card.CardholderName,
+		&card.ExpiryDate,
+		&card.CVV,
+		&bankName,
+		&metadata,
+		&card.CreatedAt,
+		&card.UpdatedAt,
+		&deletedAt,
+	); err != nil {
+		return nil, err
+	}
+
+	card.BankName = lo.Ternary(bankName.Valid, lo.ToPtr(bankName.String), nil)
+	card.Metadata = lo.Ternary(metadata.Valid, lo.ToPtr(metadata.String), nil)
+	card.DeletedAt = lo.Ternary(deletedAt.Valid, lo.ToPtr(deletedAt.Time), nil)
+
+	return &card, nil
+}
+
+func (r *CardRepository) FindByID(ctx context.Context, id string) (*models.Card, error) {
+	return r.base.FindByID(ctx, id)
+}
+
+func (r *CardRepository) FindByUserID(ctx context.Context, userID string) ([]*models.Card, error) {
+	return r.base.FindByUserID(ctx, userID)
+}
+
+func (r *CardRepository) Delete(ctx context.Context, id string) error {
+	return r.base.Delete(ctx, id)
+}
+
+func (r *CardRepository) Exists(ctx context.Context, id string) (bool, error) {
+	return r.base.Exists(ctx, id)
+}
+
+func (r *CardRepository) ExistsByUserID(ctx context.Context, userID string) (bool, error) {
+	return r.base.ExistsByUserID(ctx, userID)
+}
+
+func (r *CardRepository) CountByUserID(ctx context.Context, userID string) (int64, error) {
+	return r.base.CountByUserID(ctx, userID)
 }
 
 func (r *CardRepository) Create(ctx context.Context, card *models.Card) (*models.Card, error) {
@@ -46,18 +103,18 @@ func (r *CardRepository) Create(ctx context.Context, card *models.Card) (*models
 		return nil, err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return nil, err
-	}
-	defer conn.Release()
-
 	var id string
 	var createdAt, updatedAt time.Time
 
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
 			return conn.QueryRow(ctx, query, args...).Scan(&id, &createdAt, &updatedAt)
 		},
 		retry.Attempts(3),
@@ -96,196 +153,6 @@ func (r *CardRepository) Create(ctx context.Context, card *models.Card) (*models
 	return card, nil
 }
 
-func (r *CardRepository) FindByID(ctx context.Context, id string) (*models.Card, error) {
-	query, args, err := applySoftDeleteFilter(
-		sq.Select("id", "user_id", "name", "card_number", "cardholder_name", "expiry_date", "cvv", "bank_name", "metadata", "created_at", "updated_at").
-			From("cards").
-			Where(sq.Eq{"id": id}),
-	).
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
-	if err != nil {
-		r.logger.Error("Failed to build find card by ID query", zap.Error(err))
-		return nil, err
-	}
-
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return nil, err
-	}
-	defer conn.Release()
-
-	var card models.Card
-	var bankName pgtype.Text
-	var metadata pgtype.Text
-
-	err = retry.Do(
-		func() error {
-			return conn.QueryRow(ctx, query, args...).Scan(
-				&card.ID,
-				&card.UserID,
-				&card.Name,
-				&card.CardNumber,
-				&card.CardholderName,
-				&card.ExpiryDate,
-				&card.CVV,
-				&bankName,
-				&metadata,
-				&card.CreatedAt,
-				&card.UpdatedAt,
-			)
-		},
-		retry.Attempts(3),
-		retry.Delay(100*time.Millisecond),
-		retry.MaxDelay(1*time.Second),
-		retry.RetryIf(func(err error) bool {
-			classification := r.errorClassifier.Classify(err)
-			if classification == pgerrors.Retriable {
-				r.logger.Warn("Retriable database error occurred, will retry",
-					zap.Error(err),
-					zap.String("card_id", id))
-				return true
-			}
-			return false
-		}),
-		retry.OnRetry(func(n uint, err error) {
-			r.logger.Info("Retrying database operation",
-				zap.Uint("attempt", n+1),
-				zap.Error(err),
-				zap.String("card_id", id))
-		}),
-		retry.Context(ctx),
-	)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			r.logger.Info("Card not found", zap.String("card_id", id))
-			return nil, models.ErrCardNotFound
-		}
-		r.logger.Error("Failed to find card after retries",
-			zap.Error(err),
-			zap.String("card_id", id))
-		return nil, err
-	}
-
-	if bankName.Valid {
-		card.BankName = &bankName.String
-	} else {
-		card.BankName = nil
-	}
-	if metadata.Valid {
-		card.Metadata = &metadata.String
-	} else {
-		card.Metadata = nil
-	}
-	return &card, nil
-}
-
-func (r *CardRepository) FindByUserID(ctx context.Context, userID string) ([]*models.Card, error) {
-	query, args, err := applySoftDeleteFilter(
-		sq.Select("id", "user_id", "name", "card_number", "cardholder_name", "expiry_date", "cvv", "bank_name", "metadata", "created_at", "updated_at").
-			From("cards").
-			Where(sq.Eq{"user_id": userID}).
-			OrderBy("updated_at DESC"),
-	).
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
-	if err != nil {
-		r.logger.Error("Failed to build find cards by user ID query", zap.Error(err))
-		return nil, err
-	}
-
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return nil, err
-	}
-	defer conn.Release()
-
-	var cards []*models.Card
-
-	err = retry.Do(
-		func() error {
-			rows, err := conn.Query(ctx, query, args...)
-			if err != nil {
-				return err
-			}
-			defer rows.Close()
-
-			cards = nil
-			for rows.Next() {
-				var card models.Card
-				var bankName pgtype.Text
-				var metadata pgtype.Text
-
-				err := rows.Scan(
-					&card.ID,
-					&card.UserID,
-					&card.Name,
-					&card.CardNumber,
-					&card.CardholderName,
-					&card.ExpiryDate,
-					&card.CVV,
-					&bankName,
-					&metadata,
-					&card.CreatedAt,
-					&card.UpdatedAt,
-				)
-				if err != nil {
-					return err
-				}
-
-				if bankName.Valid {
-					card.BankName = &bankName.String
-				} else {
-					card.BankName = nil
-				}
-				if metadata.Valid {
-					card.Metadata = &metadata.String
-				} else {
-					card.Metadata = nil
-				}
-
-				cards = append(cards, &card)
-			}
-			return rows.Err()
-		},
-		retry.Attempts(3),
-		retry.Delay(100*time.Millisecond),
-		retry.MaxDelay(1*time.Second),
-		retry.RetryIf(func(err error) bool {
-			classification := r.errorClassifier.Classify(err)
-			if classification == pgerrors.Retriable {
-				r.logger.Warn("Retriable database error occurred, will retry",
-					zap.Error(err),
-					zap.String("user_id", userID))
-				return true
-			}
-			return false
-		}),
-		retry.OnRetry(func(n uint, err error) {
-			r.logger.Info("Retrying database operation",
-				zap.Uint("attempt", n+1),
-				zap.Error(err),
-				zap.String("user_id", userID))
-		}),
-		retry.Context(ctx),
-	)
-	if err != nil {
-		r.logger.Error("Failed to find cards after retries",
-			zap.Error(err),
-			zap.String("user_id", userID))
-		return nil, err
-	}
-
-	if len(cards) == 0 {
-		r.logger.Debug("No cards found for user", zap.String("user_id", userID))
-		return []*models.Card{}, nil
-	}
-
-	return cards, nil
-}
-
 func (r *CardRepository) Update(ctx context.Context, card *models.Card) error {
 	if card == nil || card.ID == "" {
 		return models.ErrInvalidUserID
@@ -311,17 +178,17 @@ func (r *CardRepository) Update(ctx context.Context, card *models.Card) error {
 		return err
 	}
 
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return err
-	}
-	defer conn.Release()
-
 	var updatedAt time.Time
 
 	err = retry.Do(
 		func() error {
+			conn, err := r.db.GetPool().Acquire(ctx)
+			if err != nil {
+				r.logger.Error("Failed to acquire database connection", zap.Error(err))
+				return err
+			}
+			defer conn.Release()
+
 			return conn.QueryRow(ctx, query, args...).Scan(&updatedAt)
 		},
 		retry.Attempts(3),
@@ -359,249 +226,4 @@ func (r *CardRepository) Update(ctx context.Context, card *models.Card) error {
 	card.UpdatedAt = updatedAt
 	r.logger.Info("Card updated successfully", zap.String("card_id", card.ID))
 	return nil
-}
-
-func (r *CardRepository) Delete(ctx context.Context, id string) error {
-	if id == "" {
-		return models.ErrInvalidUserID
-	}
-
-	query, args, err := sq.Update("cards").
-		Set("deleted_at", time.Now()).
-		Where(sq.Eq{"id": id}).
-		Where(sq.Expr("deleted_at IS NULL")).
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
-	if err != nil {
-		r.logger.Error("Failed to build delete card query", zap.Error(err))
-		return err
-	}
-
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return err
-	}
-	defer conn.Release()
-
-	var affectedRows int64
-
-	err = retry.Do(
-		func() error {
-			result, err := conn.Exec(ctx, query, args...)
-			if err != nil {
-				return err
-			}
-			affectedRows = result.RowsAffected()
-			return nil
-		},
-		retry.Attempts(3),
-		retry.Delay(100*time.Millisecond),
-		retry.MaxDelay(1*time.Second),
-		retry.RetryIf(func(err error) bool {
-			classification := r.errorClassifier.Classify(err)
-			if classification == pgerrors.Retriable {
-				r.logger.Warn("Retriable database error occurred, will retry",
-					zap.Error(err),
-					zap.String("card_id", id))
-				return true
-			}
-			return false
-		}),
-		retry.OnRetry(func(n uint, err error) {
-			r.logger.Info("Retrying database operation",
-				zap.Uint("attempt", n+1),
-				zap.Error(err),
-				zap.String("card_id", id))
-		}),
-		retry.Context(ctx),
-	)
-	if err != nil {
-		r.logger.Error("Failed to delete card after retries",
-			zap.Error(err),
-			zap.String("card_id", id))
-		return err
-	}
-
-	if affectedRows == 0 {
-		r.logger.Warn("Card not found for deletion", zap.String("card_id", id))
-		return models.ErrCardNotFound
-	}
-
-	r.logger.Info("Card deleted successfully",
-		zap.String("card_id", id),
-		zap.Int64("affected_rows", affectedRows))
-	return nil
-}
-
-func (r *CardRepository) Exists(ctx context.Context, id string) (bool, error) {
-	if id == "" {
-		return false, models.ErrInvalidUserID
-	}
-
-	query, args, err := applySoftDeleteFilter(
-		sq.Select("COUNT(*) > 0").
-			From("cards").
-			Where(sq.Eq{"id": id}),
-	).
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
-	if err != nil {
-		r.logger.Error("Failed to build exists card query", zap.Error(err))
-		return false, err
-	}
-
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return false, err
-	}
-	defer conn.Release()
-
-	var exists bool
-
-	err = retry.Do(
-		func() error {
-			return conn.QueryRow(ctx, query, args...).Scan(&exists)
-		},
-		retry.Attempts(3),
-		retry.Delay(100*time.Millisecond),
-		retry.MaxDelay(1*time.Second),
-		retry.RetryIf(func(err error) bool {
-			classification := r.errorClassifier.Classify(err)
-			if classification == pgerrors.Retriable {
-				r.logger.Warn("Retriable database error occurred, will retry",
-					zap.Error(err),
-					zap.String("card_id", id))
-				return true
-			}
-			return false
-		}),
-		retry.OnRetry(func(n uint, err error) {
-			r.logger.Info("Retrying database operation",
-				zap.Uint("attempt", n+1),
-				zap.Error(err),
-				zap.String("card_id", id))
-		}),
-		retry.Context(ctx),
-	)
-	if err != nil {
-		r.logger.Error("Failed to check card existence after retries",
-			zap.Error(err),
-			zap.String("card_id", id))
-		return false, err
-	}
-
-	return exists, nil
-}
-
-func (r *CardRepository) ExistsByUserID(ctx context.Context, userID string) (bool, error) {
-	if userID == "" {
-		return false, models.ErrInvalidUserID
-	}
-
-	query, args, err := applySoftDeleteFilter(
-		sq.Select("COUNT(*) > 0").
-			From("cards").
-			Where(sq.Eq{"user_id": userID}),
-	).
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
-	if err != nil {
-		r.logger.Error("Failed to build exists card by user ID query", zap.Error(err))
-		return false, err
-	}
-
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return false, err
-	}
-	defer conn.Release()
-
-	var exists bool
-
-	err = retry.Do(
-		func() error {
-			return conn.QueryRow(ctx, query, args...).Scan(&exists)
-		},
-		retry.Attempts(3),
-		retry.Delay(100*time.Millisecond),
-		retry.MaxDelay(1*time.Second),
-		retry.RetryIf(func(err error) bool {
-			classification := r.errorClassifier.Classify(err)
-			if classification == pgerrors.Retriable {
-				r.logger.Warn("Retriable database error occurred, will retry",
-					zap.Error(err),
-					zap.String("user_id", userID))
-				return true
-			}
-			return false
-		}),
-		retry.OnRetry(func(n uint, err error) {
-			r.logger.Info("Retrying database operation",
-				zap.Uint("attempt", n+1),
-				zap.Error(err),
-				zap.String("user_id", userID))
-		}),
-		retry.Context(ctx),
-	)
-	if err != nil {
-		r.logger.Error("Failed to check card existence after retries",
-			zap.Error(err),
-			zap.String("user_id", userID))
-		return false, err
-	}
-
-	return exists, nil
-}
-
-func (r *CardRepository) Count(ctx context.Context) (int64, error) {
-	query, args, err := applySoftDeleteFilter(
-		sq.Select("COUNT(*)").
-			From("cards"),
-	).
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
-	if err != nil {
-		r.logger.Error("Failed to build count cards query", zap.Error(err))
-		return 0, err
-	}
-
-	conn, err := r.db.GetPool().Acquire(ctx)
-	if err != nil {
-		r.logger.Error("Failed to acquire database connection", zap.Error(err))
-		return 0, err
-	}
-	defer conn.Release()
-
-	var count int64
-
-	err = retry.Do(
-		func() error {
-			return conn.QueryRow(ctx, query, args...).Scan(&count)
-		},
-		retry.Attempts(3),
-		retry.Delay(100*time.Millisecond),
-		retry.MaxDelay(1*time.Second),
-		retry.RetryIf(func(err error) bool {
-			classification := r.errorClassifier.Classify(err)
-			if classification == pgerrors.Retriable {
-				r.logger.Warn("Retriable database error occurred, will retry", zap.Error(err))
-				return true
-			}
-			return false
-		}),
-		retry.OnRetry(func(n uint, err error) {
-			r.logger.Info("Retrying database operation", zap.Uint("attempt", n+1), zap.Error(err))
-		}),
-		retry.Context(ctx),
-	)
-	if err != nil {
-		r.logger.Error("Failed to count cards after retries", zap.Error(err))
-		return 0, err
-	}
-
-	r.logger.Debug("Cards count retrieved", zap.Int64("count", count))
-	return count, nil
 }

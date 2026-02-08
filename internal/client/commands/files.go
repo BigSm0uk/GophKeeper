@@ -117,7 +117,7 @@ var fileUploadCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✅ File uploaded successfully!\n")
-		fmt.Printf("  ID: %s\n", resp.Binary.Id)
+		fmt.Printf("  GetID: %s\n", resp.Binary.Id)
 		fmt.Printf("  Name: %s\n", resp.Binary.Name)
 		fmt.Printf("  Size: %d bytes\n", resp.Binary.Size)
 
@@ -248,7 +248,7 @@ var fileListCmd = &cobra.Command{
 
 		fmt.Printf("Binary Files (Total: %d)\n\n", resp.Page.Total)
 		for _, binary := range resp.Items {
-			fmt.Printf("ID:       %s\n", binary.Id)
+			fmt.Printf("GetID:       %s\n", binary.Id)
 			fmt.Printf("Name:     %s\n", binary.Name)
 			fmt.Printf("Filename: %s\n", binary.Filename)
 			fmt.Printf("Size:     %d bytes\n", binary.Size)

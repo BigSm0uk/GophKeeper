@@ -198,14 +198,14 @@ func (as *AuthService) Token(ctx context.Context, grantType, username, password,
 		// 1. Extract user_id and client_id from access token
 		userID, err := as.jwtService.ExtractUserID(accessTokenForRefresh)
 		if err != nil {
-			as.logger.Error("Failed to extract user ID from access token",
+			as.logger.Error("Failed to extract user GetID from access token",
 				zap.Error(err))
 			return "", models.ErrInvalidToken
 		}
 
 		clientID, err := as.jwtService.ExtractClientID(accessTokenForRefresh)
 		if err != nil || clientID == "" {
-			as.logger.Error("Failed to extract client ID from access token",
+			as.logger.Error("Failed to extract client GetID from access token",
 				zap.Error(err))
 			return "", models.ErrInvalidToken
 		}
@@ -239,7 +239,7 @@ func (as *AuthService) Token(ctx context.Context, grantType, username, password,
 		// 5. Get user
 		user, err := as.ur.FindByID(ctx, session.UserID)
 		if err != nil {
-			as.logger.Error("Failed to get user by ID during token refresh",
+			as.logger.Error("Failed to get user by GetID during token refresh",
 				zap.Error(err),
 				zap.String("user_id", session.UserID))
 			return "", err
@@ -313,14 +313,14 @@ func (as *AuthService) Token(ctx context.Context, grantType, username, password,
 func (as *AuthService) ValidateToken(ctx context.Context, token string) (*models.User, error) {
 	userID, err := as.jwtService.ExtractUserID(token)
 	if err != nil {
-		as.logger.Error("Failed to extract user ID from token",
+		as.logger.Error("Failed to extract user GetID from token",
 			zap.Error(err))
 		return nil, models.ErrInvalidToken
 	}
 
 	user, err := as.ur.FindByID(ctx, userID)
 	if err != nil {
-		as.logger.Error("Failed to get user by ID during token validation",
+		as.logger.Error("Failed to get user by GetID during token validation",
 			zap.Error(err),
 			zap.String("user_id", userID))
 		return nil, err

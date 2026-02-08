@@ -28,7 +28,7 @@ func NewCredentialsService(logger *zap.Logger, repo interfaces.CredentialReposit
 // CreateCredential creates a new credential entry
 func (s *CredentialsService) CreateCredential(ctx context.Context, userID string, cred *entity.Credential) (*entity.Credential, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 
 	if cred == nil {
@@ -85,13 +85,13 @@ func (s *CredentialsService) CreateCredential(ctx context.Context, userID string
 	}, nil
 }
 
-// GetCredential retrieves a credential by ID
+// GetCredential retrieves a credential by GetID
 func (s *CredentialsService) GetCredential(ctx context.Context, userID, credentialID string) (*entity.Credential, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if credentialID == "" {
-		return nil, status.Error(codes.InvalidArgument, "credential ID is required")
+		return nil, status.Error(codes.InvalidArgument, "credential GetID is required")
 	}
 
 	cred, err := s.repo.FindByID(ctx, credentialID)
@@ -126,7 +126,7 @@ func (s *CredentialsService) GetCredential(ctx context.Context, userID, credenti
 // ListCredentials retrieves all credentials for a user
 func (s *CredentialsService) ListCredentials(ctx context.Context, userID string) ([]*entity.Credential, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 
 	creds, err := s.repo.FindByUserId(ctx, userID)
@@ -158,13 +158,13 @@ func (s *CredentialsService) ListCredentials(ctx context.Context, userID string)
 // UpdateCredential updates an existing credential
 func (s *CredentialsService) UpdateCredential(ctx context.Context, userID string, cred *entity.Credential) (*entity.Credential, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if cred == nil {
 		return nil, status.Error(codes.InvalidArgument, "credential is required")
 	}
 	if cred.ID == "" {
-		return nil, status.Error(codes.InvalidArgument, "credential ID is required")
+		return nil, status.Error(codes.InvalidArgument, "credential GetID is required")
 	}
 
 	// Get existing credential to check ownership
@@ -235,13 +235,13 @@ func (s *CredentialsService) UpdateCredential(ctx context.Context, userID string
 	}, nil
 }
 
-// DeleteCredential deletes a credential by ID
+// DeleteCredential deletes a credential by GetID
 func (s *CredentialsService) DeleteCredential(ctx context.Context, userID, credentialID string) error {
 	if userID == "" {
-		return status.Error(codes.InvalidArgument, "user ID is required")
+		return status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	if credentialID == "" {
-		return status.Error(codes.InvalidArgument, "credential ID is required")
+		return status.Error(codes.InvalidArgument, "credential GetID is required")
 	}
 
 	// Get credential to check ownership

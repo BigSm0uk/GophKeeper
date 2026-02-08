@@ -32,18 +32,19 @@ func (i credentialItem) Title() string {
 	statusIcon := getSyncStatusIcon(i.cred.SyncStatus)
 	return fmt.Sprintf("%s %s", statusIcon, i.cred.Name)
 }
+
 func (i credentialItem) Description() string {
 	return fmt.Sprintf("Login: %s | Updated: %s", i.cred.Login, i.cred.UpdatedAt.Format("2006-01-02 15:04"))
 }
 
 // CredentialsViewModel manages credentials CRUD operations.
 type CredentialsViewModel struct {
-	mode          credViewMode
-	list          list.Model
+	mode           credViewMode
+	list           list.Model
 	offlineService *service.OfflineService
-	credentials   []*storage.LocalCredential
-	selectedCred  *storage.LocalCredential
-	
+	credentials    []*storage.LocalCredential
+	selectedCred   *storage.LocalCredential
+
 	// Form inputs
 	nameInput     textinput.Model
 	loginInput    textinput.Model
@@ -51,7 +52,7 @@ type CredentialsViewModel struct {
 	urlInput      textinput.Model
 	metadataInput textinput.Model
 	focusedField  int
-	
+
 	err      error
 	message  string
 	quitting bool
@@ -144,7 +145,7 @@ func (m CredentialsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		m.credentials = msg.creds
 		m.err = msg.err
-		
+
 		if m.err == nil {
 			items := make([]list.Item, len(m.credentials))
 			for i, cred := range m.credentials {
@@ -440,7 +441,7 @@ func (m *CredentialsViewModel) loadFormFromCredential(cred *storage.LocalCredent
 	m.nameInput.SetValue(cred.Name)
 	m.loginInput.SetValue(cred.Login)
 	m.passwordInput.SetValue(cred.Password)
-	
+
 	if cred.URL != nil {
 		m.urlInput.SetValue(*cred.URL)
 	}

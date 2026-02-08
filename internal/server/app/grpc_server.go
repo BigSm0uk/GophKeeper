@@ -29,7 +29,7 @@ type GRPCServer struct {
 func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *service.AuthService, binariesService *service.BinaryService, credentialsService *service.CredentialsService, cardsService *service.CardsService, textsService *service.TextsService, userService *service.UserService, jwtService *service.JWTService) *GRPCServer {
 	server := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
-			grpchandlers.RequestIDInterceptor(logger),                   // First: generate request ID
+			grpchandlers.RequestIDInterceptor(logger),                   // First: generate request GetID
 			grpchandlers.RecoveryInterceptor(logger),                    // Second: catch panics
 			grpchandlers.AuthInterceptor(authService, cfg.Auth, logger), // Third: authenticate
 			grpchandlers.LoggingInterceptor(logger),                     // Last: log with all context

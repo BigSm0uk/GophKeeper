@@ -106,7 +106,7 @@ func init() {
 				if container.Logger != nil {
 					container.Logger.Debug("main menu program finished successfully")
 				}
-				
+
 				// Очищаем ресурсы после выхода
 				if err := container.Close(); err != nil {
 					if container.Logger != nil {
@@ -114,7 +114,7 @@ func init() {
 					}
 					return fmt.Errorf("failed to close container: %w", err)
 				}
-				
+
 				return nil
 			}
 

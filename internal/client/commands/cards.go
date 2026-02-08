@@ -81,7 +81,7 @@ var cardAddCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✓ Card created successfully!\n")
-		fmt.Printf("  ID:          %s\n", resp.Card.Id)
+		fmt.Printf("  GetID:          %s\n", resp.Card.Id)
 		fmt.Printf("  Name:        %s\n", resp.Card.Name)
 		fmt.Printf("  Holder:      %s\n", resp.Card.CardholderName)
 		fmt.Printf("  Number:      ****%s\n", resp.Card.CardNumber[len(resp.Card.CardNumber)-4:])
@@ -121,7 +121,7 @@ var cardListCmd = &cobra.Command{
 		fmt.Printf("Total cards: %d\n\n", resp.Page.Total)
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "ID\tNAME\tHOLDER\tNUMBER\tEXPIRY\tUPDATED")
+		fmt.Fprintln(w, "GetID\tNAME\tHOLDER\tNUMBER\tEXPIRY\tUPDATED")
 		fmt.Fprintln(w, "--\t----\t------\t------\t------\t-------")
 
 		for _, item := range resp.Items {
@@ -153,7 +153,7 @@ var cardListCmd = &cobra.Command{
 
 var cardGetCmd = &cobra.Command{
 	Use:   "get <id>",
-	Short: "Get a card by ID",
+	Short: "Get a card by GetID",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if container == nil {
@@ -192,7 +192,7 @@ var cardGetCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Card Details:\n")
-		fmt.Printf("  ID:          %s\n", card.Id)
+		fmt.Printf("  GetID:          %s\n", card.Id)
 		fmt.Printf("  Name:        %s\n", card.Name)
 		fmt.Printf("  Cardholder:  %s\n", card.CardholderName)
 		fmt.Printf("  Number:      %s\n", decryptedCardNumber)
@@ -297,7 +297,7 @@ var cardUpdateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("✓ Card updated successfully!\n")
-		fmt.Printf("  ID:          %s\n", resp.Card.Id)
+		fmt.Printf("  GetID:          %s\n", resp.Card.Id)
 		fmt.Printf("  Name:        %s\n", resp.Card.Name)
 		fmt.Printf("  Cardholder:  %s\n", resp.Card.CardholderName)
 

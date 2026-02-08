@@ -15,10 +15,10 @@ type SessionRepository interface {
 	// FindByTokenHash retrieves a session by refresh token hash.
 	FindByTokenHash(ctx context.Context, tokenHash string) (*models.Session, error)
 
-	// FindByID retrieves a session by ID.
+	// FindByID retrieves a session by GetID.
 	FindByID(ctx context.Context, id string) (*models.Session, error)
 
-	// FindByUserIDAndClientID retrieves an active session by user ID and client ID.
+	// FindByUserIDAndClientID retrieves an active session by user GetID and client GetID.
 	FindByUserIDAndClientID(ctx context.Context, userID, clientID string) (*models.Session, error)
 
 	// FindActiveByUserID retrieves all active sessions for a user.

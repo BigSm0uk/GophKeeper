@@ -31,7 +31,7 @@ func NewUserService(logger *zap.Logger, userRepo interfaces.UserRepository, sess
 // GetProfile returns the current user profile.
 func (s *UserService) GetProfile(ctx context.Context, userID string) (*models.User, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
@@ -49,7 +49,7 @@ func (s *UserService) GetProfile(ctx context.Context, userID string) (*models.Us
 // UpdateProfile updates user profile (email).
 func (s *UserService) UpdateProfile(ctx context.Context, userID string, email *string) (*models.User, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
@@ -80,7 +80,7 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID string, email *s
 // ChangePassword changes user password.
 func (s *UserService) ChangePassword(ctx context.Context, userID, oldPassword, newPassword string) error {
 	if userID == "" {
-		return status.Error(codes.InvalidArgument, "user ID is required")
+		return status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
@@ -126,7 +126,7 @@ func (s *UserService) ChangePassword(ctx context.Context, userID, oldPassword, n
 // DeleteAccount soft-deletes user account after password confirmation.
 func (s *UserService) DeleteAccount(ctx context.Context, userID, password string) error {
 	if userID == "" {
-		return status.Error(codes.InvalidArgument, "user ID is required")
+		return status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	user, err := s.userRepo.FindByID(ctx, userID)
 	if err != nil {
@@ -162,7 +162,7 @@ func (s *UserService) DeleteAccount(ctx context.Context, userID, password string
 // GetActiveSessions returns all active sessions for the user.
 func (s *UserService) GetActiveSessions(ctx context.Context, userID, currentClientID string) ([]*models.Session, *models.Session, error) {
 	if userID == "" {
-		return nil, nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, nil, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	sessions, err := s.sessionRepo.FindActiveByUserID(ctx, userID)
 	if err != nil {
@@ -181,7 +181,7 @@ func (s *UserService) GetActiveSessions(ctx context.Context, userID, currentClie
 // RevokeSession revokes a specific session (must belong to user).
 func (s *UserService) RevokeSession(ctx context.Context, userID, sessionID string) error {
 	if userID == "" || sessionID == "" {
-		return status.Error(codes.InvalidArgument, "user ID and session ID are required")
+		return status.Error(codes.InvalidArgument, "user GetID and session GetID are required")
 	}
 	session, err := s.sessionRepo.FindByID(ctx, sessionID)
 	if err != nil {
@@ -211,7 +211,7 @@ func (s *UserService) RevokeSession(ctx context.Context, userID, sessionID strin
 // RevokeAllSessions revokes all sessions, optionally except the current one.
 func (s *UserService) RevokeAllSessions(ctx context.Context, userID, currentSessionID string, exceptCurrent bool) (int32, error) {
 	if userID == "" {
-		return 0, status.Error(codes.InvalidArgument, "user ID is required")
+		return 0, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 	countBefore, err := s.sessionRepo.CountActiveByUserID(ctx, userID)
 	if err != nil {

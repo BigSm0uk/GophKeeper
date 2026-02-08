@@ -8,13 +8,13 @@ import (
 
 // CredentialRepository defines the interface for credential data operations.
 type CredentialRepository interface {
-	// Create creates a new credential and returns the created credential with generated ID.
+	// Create creates a new credential and returns the created credential with generated GetID.
 	Create(ctx context.Context, user *models.Credential) (*models.Credential, error)
 
 	// FindByID retrieves a credential by its unique identifier.
 	FindByID(ctx context.Context, id string) (*models.Credential, error)
 
-	// FindByUserId retrieves all credentials by user ID.
+	// FindByUserId retrieves all credentials by user GetID.
 	FindByUserId(ctx context.Context, id string) ([]*models.Credential, error)
 
 	// Update modifies an existing credential's information.
@@ -26,8 +26,8 @@ type CredentialRepository interface {
 	// Exists checks if a credential exists by its unique identifier.
 	Exists(ctx context.Context, id string) (bool, error)
 	// ExistsByUserId checks if credentials exist for a given user ID.
-	ExistsByUserId(ctx context.Context, id string) (bool, error)
+	ExistsByUserId(ctx context.Context, userID string) (bool, error)
 
-	// Count returns the total number of credentials.
-	Count(ctx context.Context) (int64, error)
+	// CountByUserID returns the total number of credentials for a given user ID.
+	CountByUserID(ctx context.Context, userID string) (int64, error)
 }

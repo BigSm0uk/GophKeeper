@@ -30,8 +30,10 @@ type mainMenuModel struct {
 	quitting       bool
 }
 
-type logoutMsg struct{}
-type subProgramReturnedMsg struct{}
+type (
+	logoutMsg             struct{}
+	subProgramReturnedMsg struct{}
+)
 
 var (
 	menuTitleStyle = lipgloss.NewStyle().

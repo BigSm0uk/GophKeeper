@@ -15,6 +15,19 @@ type Credential struct {
 	Metadata  *string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	DeletedAt *time.Time
+}
+
+func (c *Credential) GetID() string {
+	return c.ID
+}
+
+func (c *Credential) SetID(id string) {
+	c.ID = id
+}
+
+func (c *Credential) GetUserID() string {
+	return c.UserID
 }
 
 // NewCredential creates a new credential with validation.

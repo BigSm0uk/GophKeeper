@@ -61,12 +61,12 @@ var (
 					if _, err := tea.NewProgram(mainMenu, tea.WithAltScreen()).Run(); err != nil {
 						return fmt.Errorf("main menu: %w", err)
 					}
-					
+
 					// Очищаем ресурсы после выхода
 					if err := container.Close(); err != nil {
 						return fmt.Errorf("failed to close container: %w", err)
 					}
-					
+
 					return nil
 				}
 
@@ -116,12 +116,12 @@ var (
 				if _, err := tea.NewProgram(mainMenu, tea.WithAltScreen()).Run(); err != nil {
 					return fmt.Errorf("main menu: %w", err)
 				}
-				
+
 				// Очищаем ресурсы после выхода
 				if err := container.Close(); err != nil {
 					return fmt.Errorf("failed to close container: %w", err)
 				}
-				
+
 				return nil
 			}
 			return cmd.Help()

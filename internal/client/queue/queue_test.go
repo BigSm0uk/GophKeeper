@@ -32,7 +32,7 @@ func TestQueue_EnqueueDequeue(t *testing.T) {
 	}
 
 	if received.ID != task.ID {
-		t.Errorf("expected task ID %s, got %s", task.ID, received.ID)
+		t.Errorf("expected task GetID %s, got %s", task.ID, received.ID)
 	}
 	if received.Type != task.Type {
 		t.Errorf("expected task type %v, got %v", task.Type, received.Type)
@@ -67,7 +67,7 @@ func TestQueue_MultipleEnqueueDequeue(t *testing.T) {
 		}
 
 		if received.ID != expected.ID {
-			t.Errorf("task %d: expected ID %s, got %s", i, expected.ID, received.ID)
+			t.Errorf("task %d: expected GetID %s, got %s", i, expected.ID, received.ID)
 		}
 		if received.Type != expected.Type {
 			t.Errorf("task %d: expected type %v, got %v", i, expected.Type, received.Type)

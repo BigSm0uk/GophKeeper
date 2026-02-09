@@ -37,6 +37,12 @@ func bootstrap() (*app.Container, error) {
 		zap.String("http_address", cfg.HTTPAddress()),
 	)
 
+	log.Info("Build information",
+		zap.String("version", version),
+		zap.String("build_date", buildDate),
+		zap.String("commit", commit),
+	)
+
 	// 3. Create Dependency Injection Container
 	container := app.NewContainer(log, cfg)
 
@@ -52,10 +58,10 @@ func bootstrap() (*app.Container, error) {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	// 5. Data Layer: Repositories (TODO: Denis)
+	// 5. Data Layer: Repositories
 	container.RegisterRepositories()
 
-	// 6. Domain Layer: Services (TODO: Denis)
+	// 6. Domain Layer: Services
 	err = container.RegisterServices()
 	if err != nil {
 		return nil, fmt.Errorf("failed to init services: %w", err)
@@ -65,8 +71,6 @@ func bootstrap() (*app.Container, error) {
 	container.RegisterGRPCServer()
 
 	// 8. Presentation Layer: HTTP Server (grpc-gateway)
-	// ВАЖНО: HTTP сервер должен стартовать ПОСЛЕ gRPC сервера,
-	// так как он делает forwarding запросов к gRPC
 	httpServer := app.NewHTTPServer(cfg, log, container.GRPCServer)
 	container.RegisterHTTPServer(httpServer)
 

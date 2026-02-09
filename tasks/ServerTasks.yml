@@ -6,20 +6,31 @@ vars:
   BIN_DIR: "{{.ROOT_DIR}}/bin"
   SERVER_DIR: "{{.ROOT_DIR}}/cmd/server/*"
   CONFIG_DIR: "{{.ROOT_DIR}}/configs"
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
+  BUILD_DATE:
+    sh: date -u +"%Y-%m-%dT%H:%M:%SZ"
+  COMMIT:
+    sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
+  LDFLAGS: '-ldflags "-X main.version={{.VERSION}} -X main.buildDate={{.BUILD_DATE}} -X main.commit={{.COMMIT}}"'
 
 tasks:
   build:
+    desc: "Build server with version info"
     cmds:
-      - go build -o {{.BIN_DIR}}/server {{.SERVER_DIR}}
-    silent: true
+      - echo "Building server {{.VERSION}} ({{.COMMIT}}) built at {{.BUILD_DATE}}"
+      - go build {{.LDFLAGS}} -o {{.BIN_DIR}}/server {{.SERVER_DIR}}
+    silent: false
 
   run:
+    desc: "Build and run server"
     deps: [build]
     cmds:
       - "{{.BIN_DIR}}/server --config={{.CONFIG_DIR}}/server.dev.json"
     silent: true
 
   run:w:
+    desc: "Build and run server with file watching"
     deps: [build]
     watch: true
     sources:
@@ -33,7 +44,7 @@ tasks:
     sources:
       - 'internal/server/**/*.go'
     cmds:
-      - "go run {{.SERVER_DIR}} --config={{.CONFIG_DIR}}/server.dev.json"
+      - "go run {{.LDFLAGS}} {{.SERVER_DIR}} --config={{.CONFIG_DIR}}/server.dev.json"
     silent: true
 
   run:watch:
@@ -42,7 +53,7 @@ tasks:
     sources:
       - 'internal/server/**/*.go'
     cmds:
-      - "go run {{.SERVER_DIR}} --config={{.CONFIG_DIR}}/server.dev.json"
+      - "go run {{.LDFLAGS}} {{.SERVER_DIR}} --config={{.CONFIG_DIR}}/server.dev.json"
     silent: true
 
   migrate:up:

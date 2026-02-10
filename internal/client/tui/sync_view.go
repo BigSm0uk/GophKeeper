@@ -18,6 +18,8 @@ type SyncViewModel struct {
 	syncManager    *sync.Manager
 
 	pendingCreds    []*storage.LocalCredential
+	pendingCards    []*storage.LocalCard
+	pendingTexts    []*storage.LocalText
 	pendingBinaries []*storage.LocalBinary
 
 	syncing     bool
@@ -80,9 +82,11 @@ func (m SyncViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case pendingItemsLoadedMsg:
 		m.pendingCreds = msg.creds
+		m.pendingCards = msg.cards
+		m.pendingTexts = msg.texts
 		m.pendingBinaries = msg.binaries
 		m.err = msg.err
-		m.totalItems = len(m.pendingCreds) + len(m.pendingBinaries)
+		m.totalItems = len(m.pendingCreds) + len(m.pendingCards) + len(m.pendingTexts) + len(m.pendingBinaries)
 		return m, nil
 
 	case syncStartedMsg:
@@ -140,6 +144,8 @@ func (m SyncViewModel) viewPending() string {
 		stats := []string{
 			fmt.Sprintf("Pending items: %d", m.totalItems),
 			fmt.Sprintf("  • Credentials: %d", len(m.pendingCreds)),
+			fmt.Sprintf("  • Cards:       %d", len(m.pendingCards)),
+			fmt.Sprintf("  • Texts:       %d", len(m.pendingTexts)),
 			fmt.Sprintf("  • Binaries:    %d", len(m.pendingBinaries)),
 		}
 
@@ -222,6 +228,8 @@ func (m SyncViewModel) viewSyncing() string {
 
 type pendingItemsLoadedMsg struct {
 	creds    []*storage.LocalCredential
+	cards    []*storage.LocalCard
+	texts    []*storage.LocalText
 	binaries []*storage.LocalBinary
 	err      error
 }
@@ -247,6 +255,16 @@ func (m SyncViewModel) loadPendingItems() tea.Cmd {
 			return pendingItemsLoadedMsg{err: err}
 		}
 
+		cards, err := m.storageManager.Encrypted.GetPendingCards()
+		if err != nil {
+			return pendingItemsLoadedMsg{err: err}
+		}
+
+		texts, err := m.storageManager.Encrypted.GetPendingTexts()
+		if err != nil {
+			return pendingItemsLoadedMsg{err: err}
+		}
+
 		binaries, err := m.storageManager.Encrypted.GetPendingBinaries()
 		if err != nil {
 			return pendingItemsLoadedMsg{err: err}
@@ -255,6 +273,8 @@ func (m SyncViewModel) loadPendingItems() tea.Cmd {
 		_ = ctx
 		return pendingItemsLoadedMsg{
 			creds:    creds,
+			cards:    cards,
+			texts:    texts,
 			binaries: binaries,
 		}
 	}

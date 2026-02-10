@@ -686,6 +686,8 @@ func getSyncStatusIcon(status storage.SyncStatus) string {
 		return "📤"
 	case storage.StatusUpdated:
 		return "✎"
+	case storage.StatusDeleted:
+		return "🗑"
 	default:
 		return "?"
 	}

@@ -11,6 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// isOnline checks if the server is currently available.
+func isOnline() bool {
+	if container == nil || container.API == nil {
+		return false
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	return container.API.IsServerAvailable(ctx)
+}
+
 var cardCmd = &cobra.Command{
 	Use:   "card",
 	Short: "Manage bank cards",
@@ -24,7 +34,6 @@ var cardAddCmd = &cobra.Command{
 			return fmt.Errorf("client not initialized")
 		}
 
-		// Инициализируем encryptor
 		if err := ensureEncryptor(); err != nil {
 			return err
 		}
@@ -44,47 +53,75 @@ var cardAddCmd = &cobra.Command{
 		bankName, _ := cmd.Flags().GetString("bank")
 		metadata, _ := cmd.Flags().GetString("metadata")
 
-		// Шифруем чувствительные данные
-		encryptedCardNumber, err := container.Encryptor.Encrypt(cardNumber)
-		if err != nil {
-			return fmt.Errorf("failed to encrypt card number: %w", err)
-		}
-		encryptedCVV, err := container.Encryptor.Encrypt(cvv)
-		if err != nil {
-			return fmt.Errorf("failed to encrypt CVV: %w", err)
-		}
-		encryptedExpiryDate, err := container.Encryptor.Encrypt(expiryDate)
-		if err != nil {
-			return fmt.Errorf("failed to encrypt expiry date: %w", err)
-		}
-
-		req := &pb.CardCreateRequest{
-			Name:           name,
-			CardNumber:     encryptedCardNumber,
-			CardholderName: cardholderName,
-			ExpiryDate:     encryptedExpiryDate,
-			Cvv:            encryptedCVV,
-		}
+		var bankPtr, metaPtr *string
 		if bankName != "" {
-			req.BankName = &bankName
+			bankPtr = &bankName
 		}
 		if metadata != "" {
-			req.Metadata = &metadata
+			metaPtr = &metadata
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+		offlineSvc := getOfflineService()
 
-		resp, err := container.API.CreateCard(ctx, req)
+		if isOnline() {
+			encryptedCardNumber, encErr := container.Encryptor.Encrypt(cardNumber)
+			if encErr != nil {
+				return fmt.Errorf("failed to encrypt card number: %w", encErr)
+			}
+			encryptedCVV, encErr := container.Encryptor.Encrypt(cvv)
+			if encErr != nil {
+				return fmt.Errorf("failed to encrypt CVV: %w", encErr)
+			}
+			encryptedExpiryDate, encErr := container.Encryptor.Encrypt(expiryDate)
+			if encErr != nil {
+				return fmt.Errorf("failed to encrypt expiry date: %w", encErr)
+			}
+
+			req := &pb.CardCreateRequest{
+				Name:           name,
+				CardNumber:     encryptedCardNumber,
+				CardholderName: cardholderName,
+				ExpiryDate:     encryptedExpiryDate,
+				Cvv:            encryptedCVV,
+				BankName:       bankPtr,
+				Metadata:       metaPtr,
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			resp, apiErr := container.API.CreateCard(ctx, req)
+			if apiErr == nil {
+				fmt.Printf("✓ Card created on server!\n")
+				fmt.Printf("  ID:     %s\n", resp.Card.Id)
+				fmt.Printf("  Name:   %s\n", resp.Card.Name)
+				fmt.Printf("  Holder: %s\n", resp.Card.CardholderName)
+
+				if offlineSvc != nil {
+					_, _ = offlineSvc.CreateCard(ctx, name, cardNumber, cardholderName, expiryDate, cvv, bankPtr, metaPtr)
+				}
+				return nil
+			}
+			fmt.Printf("⚠ Server unavailable, saving locally: %v\n", apiErr)
+		}
+
+		// Offline
+		if offlineSvc == nil {
+			return fmt.Errorf("offline storage not initialized")
+		}
+
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel2()
+
+		card, err := offlineSvc.CreateCard(ctx2, name, cardNumber, cardholderName, expiryDate, cvv, bankPtr, metaPtr)
 		if err != nil {
-			return fmt.Errorf("failed to create card: %w", err)
+			return fmt.Errorf("failed to save card locally: %w", err)
 		}
 
-		fmt.Printf("✓ Card created successfully!\n")
-		fmt.Printf("  GetID:          %s\n", resp.Card.Id)
-		fmt.Printf("  Name:        %s\n", resp.Card.Name)
-		fmt.Printf("  Holder:      %s\n", resp.Card.CardholderName)
-		fmt.Printf("  Number:      ****%s\n", resp.Card.CardNumber[len(resp.Card.CardNumber)-4:])
+		fmt.Printf("✓ Card saved locally (will sync when online)\n")
+		fmt.Printf("  ID:     %s\n", card.ID)
+		fmt.Printf("  Name:   %s\n", card.Name)
+		fmt.Printf("  Holder: %s\n", card.CardholderName)
 
 		return nil
 	},
@@ -105,47 +142,84 @@ var cardListCmd = &cobra.Command{
 			limit = 20
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+		if isOnline() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 
-		resp, err := container.API.ListCards(ctx, limit, offset)
-		if err != nil {
-			return fmt.Errorf("failed to list cards: %w", err)
+			resp, err := container.API.ListCards(ctx, limit, offset)
+			if err == nil {
+				if len(resp.Items) == 0 {
+					fmt.Println("No cards found.")
+					return nil
+				}
+
+				fmt.Printf("Total cards: %d\n\n", resp.Page.Total)
+				w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+				fmt.Fprintln(w, "ID\tNAME\tHOLDER\tNUMBER\tEXPIRY\tUPDATED")
+				fmt.Fprintln(w, "--\t----\t------\t------\t------\t-------")
+
+				for _, item := range resp.Items {
+					updatedAt := "N/A"
+					if item.UpdatedAt != nil {
+						updatedAt = item.UpdatedAt.AsTime().Format("2006-01-02 15:04")
+					}
+					idShort := item.Id
+					if len(idShort) > 8 {
+						idShort = idShort[:8]
+					}
+					masked := "****" + item.CardNumber[len(item.CardNumber)-4:]
+					fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+						idShort, item.Name, item.CardholderName, masked, item.ExpiryDate, updatedAt)
+				}
+				w.Flush()
+
+				if offset+limit < resp.Page.Total {
+					fmt.Printf("\nShowing %d-%d of %d. Use --offset to see more.\n",
+						offset+1, offset+uint32(len(resp.Items)), resp.Page.Total)
+				}
+				return nil
+			}
+			fmt.Printf("⚠ Server unavailable, showing local data: %v\n", err)
 		}
 
-		if len(resp.Items) == 0 {
-			fmt.Println("No cards found.")
+		// Offline
+		offlineSvc := getOfflineService()
+		if offlineSvc == nil {
+			return fmt.Errorf("offline storage not initialized")
+		}
+
+		if err := ensureEncryptor(); err != nil {
+			return err
+		}
+
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel2()
+
+		cards, err := offlineSvc.ListCards(ctx2)
+		if err != nil {
+			return fmt.Errorf("failed to list local cards: %w", err)
+		}
+
+		if len(cards) == 0 {
+			fmt.Println("No cards found (offline mode).")
 			return nil
 		}
 
-		fmt.Printf("Total cards: %d\n\n", resp.Page.Total)
-
+		fmt.Printf("Offline mode - showing %d local cards:\n\n", len(cards))
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "GetID\tNAME\tHOLDER\tNUMBER\tEXPIRY\tUPDATED")
-		fmt.Fprintln(w, "--\t----\t------\t------\t------\t-------")
+		fmt.Fprintln(w, "ID\tNAME\tHOLDER\tSTATUS\tUPDATED")
+		fmt.Fprintln(w, "--\t----\t------\t------\t-------")
 
-		for _, item := range resp.Items {
-			updatedAt := "N/A"
-			if item.UpdatedAt != nil {
-				updatedAt = item.UpdatedAt.AsTime().Format("2006-01-02 15:04")
-			}
-
-			idShort := item.Id
+		for _, card := range cards {
+			idShort := card.ID
 			if len(idShort) > 8 {
 				idShort = idShort[:8]
 			}
-
-			// Mask card number
-			masked := "****" + item.CardNumber[len(item.CardNumber)-4:]
-
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-				idShort, item.Name, item.CardholderName, masked, item.ExpiryDate, updatedAt)
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+				idShort, card.Name, card.CardholderName, string(card.SyncStatus),
+				card.UpdatedAt.Format("2006-01-02 15:04"))
 		}
 		w.Flush()
-
-		if offset+limit < resp.Page.Total {
-			fmt.Printf("\nShowing %d-%d of %d. Use --offset to see more.\n", offset+1, offset+uint32(len(resp.Items)), resp.Page.Total)
-		}
 
 		return nil
 	},
@@ -327,19 +401,38 @@ var cardDeleteCmd = &cobra.Command{
 			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+		if isOnline() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 
-		resp, err := container.API.DeleteCard(ctx, id)
-		if err != nil {
-			return fmt.Errorf("failed to delete card: %w", err)
+			resp, err := container.API.DeleteCard(ctx, id)
+			if err == nil {
+				if !resp.Deleted {
+					return fmt.Errorf("card was not deleted")
+				}
+				offlineSvc := getOfflineService()
+				if offlineSvc != nil {
+					_ = offlineSvc.DeleteCard(ctx, id)
+				}
+				fmt.Printf("✓ Card deleted successfully!\n")
+				return nil
+			}
+			fmt.Printf("⚠ Server unavailable, deleting locally: %v\n", err)
 		}
 
-		if !resp.Deleted {
-			return fmt.Errorf("card was not deleted")
+		offlineSvc := getOfflineService()
+		if offlineSvc == nil {
+			return fmt.Errorf("offline storage not initialized")
 		}
 
-		fmt.Printf("✓ Card deleted successfully!\n")
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel2()
+
+		if err := offlineSvc.DeleteCard(ctx2, id); err != nil {
+			return fmt.Errorf("failed to delete card locally: %w", err)
+		}
+
+		fmt.Printf("✓ Card marked for deletion (will sync when online)\n")
 		return nil
 	},
 }

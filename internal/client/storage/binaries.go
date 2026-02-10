@@ -98,16 +98,17 @@ func (l *LocalDB) GetBinary(id string) (*LocalBinary, error) {
 	return &binary, nil
 }
 
-// ListBinaries returns all binaries.
+// ListBinaries returns all active (non-deleted) binaries.
 func (l *LocalDB) ListBinaries() ([]*LocalBinary, error) {
 	query := `
 		SELECT id, name, filename, file_path, size, content_type, checksum, metadata, sync_status,
 		       created_at, updated_at, synced_at
 		FROM binaries 
+		WHERE sync_status != ?
 		ORDER BY updated_at DESC
 	`
 
-	rows, err := l.db.Query(query)
+	rows, err := l.db.Query(query, string(StatusDeleted))
 	if err != nil {
 		return nil, err
 	}
@@ -150,10 +151,72 @@ func (l *LocalDB) ListBinaries() ([]*LocalBinary, error) {
 	return binaries, rows.Err()
 }
 
-// DeleteBinary removes a binary from local storage.
+// DeleteBinary marks a binary as deleted for sync.
 func (l *LocalDB) DeleteBinary(id string) error {
+	_, err := l.db.Exec(
+		"UPDATE binaries SET sync_status = ?, updated_at = ? WHERE id = ?",
+		string(StatusDeleted), time.Now().Unix(), id,
+	)
+	return err
+}
+
+// PurgeBinary physically removes a binary from local storage after sync.
+func (l *LocalDB) PurgeBinary(id string) error {
 	_, err := l.db.Exec("DELETE FROM binaries WHERE id = ?", id)
 	return err
+}
+
+// GetDeletedBinaries returns binaries marked as deleted that need sync.
+func (l *LocalDB) GetDeletedBinaries() ([]*LocalBinary, error) {
+	query := `
+		SELECT id, name, filename, file_path, size, content_type, checksum, metadata, sync_status,
+		       created_at, updated_at, synced_at
+		FROM binaries 
+		WHERE sync_status = ?
+		ORDER BY updated_at ASC
+	`
+
+	rows, err := l.db.Query(query, string(StatusDeleted))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var binaries []*LocalBinary
+	for rows.Next() {
+		var binary LocalBinary
+		var createdAtUnix, updatedAtUnix int64
+		var syncedAtUnix *int64
+
+		err := rows.Scan(
+			&binary.ID,
+			&binary.Name,
+			&binary.Filename,
+			&binary.FilePath,
+			&binary.Size,
+			&binary.ContentType,
+			&binary.Checksum,
+			&binary.Metadata,
+			&binary.SyncStatus,
+			&createdAtUnix,
+			&updatedAtUnix,
+			&syncedAtUnix,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		binary.CreatedAt = time.Unix(createdAtUnix, 0)
+		binary.UpdatedAt = time.Unix(updatedAtUnix, 0)
+		if syncedAtUnix != nil {
+			t := time.Unix(*syncedAtUnix, 0)
+			binary.SyncedAt = &t
+		}
+
+		binaries = append(binaries, &binary)
+	}
+
+	return binaries, rows.Err()
 }
 
 // UpdateBinarySyncStatus updates the sync status of a binary.

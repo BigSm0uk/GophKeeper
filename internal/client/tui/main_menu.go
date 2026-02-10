@@ -1,6 +1,9 @@
 package tui
 
 import (
+	"context"
+	"time"
+
 	"github.com/BigSm0uk/GophKeeper/internal/client/api"
 	"github.com/BigSm0uk/GophKeeper/internal/client/service"
 	"github.com/BigSm0uk/GophKeeper/internal/client/storage"
@@ -28,11 +31,14 @@ type mainMenuModel struct {
 	storageManager *storage.StorageManager
 	syncManager    *sync.Manager
 	quitting       bool
+	isOnline       bool
+	lastCheck      time.Time
 }
 
 type (
 	logoutMsg             struct{}
 	subProgramReturnedMsg struct{}
+	onlineStatusMsg       struct{ online bool }
 )
 
 var (
@@ -99,8 +105,28 @@ func NewMainMenuModel(client *api.Client, tokenStore *storage.TokenStore, offlin
 }
 
 func (m mainMenuModel) Init() tea.Cmd {
-	return nil
+	return m.checkOnlineStatus()
 }
+
+func (m mainMenuModel) checkOnlineStatus() tea.Cmd {
+	return func() tea.Msg {
+		if m.client == nil {
+			return onlineStatusMsg{online: false}
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		return onlineStatusMsg{online: m.client.IsServerAvailable(ctx)}
+	}
+}
+
+// tickOnlineCheck periodically re-checks online status.
+func tickOnlineCheck() tea.Cmd {
+	return tea.Tick(30*time.Second, func(t time.Time) tea.Msg {
+		return recheckOnlineMsg{}
+	})
+}
+
+type recheckOnlineMsg struct{}
 
 func (m mainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -109,9 +135,16 @@ func (m mainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetHeight(msg.Height - 4)
 		return m, nil
 
+	case onlineStatusMsg:
+		m.isOnline = msg.online
+		m.lastCheck = time.Now()
+		return m, tickOnlineCheck()
+
+	case recheckOnlineMsg:
+		return m, m.checkOnlineStatus()
+
 	case subProgramReturnedMsg:
-		// Подпрограмма завершилась, просто обновляем view
-		return m, nil
+		return m, m.checkOnlineStatus()
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -208,11 +241,26 @@ func (m mainMenuModel) View() string {
 		return ""
 	}
 
+	// Online/offline status indicator
+	var statusLine string
+	if m.isOnline {
+		statusLine = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("42")).
+			Bold(true).
+			Render("  [ONLINE] Connected to server")
+	} else {
+		statusLine = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("196")).
+			Bold(true).
+			Render("  [OFFLINE] Working locally, changes will sync later")
+	}
+
 	help := menuHelpStyle.Render("\n  ↑/↓: navigate | Enter: select | q/Ctrl+C: exit")
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Center,
 		m.list.View(),
+		statusLine,
 		help,
 	)
 

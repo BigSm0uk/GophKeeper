@@ -2,7 +2,7 @@ package storage
 
 import "time"
 
-// SyncStatus отражает состояние локального элемента относительно сервера.
+// SyncStatus represents the synchronization state of a local item relative to the server.
 type SyncStatus string
 
 const (
@@ -10,9 +10,10 @@ const (
 	StatusPending   SyncStatus = "pending"
 	StatusUploading SyncStatus = "uploading"
 	StatusUpdated   SyncStatus = "updated"
+	StatusDeleted   SyncStatus = "deleted"
 )
 
-// ItemMeta хранит минимальные метаданные для локального кеша.
+// ItemMeta stores minimal metadata for local cache.
 type ItemMeta struct {
 	ID        string
 	UpdatedAt time.Time

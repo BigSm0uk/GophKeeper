@@ -216,16 +216,17 @@ func (l *LocalDB) GetCredential(id string) (*LocalCredential, error) {
 	return &cred, nil
 }
 
-// ListCredentials returns all credentials.
+// ListCredentials returns all active (non-deleted) credentials.
 func (l *LocalDB) ListCredentials() ([]*LocalCredential, error) {
 	query := `
 		SELECT id, name, login, password, url, metadata, sync_status,
 		       created_at, updated_at, synced_at
 		FROM credentials 
+		WHERE sync_status != ?
 		ORDER BY updated_at DESC
 	`
 
-	rows, err := l.db.Query(query)
+	rows, err := l.db.Query(query, string(StatusDeleted))
 	if err != nil {
 		return nil, err
 	}
@@ -266,10 +267,72 @@ func (l *LocalDB) ListCredentials() ([]*LocalCredential, error) {
 	return creds, rows.Err()
 }
 
-// DeleteCredential removes a credential from local storage.
+// DeleteCredential marks a credential as deleted for sync.
+// The record is kept until sync confirms deletion on the server.
 func (l *LocalDB) DeleteCredential(id string) error {
+	_, err := l.db.Exec(
+		"UPDATE credentials SET sync_status = ?, updated_at = ? WHERE id = ?",
+		string(StatusDeleted), time.Now().Unix(), id,
+	)
+	return err
+}
+
+// PurgeCredential physically removes a credential from local storage.
+// Should be called only after successful sync of deletion to the server.
+func (l *LocalDB) PurgeCredential(id string) error {
 	_, err := l.db.Exec("DELETE FROM credentials WHERE id = ?", id)
 	return err
+}
+
+// GetDeletedCredentials returns credentials marked as deleted that need sync.
+func (l *LocalDB) GetDeletedCredentials() ([]*LocalCredential, error) {
+	query := `
+		SELECT id, name, login, password, url, metadata, sync_status,
+		       created_at, updated_at, synced_at
+		FROM credentials 
+		WHERE sync_status = ?
+		ORDER BY updated_at ASC
+	`
+
+	rows, err := l.db.Query(query, string(StatusDeleted))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var creds []*LocalCredential
+	for rows.Next() {
+		var cred LocalCredential
+		var createdAtUnix, updatedAtUnix int64
+		var syncedAtUnix *int64
+
+		err := rows.Scan(
+			&cred.ID,
+			&cred.Name,
+			&cred.Login,
+			&cred.Password,
+			&cred.URL,
+			&cred.Metadata,
+			&cred.SyncStatus,
+			&createdAtUnix,
+			&updatedAtUnix,
+			&syncedAtUnix,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		cred.CreatedAt = time.Unix(createdAtUnix, 0)
+		cred.UpdatedAt = time.Unix(updatedAtUnix, 0)
+		if syncedAtUnix != nil {
+			t := time.Unix(*syncedAtUnix, 0)
+			cred.SyncedAt = &t
+		}
+
+		creds = append(creds, &cred)
+	}
+
+	return creds, rows.Err()
 }
 
 // UpdateCredentialSyncStatus updates the sync status of a credential.

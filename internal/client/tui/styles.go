@@ -2,21 +2,23 @@ package tui
 
 import "github.com/charmbracelet/lipgloss"
 
-// Цвета для статусов синхронизации
+// Colors for sync statuses.
 var (
-	colorSynced    = lipgloss.Color("42")  // зеленый
-	colorPending   = lipgloss.Color("226") // желтый
-	colorUploading = lipgloss.Color("39")  // синий
-	colorUpdated   = lipgloss.Color("208") // оранжевый
-	colorError     = lipgloss.Color("196") // красный
+	colorSynced    = lipgloss.Color("42")  // green
+	colorPending   = lipgloss.Color("226") // yellow
+	colorUploading = lipgloss.Color("39")  // blue
+	colorUpdated   = lipgloss.Color("208") // orange
+	colorDeleted   = lipgloss.Color("240") // gray
+	colorError     = lipgloss.Color("196") // red
 )
 
-// Стили для статусов
+// Styles for sync statuses.
 var (
 	syncedStyle      = lipgloss.NewStyle().Foreground(colorSynced).Bold(true)
 	pendingStyle     = lipgloss.NewStyle().Foreground(colorPending).Bold(true)
 	uploadingStyle   = lipgloss.NewStyle().Foreground(colorUploading).Bold(true)
 	updatedStyle     = lipgloss.NewStyle().Foreground(colorUpdated).Bold(true)
+	deletedStyle     = lipgloss.NewStyle().Foreground(colorDeleted).Bold(true).Strikethrough(true)
 	errorStatusStyle = lipgloss.NewStyle().Foreground(colorError).Bold(true)
 )
 
@@ -31,6 +33,8 @@ func GetSyncStatusStyled(status string) string {
 		return uploadingStyle.Render("📤 uploading")
 	case "updated":
 		return updatedStyle.Render("✎ updated")
+	case "deleted":
+		return deletedStyle.Render("🗑 deleted")
 	default:
 		return errorStatusStyle.Render("? unknown")
 	}
@@ -47,6 +51,8 @@ func GetSyncStatusColor(status string) lipgloss.Color {
 		return colorUploading
 	case "updated":
 		return colorUpdated
+	case "deleted":
+		return colorDeleted
 	default:
 		return colorError
 	}

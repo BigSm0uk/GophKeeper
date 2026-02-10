@@ -24,7 +24,6 @@ var textAddCmd = &cobra.Command{
 			return fmt.Errorf("client not initialized")
 		}
 
-		// Инициализируем encryptor
 		if err := ensureEncryptor(); err != nil {
 			return err
 		}
@@ -33,32 +32,59 @@ var textAddCmd = &cobra.Command{
 		content := promptRequired("Content")
 		metadata, _ := cmd.Flags().GetString("metadata")
 
-		// Шифруем content
-		encryptedContent, err := container.Encryptor.Encrypt(content)
-		if err != nil {
-			return fmt.Errorf("failed to encrypt content: %w", err)
-		}
-
-		req := &pb.TextCreateRequest{
-			Name:    name,
-			Content: encryptedContent,
-		}
+		var metaPtr *string
 		if metadata != "" {
-			req.Metadata = &metadata
+			metaPtr = &metadata
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+		offlineSvc := getOfflineService()
 
-		resp, err := container.API.CreateText(ctx, req)
+		if isOnline() {
+			encryptedContent, encErr := container.Encryptor.Encrypt(content)
+			if encErr != nil {
+				return fmt.Errorf("failed to encrypt content: %w", encErr)
+			}
+
+			req := &pb.TextCreateRequest{
+				Name:     name,
+				Content:  encryptedContent,
+				Metadata: metaPtr,
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			resp, apiErr := container.API.CreateText(ctx, req)
+			if apiErr == nil {
+				fmt.Printf("✓ Text note created on server!\n")
+				fmt.Printf("  ID:      %s\n", resp.Text.Id)
+				fmt.Printf("  Name:    %s\n", resp.Text.Name)
+				fmt.Printf("  Content: %s\n", truncate(resp.Text.Content, 50))
+
+				if offlineSvc != nil {
+					_, _ = offlineSvc.CreateText(ctx, name, content, metaPtr)
+				}
+				return nil
+			}
+			fmt.Printf("⚠ Server unavailable, saving locally: %v\n", apiErr)
+		}
+
+		if offlineSvc == nil {
+			return fmt.Errorf("offline storage not initialized")
+		}
+
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel2()
+
+		text, err := offlineSvc.CreateText(ctx2, name, content, metaPtr)
 		if err != nil {
-			return fmt.Errorf("failed to create text: %w", err)
+			return fmt.Errorf("failed to save text locally: %w", err)
 		}
 
-		fmt.Printf("✓ Text note created successfully!\n")
-		fmt.Printf("  GetID:      %s\n", resp.Text.Id)
-		fmt.Printf("  Name:    %s\n", resp.Text.Name)
-		fmt.Printf("  Content: %s\n", truncate(resp.Text.Content, 50))
+		fmt.Printf("✓ Text note saved locally (will sync when online)\n")
+		fmt.Printf("  ID:      %s\n", text.ID)
+		fmt.Printf("  Name:    %s\n", text.Name)
+		fmt.Printf("  Content: %s\n", truncate(text.Content, 50))
 
 		return nil
 	},
@@ -79,46 +105,83 @@ var textListCmd = &cobra.Command{
 			limit = 20
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+		if isOnline() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 
-		resp, err := container.API.ListTexts(ctx, limit, offset)
-		if err != nil {
-			return fmt.Errorf("failed to list texts: %w", err)
+			resp, err := container.API.ListTexts(ctx, limit, offset)
+			if err == nil {
+				if len(resp.Items) == 0 {
+					fmt.Println("No text notes found.")
+					return nil
+				}
+
+				fmt.Printf("Total text notes: %d\n\n", resp.Page.Total)
+				w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+				fmt.Fprintln(w, "ID\tNAME\tCONTENT\tUPDATED")
+				fmt.Fprintln(w, "--\t----\t-------\t-------")
+
+				for _, item := range resp.Items {
+					updatedAt := "N/A"
+					if item.UpdatedAt != nil {
+						updatedAt = item.UpdatedAt.AsTime().Format("2006-01-02 15:04")
+					}
+					idShort := item.Id
+					if len(idShort) > 8 {
+						idShort = idShort[:8]
+					}
+					fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
+						idShort, item.Name, truncate(item.Content, 40), updatedAt)
+				}
+				w.Flush()
+
+				if offset+limit < resp.Page.Total {
+					fmt.Printf("\nShowing %d-%d of %d. Use --offset to see more.\n",
+						offset+1, offset+uint32(len(resp.Items)), resp.Page.Total)
+				}
+				return nil
+			}
+			fmt.Printf("⚠ Server unavailable, showing local data: %v\n", err)
 		}
 
-		if len(resp.Items) == 0 {
-			fmt.Println("No text notes found.")
+		// Offline
+		offlineSvc := getOfflineService()
+		if offlineSvc == nil {
+			return fmt.Errorf("offline storage not initialized")
+		}
+
+		if err := ensureEncryptor(); err != nil {
+			return err
+		}
+
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel2()
+
+		texts, err := offlineSvc.ListTexts(ctx2)
+		if err != nil {
+			return fmt.Errorf("failed to list local texts: %w", err)
+		}
+
+		if len(texts) == 0 {
+			fmt.Println("No text notes found (offline mode).")
 			return nil
 		}
 
-		fmt.Printf("Total text notes: %d\n\n", resp.Page.Total)
-
+		fmt.Printf("Offline mode - showing %d local text notes:\n\n", len(texts))
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintln(w, "GetID\tNAME\tCONTENT\tUPDATED")
-		fmt.Fprintln(w, "--\t----\t-------\t-------")
+		fmt.Fprintln(w, "ID\tNAME\tCONTENT\tSTATUS\tUPDATED")
+		fmt.Fprintln(w, "--\t----\t-------\t------\t-------")
 
-		for _, item := range resp.Items {
-			updatedAt := "N/A"
-			if item.UpdatedAt != nil {
-				updatedAt = item.UpdatedAt.AsTime().Format("2006-01-02 15:04")
-			}
-
-			idShort := item.Id
+		for _, text := range texts {
+			idShort := text.ID
 			if len(idShort) > 8 {
 				idShort = idShort[:8]
 			}
-
-			contentPreview := truncate(item.Content, 40)
-
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\n",
-				idShort, item.Name, contentPreview, updatedAt)
+			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
+				idShort, text.Name, truncate(text.Content, 30), string(text.SyncStatus),
+				text.UpdatedAt.Format("2006-01-02 15:04"))
 		}
 		w.Flush()
-
-		if offset+limit < resp.Page.Total {
-			fmt.Printf("\nShowing %d-%d of %d. Use --offset to see more.\n", offset+1, offset+uint32(len(resp.Items)), resp.Page.Total)
-		}
 
 		return nil
 	},
@@ -262,19 +325,38 @@ var textDeleteCmd = &cobra.Command{
 			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+		if isOnline() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 
-		resp, err := container.API.DeleteText(ctx, id)
-		if err != nil {
-			return fmt.Errorf("failed to delete text: %w", err)
+			resp, err := container.API.DeleteText(ctx, id)
+			if err == nil {
+				if !resp.Deleted {
+					return fmt.Errorf("text was not deleted")
+				}
+				offlineSvc := getOfflineService()
+				if offlineSvc != nil {
+					_ = offlineSvc.DeleteText(ctx, id)
+				}
+				fmt.Printf("✓ Text note deleted successfully!\n")
+				return nil
+			}
+			fmt.Printf("⚠ Server unavailable, deleting locally: %v\n", err)
 		}
 
-		if !resp.Deleted {
-			return fmt.Errorf("text was not deleted")
+		offlineSvc := getOfflineService()
+		if offlineSvc == nil {
+			return fmt.Errorf("offline storage not initialized")
 		}
 
-		fmt.Printf("✓ Text note deleted successfully!\n")
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel2()
+
+		if err := offlineSvc.DeleteText(ctx2, id); err != nil {
+			return fmt.Errorf("failed to delete text locally: %w", err)
+		}
+
+		fmt.Printf("✓ Text note marked for deletion (will sync when online)\n")
 		return nil
 	},
 }

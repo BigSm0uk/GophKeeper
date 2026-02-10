@@ -494,6 +494,16 @@ func (s *EncryptedStorage) UpdateCredentialSyncStatus(id string, status SyncStat
 	return s.db.UpdateCredentialSyncStatus(id, status)
 }
 
+// UpdateCardSyncStatus updates the sync status of a card.
+func (s *EncryptedStorage) UpdateCardSyncStatus(id string, status SyncStatus) error {
+	return s.db.UpdateCardSyncStatus(id, status)
+}
+
+// UpdateTextSyncStatus updates the sync status of a text.
+func (s *EncryptedStorage) UpdateTextSyncStatus(id string, status SyncStatus) error {
+	return s.db.UpdateTextSyncStatus(id, status)
+}
+
 // UpdateBinarySyncStatus updates the sync status of a binary.
 func (s *EncryptedStorage) UpdateBinarySyncStatus(id string, status SyncStatus) error {
 	return s.db.UpdateBinarySyncStatus(id, status)
@@ -504,9 +514,59 @@ func (s *EncryptedStorage) GetPendingCredentials() ([]*LocalCredential, error) {
 	return s.db.GetPendingCredentials()
 }
 
+// GetPendingCards returns cards that need to be synced (encrypted).
+func (s *EncryptedStorage) GetPendingCards() ([]*LocalCard, error) {
+	return s.db.GetPendingCards()
+}
+
+// GetPendingTexts returns texts that need to be synced (encrypted).
+func (s *EncryptedStorage) GetPendingTexts() ([]*LocalText, error) {
+	return s.db.GetPendingTexts()
+}
+
 // GetPendingBinaries returns binaries that need to be synced.
 func (s *EncryptedStorage) GetPendingBinaries() ([]*LocalBinary, error) {
 	return s.db.GetPendingBinaries()
+}
+
+// GetDeletedCredentials returns credentials marked as deleted.
+func (s *EncryptedStorage) GetDeletedCredentials() ([]*LocalCredential, error) {
+	return s.db.GetDeletedCredentials()
+}
+
+// GetDeletedCards returns cards marked as deleted.
+func (s *EncryptedStorage) GetDeletedCards() ([]*LocalCard, error) {
+	return s.db.GetDeletedCards()
+}
+
+// GetDeletedTexts returns texts marked as deleted.
+func (s *EncryptedStorage) GetDeletedTexts() ([]*LocalText, error) {
+	return s.db.GetDeletedTexts()
+}
+
+// GetDeletedBinaries returns binaries marked as deleted.
+func (s *EncryptedStorage) GetDeletedBinaries() ([]*LocalBinary, error) {
+	return s.db.GetDeletedBinaries()
+}
+
+// PurgeCredential physically removes a credential after successful sync.
+func (s *EncryptedStorage) PurgeCredential(id string) error {
+	return s.db.PurgeCredential(id)
+}
+
+// PurgeCard physically removes a card after successful sync.
+func (s *EncryptedStorage) PurgeCard(id string) error {
+	return s.db.PurgeCard(id)
+}
+
+// PurgeText physically removes a text after successful sync.
+func (s *EncryptedStorage) PurgeText(id string) error {
+	return s.db.PurgeText(id)
+}
+
+// PurgeBinary physically removes a binary after successful sync.
+func (s *EncryptedStorage) PurgeBinary(id string) error {
+	return s.db.PurgeBinary(id)
 }
 
 // ====================

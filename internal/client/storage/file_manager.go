@@ -1,99 +1,94 @@
 package storage
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/BigSm0uk/GophKeeper/internal/client/crypto"
 )
 
-// FileManager управляет хранением зашифрованных файлов на диске.
+// FileManager manages encrypted file storage on disk using streaming encryption.
+// Files of any size are supported with constant memory usage.
 type FileManager struct {
-	baseDir   string
-	encryptor *crypto.Encryptor
+	baseDir         string
+	encryptor       *crypto.Encryptor
+	streamEncryptor *crypto.StreamEncryptor
 }
 
-// NewFileManager creates a new file manager.
+// NewFileManager creates a new file manager with streaming encryption support.
 func NewFileManager(baseDir string, encryptor *crypto.Encryptor) (*FileManager, error) {
-	// Создаем базовую директорию если не существует
 	if err := os.MkdirAll(baseDir, 0o700); err != nil {
 		return nil, fmt.Errorf("failed to create base directory: %w", err)
 	}
 
+	streamEnc, err := crypto.NewStreamEncryptorFromEncryptor(encryptor)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stream encryptor: %w", err)
+	}
+
 	return &FileManager{
-		baseDir:   baseDir,
-		encryptor: encryptor,
+		baseDir:         baseDir,
+		encryptor:       encryptor,
+		streamEncryptor: streamEnc,
 	}, nil
 }
 
-// SaveFile сохраняет файл в зашифрованном виде.
-// Возвращает путь к сохраненному файлу и checksum оригинального файла.
+// SaveFile encrypts a file using streaming and saves it to the local storage.
+// Returns the path to the saved encrypted file, SHA256 checksum of the encrypted content,
+// and the original plaintext file size. Memory usage is constant regardless of file size.
 func (fm *FileManager) SaveFile(id, sourcePath string) (destPath, checksum string, size int64, err error) {
-	// Читаем исходный файл
-	data, err := os.ReadFile(sourcePath)
+	srcInfo, err := os.Stat(sourcePath)
 	if err != nil {
-		return "", "", 0, fmt.Errorf("failed to read source file: %w", err)
+		return "", "", 0, fmt.Errorf("failed to stat source file: %w", err)
 	}
+	size = srcInfo.Size()
 
-	size = int64(len(data))
+	destPath = filepath.Join(fm.baseDir, id+".enc")
 
-	// Вычисляем checksum оригинального файла
-	hash := sha256.Sum256(data)
-	checksum = hex.EncodeToString(hash[:])
-
-	// Шифруем содержимое
-	encryptedData, err := fm.encryptor.EncryptBytes(data)
+	_, checksum, err = fm.streamEncryptor.EncryptFile(sourcePath, destPath)
 	if err != nil {
 		return "", "", 0, fmt.Errorf("failed to encrypt file: %w", err)
-	}
-
-	// Сохраняем зашифрованный файл
-	destPath = filepath.Join(fm.baseDir, id+".enc")
-	if err := os.WriteFile(destPath, encryptedData, 0o600); err != nil {
-		return "", "", 0, fmt.Errorf("failed to write encrypted file: %w", err)
 	}
 
 	return destPath, checksum, size, nil
 }
 
-// GetFile читает и расшифровывает файл.
+// GetFile reads and decrypts an encrypted file, returning the plaintext content.
+// NOTE: This loads the entire decrypted content into memory. For large files,
+// use ExportFile instead which streams the decryption to disk.
 func (fm *FileManager) GetFile(filePath string) ([]byte, error) {
-	// Читаем зашифрованный файл
-	encryptedData, err := os.ReadFile(filePath)
+	tmpDir := os.TempDir()
+	tmpFile, err := os.CreateTemp(tmpDir, "gophkeeper-decrypt-*")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read encrypted file: %w", err)
+		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
+	tmpPath := tmpFile.Name()
+	tmpFile.Close()
+	defer os.Remove(tmpPath)
 
-	// Расшифровываем
-	decryptedData, err := fm.encryptor.DecryptBytes(encryptedData)
-	if err != nil {
+	if err := fm.streamEncryptor.DecryptFile(filePath, tmpPath); err != nil {
 		return nil, fmt.Errorf("failed to decrypt file: %w", err)
 	}
 
-	return decryptedData, nil
+	data, err := os.ReadFile(tmpPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read decrypted file: %w", err)
+	}
+
+	return data, nil
 }
 
-// ExportFile расшифровывает файл и сохраняет в указанное место.
+// ExportFile decrypts an encrypted file and saves the plaintext to destPath.
+// Uses streaming decryption with constant memory usage.
 func (fm *FileManager) ExportFile(encryptedFilePath, destPath string) error {
-	// Расшифровываем
-	decryptedData, err := fm.GetFile(encryptedFilePath)
-	if err != nil {
-		return fmt.Errorf("failed to get file: %w", err)
+	if err := fm.streamEncryptor.DecryptFile(encryptedFilePath, destPath); err != nil {
+		return fmt.Errorf("failed to decrypt file: %w", err)
 	}
-
-	// Сохраняем расшифрованный файл
-	if err := os.WriteFile(destPath, decryptedData, 0o600); err != nil {
-		return fmt.Errorf("failed to write decrypted file: %w", err)
-	}
-
 	return nil
 }
 
-// DeleteFile удаляет зашифрованный файл с диска.
+// DeleteFile removes an encrypted file from disk.
 func (fm *FileManager) DeleteFile(filePath string) error {
 	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to delete file: %w", err)
@@ -101,22 +96,16 @@ func (fm *FileManager) DeleteFile(filePath string) error {
 	return nil
 }
 
-// VerifyChecksum проверяет контрольную сумму расшифрованного файла.
+// VerifyChecksum verifies the SHA256 checksum of the encrypted file.
 func (fm *FileManager) VerifyChecksum(filePath, expectedChecksum string) (bool, error) {
-	// Расшифровываем файл
-	data, err := fm.GetFile(filePath)
+	actualChecksum, err := crypto.ComputeFileChecksum(filePath)
 	if err != nil {
-		return false, fmt.Errorf("failed to get file: %w", err)
+		return false, fmt.Errorf("failed to compute checksum: %w", err)
 	}
-
-	// Вычисляем checksum
-	hash := sha256.Sum256(data)
-	actualChecksum := hex.EncodeToString(hash[:])
-
 	return actualChecksum == expectedChecksum, nil
 }
 
-// GetFileSize возвращает размер зашифрованного файла.
+// GetFileSize returns the size of the encrypted file on disk.
 func (fm *FileManager) GetFileSize(filePath string) (int64, error) {
 	info, err := os.Stat(filePath)
 	if err != nil {
@@ -125,44 +114,24 @@ func (fm *FileManager) GetFileSize(filePath string) (int64, error) {
 	return info.Size(), nil
 }
 
-// CopyFile копирует файл с шифрованием из источника в хранилище.
+// GetOriginalSize reads the header of an encrypted file and returns the original plaintext size.
+func (fm *FileManager) GetOriginalSize(filePath string) (int64, error) {
+	return fm.streamEncryptor.GetOriginalSize(filePath)
+}
+
+// CopyFile copies a file with streaming encryption from source into storage.
+// Returns the path to the encrypted file, SHA256 checksum of encrypted content,
+// and original plaintext file size.
 func (fm *FileManager) CopyFile(id, sourcePath string) (destPath, checksum string, size int64, err error) {
-	// Открываем исходный файл
-	srcFile, err := os.Open(sourcePath)
-	if err != nil {
-		return "", "", 0, fmt.Errorf("failed to open source file: %w", err)
-	}
-	defer srcFile.Close()
-
-	// Создаем временный буфер для чтения и вычисления checksum
-	hasher := sha256.New()
-	var data []byte
-
-	// Читаем файл и вычисляем checksum одновременно
-	data, err = io.ReadAll(io.TeeReader(srcFile, hasher))
-	if err != nil {
-		return "", "", 0, fmt.Errorf("failed to read source file: %w", err)
-	}
-
-	size = int64(len(data))
-	checksum = hex.EncodeToString(hasher.Sum(nil))
-
-	// Шифруем
-	encryptedData, err := fm.encryptor.EncryptBytes(data)
-	if err != nil {
-		return "", "", 0, fmt.Errorf("failed to encrypt file: %w", err)
-	}
-
-	// Сохраняем
-	destPath = filepath.Join(fm.baseDir, id+".enc")
-	if err := os.WriteFile(destPath, encryptedData, 0o600); err != nil {
-		return "", "", 0, fmt.Errorf("failed to write encrypted file: %w", err)
-	}
-
-	return destPath, checksum, size, nil
+	return fm.SaveFile(id, sourcePath)
 }
 
 // GetBaseDir returns the base directory for file storage.
 func (fm *FileManager) GetBaseDir() string {
 	return fm.baseDir
+}
+
+// GetEncryptedChecksum computes SHA256 of an existing encrypted file.
+func (fm *FileManager) GetEncryptedChecksum(filePath string) (string, error) {
+	return crypto.ComputeFileChecksum(filePath)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mime"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -536,9 +537,6 @@ func (m BinariesViewModel) loadBinaries() tea.Cmd {
 
 func (m *BinariesViewModel) uploadFile() tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
 		name := m.nameInput.Value()
 		filePath := m.filePathInput.Value()
 
@@ -546,19 +544,26 @@ func (m *BinariesViewModel) uploadFile() tea.Cmd {
 			return binarySavedMsg{err: fmt.Errorf("name and file path are required")}
 		}
 
-		// Сохраняем файл с шифрованием
+		// Compute dynamic timeout: base 5 min + 1 min per 100MB
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			return binarySavedMsg{err: fmt.Errorf("failed to stat file: %w", err)}
+		}
+		timeout := 5*time.Minute + time.Duration(fileInfo.Size()/(100*1024*1024))*time.Minute
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		// Encrypt and save file using streaming encryption (constant memory)
 		destPath, checksum, size, err := m.storageManager.FileManager.SaveFile(name, filePath)
 		if err != nil {
 			return binarySavedMsg{err: fmt.Errorf("failed to save file: %w", err)}
 		}
 
-		// Определяем MIME тип
 		contentType := mime.TypeByExtension(filepath.Ext(filePath))
 		if contentType == "" {
 			contentType = "application/octet-stream"
 		}
 
-		// Извлекаем только имя файла
 		filename := filepath.Base(filePath)
 
 		var metadata *string
@@ -567,9 +572,8 @@ func (m *BinariesViewModel) uploadFile() tea.Cmd {
 			metadata = &val
 		}
 
-		// Создаем запись в БД
 		binary := storage.CreateBinaryWithEncryption(
-			name, // используем name как GetID временно
+			name,
 			name,
 			filename,
 			destPath,

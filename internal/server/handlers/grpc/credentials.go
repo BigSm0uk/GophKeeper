@@ -57,7 +57,7 @@ func (h *CredentialsHandler) Create(ctx context.Context, req *pb.CredentialCreat
 
 	createdCred, err := h.credentialsService.CreateCredential(ctx, user.ID, cred)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbCred, err := entity.MapCredentialToResponse(createdCred)
@@ -99,7 +99,7 @@ func (h *CredentialsHandler) Get(ctx context.Context, req *pb.CredentialGetReque
 
 	cred, err := h.credentialsService.GetCredential(ctx, user.ID, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbCred, err := entity.MapCredentialToResponse(cred)
@@ -142,7 +142,7 @@ func (h *CredentialsHandler) List(ctx context.Context, req *pb.CredentialListReq
 
 	creds, total, err := h.credentialsService.ListCredentials(ctx, user.ID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbCreds := make([]*pb.Credential, 0, len(creds))
@@ -195,7 +195,7 @@ func (h *CredentialsHandler) Update(ctx context.Context, req *pb.CredentialUpdat
 	// Get existing credential first
 	existingCred, err := h.credentialsService.GetCredential(ctx, user.ID, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	// Update fields from request
@@ -208,7 +208,7 @@ func (h *CredentialsHandler) Update(ctx context.Context, req *pb.CredentialUpdat
 
 	updatedCred, err := h.credentialsService.UpdateCredential(ctx, user.ID, existingCred)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbCred, err := entity.MapCredentialToResponse(updatedCred)
@@ -250,7 +250,7 @@ func (h *CredentialsHandler) Delete(ctx context.Context, req *pb.CredentialDelet
 
 	err = h.credentialsService.DeleteCredential(ctx, user.ID, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	logger.Info("Delete credential request completed successfully",

@@ -17,7 +17,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.5
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx/v5 v5.8.0
-	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose/v3 v3.26.0
 	github.com/samber/lo v1.52.0
 	github.com/spf13/cobra v1.10.2
@@ -115,6 +114,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect

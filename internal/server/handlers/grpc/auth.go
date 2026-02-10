@@ -93,7 +93,7 @@ func (h *AuthHandler) Register(ctx context.Context, req *pb.RegisterRequest) (*p
 
 	res, err := h.as.Register(ctx, *user)
 	if err != nil {
-		return nil, h.classifyServiceError(err)
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	logger.Info("Registration request completed successfully",
@@ -151,7 +151,7 @@ func (h *AuthHandler) Token(ctx context.Context, req *pb.TokenRequest) (*pb.Toke
 
 	accessToken, err := h.as.Token(ctx, grantType, req.Username, req.Password, accessTokenForRefresh, ipAddress, userAgent)
 	if err != nil {
-		return nil, h.classifyServiceError(err)
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	logger.Info("Token request completed successfully",

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/BigSm0uk/GophKeeper/internal/server/app/db"
@@ -124,7 +125,15 @@ func (r *BinaryRepository) Create(ctx context.Context, binary *models.Binary) (*
 
 // FindByID finds a binary entry by GetID.
 func (r *BinaryRepository) FindByID(ctx context.Context, id string) (*models.Binary, error) {
-	return r.base.FindByID(ctx, id)
+	binary, err := r.base.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			r.logger.Info("Binary not found", zap.String("binary_id", id))
+			return nil, models.ErrBinaryNotFound
+		}
+		return nil, err
+	}
+	return binary, nil
 }
 
 // FindByUserID finds all binary entries for a specific user.
@@ -204,7 +213,16 @@ func (r *BinaryRepository) Update(ctx context.Context, binary *models.Binary) er
 
 // Delete deletes a binary entry from the database.
 func (r *BinaryRepository) Delete(ctx context.Context, id string) error {
-	return r.base.Delete(ctx, id)
+	err := r.base.Delete(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			r.logger.Warn("Binary not found for deletion", zap.String("binary_id", id))
+			return models.ErrBinaryNotFound
+		}
+		return err
+	}
+	r.logger.Info("Binary deleted successfully", zap.String("binary_id", id))
+	return nil
 }
 
 // CountByUserID counts the number of binaries for a specific user.
@@ -215,7 +233,7 @@ func (r *BinaryRepository) CountByUserID(ctx context.Context, userID string) (in
 // FindByChecksum finds a binary by its checksum (useful for deduplication).
 func (r *BinaryRepository) FindByChecksum(ctx context.Context, userID, checksum string) (*models.Binary, error) {
 	query, args, err := applySoftDeleteFilter(
-		sq.Select("id", "user_id", "name", "filename", "size", "content_type", "metadata", "storage_path", "checksum", "created_at", "updated_at").
+		sq.Select("*").
 			From("binaries").
 			Where(sq.And{
 				sq.Eq{"user_id": userID},
@@ -229,8 +247,7 @@ func (r *BinaryRepository) FindByChecksum(ctx context.Context, userID, checksum 
 		return nil, err
 	}
 
-	var binary models.Binary
-	var metadata pgtype.Text
+	var result *models.Binary
 
 	err = retry.Do(
 		func() error {
@@ -241,24 +258,21 @@ func (r *BinaryRepository) FindByChecksum(ctx context.Context, userID, checksum 
 			}
 			defer conn.Release()
 
-			return conn.QueryRow(ctx, query, args...).Scan(
-				&binary.ID,
-				&binary.UserID,
-				&binary.Name,
-				&binary.Filename,
-				&binary.Size,
-				&binary.ContentType,
-				&metadata,
-				&binary.StoragePath,
-				&binary.Checksum,
-				&binary.CreatedAt,
-				&binary.UpdatedAt,
-			)
+			row := conn.QueryRow(ctx, query, args...)
+			binary, err := BinaryScanner(row)
+			if err != nil {
+				return err
+			}
+			result = binary
+			return nil
 		},
 		retry.Attempts(3),
 		retry.Delay(100*time.Millisecond),
 		retry.MaxDelay(1*time.Second),
 		retry.RetryIf(func(err error) bool {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return false
+			}
 			classification := r.errorClassifier.Classify(err)
 			if classification == pgerrors.Retriable {
 				r.logger.Warn("Retriable database error occurred, will retry",
@@ -277,7 +291,7 @@ func (r *BinaryRepository) FindByChecksum(ctx context.Context, userID, checksum 
 		retry.Context(ctx),
 	)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) || strings.Contains(err.Error(), pgx.ErrNoRows.Error()) {
 			return nil, models.ErrBinaryNotFound
 		}
 		r.logger.Error("Failed to find binary by checksum after retries",
@@ -286,11 +300,5 @@ func (r *BinaryRepository) FindByChecksum(ctx context.Context, userID, checksum 
 		return nil, err
 	}
 
-	if metadata.Valid {
-		binary.Metadata = &metadata.String
-	} else {
-		binary.Metadata = nil
-	}
-
-	return &binary, nil
+	return result, nil
 }

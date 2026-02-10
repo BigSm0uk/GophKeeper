@@ -43,7 +43,7 @@ func (h *UserHandler) GetProfile(ctx context.Context, _ *pb.UserProfileGetReques
 
 	profileUser, err := h.userService.GetProfile(ctx, user.ID)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(logger, err)
 	}
 
 	profile, err := entity.MapUserToProfile(profileUser, 0, h.storageLimit)
@@ -72,7 +72,7 @@ func (h *UserHandler) UpdateProfile(ctx context.Context, req *pb.UserProfileUpda
 
 	updatedUser, err := h.userService.UpdateProfile(ctx, user.ID, req.Email)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(logger, err)
 	}
 
 	profile, err := entity.MapUserToProfile(updatedUser, 0, h.storageLimit)
@@ -100,7 +100,7 @@ func (h *UserHandler) ChangePassword(ctx context.Context, req *pb.UserPasswordCh
 	}
 
 	if err := h.userService.ChangePassword(ctx, user.ID, req.OldPassword, req.NewPassword); err != nil {
-		return nil, err
+		return nil, classifyServiceError(logger, err)
 	}
 
 	return &pb.UserPasswordChangeResponse{Changed: true}, nil
@@ -126,7 +126,7 @@ func (h *UserHandler) DeleteAccount(ctx context.Context, req *pb.UserAccountDele
 	}
 
 	if err := h.userService.DeleteAccount(ctx, user.ID, req.Password); err != nil {
-		return nil, err
+		return nil, classifyServiceError(logger, err)
 	}
 
 	return &pb.UserAccountDeleteResponse{Deleted: true}, nil
@@ -149,7 +149,7 @@ func (h *UserHandler) GetActiveSessions(ctx context.Context, _ *pb.GetActiveSess
 
 	sessions, currentSession, err := h.userService.GetActiveSessions(ctx, user.ID, currentClientID)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(logger, err)
 	}
 
 	currentSessionID := ""
@@ -186,7 +186,7 @@ func (h *UserHandler) RevokeSession(ctx context.Context, req *pb.RevokeSessionRe
 	}
 
 	if err := h.userService.RevokeSession(ctx, user.ID, req.SessionId); err != nil {
-		return nil, err
+		return nil, classifyServiceError(logger, err)
 	}
 
 	return &pb.RevokeSessionResponse{Revoked: true}, nil
@@ -215,7 +215,7 @@ func (h *UserHandler) RevokeAllSessions(ctx context.Context, req *pb.RevokeAllSe
 
 	revokedCount, err := h.userService.RevokeAllSessions(ctx, user.ID, currentSessionID, req.ExceptCurrent)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(logger, err)
 	}
 
 	return &pb.RevokeAllSessionsResponse{RevokedCount: revokedCount}, nil

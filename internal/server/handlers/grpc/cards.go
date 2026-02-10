@@ -56,7 +56,7 @@ func (h *CardsHandler) Create(ctx context.Context, req *pb.CardCreateRequest) (*
 
 	createdCard, err := h.cardsService.CreateCard(ctx, user.ID, card)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbCard, err := entity.MapCardToResponse(createdCard)
@@ -97,7 +97,7 @@ func (h *CardsHandler) Get(ctx context.Context, req *pb.CardGetRequest) (*pb.Car
 
 	card, err := h.cardsService.GetCard(ctx, user.ID, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbCard, err := entity.MapCardToResponse(card)
@@ -140,7 +140,7 @@ func (h *CardsHandler) List(ctx context.Context, req *pb.CardListRequest) (*pb.C
 
 	cards, total, err := h.cardsService.ListCards(ctx, user.ID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbCards := make([]*pb.Card, 0, len(cards))
@@ -190,7 +190,7 @@ func (h *CardsHandler) Update(ctx context.Context, req *pb.CardUpdateRequest) (*
 
 	existingCard, err := h.cardsService.GetCard(ctx, user.ID, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	if err := entity.MapCardFromUpdateRequest(existingCard, req); err != nil {
@@ -202,7 +202,7 @@ func (h *CardsHandler) Update(ctx context.Context, req *pb.CardUpdateRequest) (*
 
 	updatedCard, err := h.cardsService.UpdateCard(ctx, user.ID, existingCard)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbCard, err := entity.MapCardToResponse(updatedCard)
@@ -243,7 +243,7 @@ func (h *CardsHandler) Delete(ctx context.Context, req *pb.CardDeleteRequest) (*
 
 	err = h.cardsService.DeleteCard(ctx, user.ID, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	logger.Info("Delete card request completed successfully",

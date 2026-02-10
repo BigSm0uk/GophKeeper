@@ -34,4 +34,8 @@ var (
 	ErrSessionRevoked        = errors.New("session revoked")
 	ErrDeviceMismatch        = errors.New("device mismatch: token used from different device")
 	ErrTooManySessions       = errors.New("too many active sessions")
+	ErrInvalidCredential     = errors.New("invalid credential")
+	ErrInvalidText           = errors.New("invalid text")
+	ErrInvalidCard           = errors.New("invalid card")
+	ErrInvalidBinary         = errors.New("invalid binary")
 )

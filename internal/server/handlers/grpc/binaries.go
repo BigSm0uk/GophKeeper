@@ -60,7 +60,7 @@ func (h *BinariesHandler) UploadStream(stream pb.BinariesService_UploadStreamSer
 
 	result, err := h.binaryService.UploadStream(ctx, uploadReq, reader)
 	if err != nil {
-		return err
+		return classifyServiceError(h.logger, err)
 	}
 
 	pbBinary, err := entity.MapBinaryToResponse(result.Binary)
@@ -87,14 +87,14 @@ func (h *BinariesHandler) DownloadStream(req *pb.BinaryDownloadRequest, stream p
 
 	binary, err := h.binaryService.GetBinary(ctx, user.ID, req.Id)
 	if err != nil {
-		return err
+		return classifyServiceError(h.logger, err)
 	}
 
 	writer := newStreamWriter(stream, binary.Size, binary.Checksum)
 
 	_, err = h.binaryService.DownloadStream(ctx, user.ID, req.Id, writer)
 	if err != nil {
-		return err
+		return classifyServiceError(h.logger, err)
 	}
 
 	return nil
@@ -160,7 +160,7 @@ func (h *BinariesHandler) Get(ctx context.Context, req *pb.BinaryGetRequest) (*p
 
 	binary, err := h.binaryService.GetBinary(ctx, user.ID, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbBinary, err := entity.MapBinaryToResponse(binary)
@@ -193,7 +193,7 @@ func (h *BinariesHandler) List(ctx context.Context, req *pb.BinaryListRequest) (
 
 	binaries, total, err := h.binaryService.ListBinaries(ctx, user.ID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	items := make([]*pb.Binary, 0, len(binaries))
@@ -225,7 +225,7 @@ func (h *BinariesHandler) Update(ctx context.Context, req *pb.BinaryUpdateReques
 
 	binary, err := h.binaryService.UpdateBinary(ctx, user.ID, req.Id, req.Name, req.Metadata)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbBinary, err := entity.MapBinaryToResponse(binary)
@@ -247,7 +247,7 @@ func (h *BinariesHandler) Delete(ctx context.Context, req *pb.BinaryDeleteReques
 	}
 
 	if err := h.binaryService.DeleteBinary(ctx, user.ID, req.Id); err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	return &pb.BinaryDeleteResponse{

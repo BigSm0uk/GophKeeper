@@ -23,91 +23,100 @@ import (
 
 // TestContext holds common resources for integration tests
 type TestContext struct {
-	Pool         *pgxpool.Pool
-	Container    *helpers.PostgresContainer
-	Ctx          context.Context
+	Pool      *pgxpool.Pool
+	Container *helpers.PostgresContainer
+	Ctx       context.Context
+
 	GRPCAddress  string
 	appContainer *app.Container
+
+	JWTPriv string
+	JWTPub  string
 }
 
-// SetupTestContainer creates and configures PostgreSQL test container
+var globalTestCtx *TestContext
+
+// SetupTestContainer returns the global test context
 func SetupTestContainer(t *testing.T) *TestContext {
 	t.Helper()
+	if globalTestCtx == nil {
+		t.Fatal("global TestContext not initialized. Ensure TestMain is running.")
+	}
+	return globalTestCtx
+}
 
+func TestMain(m *testing.M) {
 	ctx := context.Background()
 
 	container, err := helpers.CreatePostgresContainer(ctx)
-	require.NoError(t, err, "Failed to create postgres container")
+	if err != nil {
+		panic(err)
+	}
 
-	t.Cleanup(func() {
-		if err := container.Cleanup(ctx); err != nil {
-			t.Logf("Failed to cleanup container: %v", err)
-		}
-	})
-
-	return &TestContext{
+	globalTestCtx = &TestContext{
 		Pool:      container.Pool,
 		Container: container,
 		Ctx:       ctx,
 	}
+
+	dir, err := os.MkdirTemp("", "gk-test-keys-*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(dir)
+
+	privPath, pubPath := generateTestJWTKeys(dir)
+	globalTestCtx.JWTPriv = privPath
+	globalTestCtx.JWTPub = pubPath
+
+	globalTestCtx.startServer()
+
+	code := m.Run()
+
+	if globalTestCtx.appContainer != nil {
+		stopCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_ = globalTestCtx.appContainer.App.Stop(stopCtx)
+		cancel()
+	}
+	_ = container.Cleanup(ctx)
+
+	os.Exit(code)
 }
 
-func (tc *TestContext) StartTestGRPCServer(t *testing.T) string {
-	t.Helper()
-
-	dir := t.TempDir()
-	priv, pub := CreateTestJWTKeys(t, dir)
-
-	cfg := NewTestConfig(t, tc, priv, pub)
-
-	app := StartTestApp(t, tc.Ctx, cfg)
-
-	tc.GRPCAddress = cfg.GRPCAddress()
-	tc.appContainer = app
-
-	return tc.GRPCAddress
-}
-
-func StartTestApp(
-	t *testing.T,
-	ctx context.Context,
-	cfg *config.ServerConfig,
-) *app.Container {
+func (tc *TestContext) startServer() {
+	cfg := NewTestConfig(tc)
 	logger := zap.NewNop()
 	c := app.NewContainer(logger, cfg)
 
-	db, err := db.NewPostgresDb(ctx, cfg.DB, logger)
-	require.NoError(t, err)
+	dbConn, err := db.NewPostgresDb(tc.Ctx, cfg.DB, logger)
+	if err != nil {
+		panic(err)
+	}
 
-	c.RegisterDatabase(db)
+	c.RegisterDatabase(dbConn)
 	c.RegisterRepositories()
-	require.NoError(t, c.RegisterServices())
+	if err := c.RegisterServices(); err != nil {
+		panic(err)
+	}
 	c.RegisterGRPCServer()
 
-	require.NoError(t, c.App.Start(ctx))
+	if err := c.App.Start(tc.Ctx); err != nil {
+		panic(err)
+	}
 
-	t.Cleanup(func() {
-		stopCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = c.App.Stop(stopCtx)
-	})
-
-	return c
+	tc.GRPCAddress = cfg.GRPCAddress()
+	tc.appContainer = c
 }
 
-func NewTestConfig(
-	t *testing.T,
-	tc *TestContext,
-	jwtPriv, jwtPub string,
-) *config.ServerConfig {
+func NewTestConfig(tc *TestContext) *config.ServerConfig {
 	cfg := config.NewDefaultServerConfig()
 	cfg.Env = config.EnvDevelopment
 	cfg.DB.ConnectionString = tc.Container.ConnectionString
 	cfg.GRPC.Host = "127.0.0.1"
-	cfg.GRPC.Port = freePort(t)
-	cfg.JWT.PrivateKeyPath = jwtPriv
-	cfg.JWT.PublicKeyPath = jwtPub
-	cfg.Storage.BasePath = t.TempDir()
+	cfg.GRPC.Port = 50051 // Use fixed port for shared server
+	cfg.JWT.PrivateKeyPath = tc.JWTPriv
+	cfg.JWT.PublicKeyPath = tc.JWTPub
+	cfg.Storage.BasePath = os.TempDir()
 
 	return &cfg
 }
@@ -157,27 +166,34 @@ func freePort(t *testing.T) int {
 	return addr.Port
 }
 
-func CreateTestJWTKeys(t *testing.T, dir string) (priv, pub string) {
-	t.Helper()
-
+func generateTestJWTKeys(dir string) (priv, pub string) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(t, err)
+	if err != nil {
+		panic(err)
+	}
 
 	privPath := filepath.Join(dir, "jwt_private.pem")
 	pubPath := filepath.Join(dir, "jwt_public.pem")
 
-	require.NoError(t, os.WriteFile(privPath,
+	if err := os.WriteFile(privPath,
 		pem.EncodeToMemory(&pem.Block{
 			Type:  "RSA PRIVATE KEY",
 			Bytes: x509.MarshalPKCS1PrivateKey(key),
-		}), 0o600))
+		}), 0o600); err != nil {
+		panic(err)
+	}
 
-	pubDER, _ := x509.MarshalPKIXPublicKey(&key.PublicKey)
-	require.NoError(t, os.WriteFile(pubPath,
+	pubDER, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+	if err != nil {
+		panic(err)
+	}
+	if err := os.WriteFile(pubPath,
 		pem.EncodeToMemory(&pem.Block{
 			Type:  "PUBLIC KEY",
 			Bytes: pubDER,
-		}), 0o600))
+		}), 0o600); err != nil {
+		panic(err)
+	}
 
 	return privPath, pubPath
 }

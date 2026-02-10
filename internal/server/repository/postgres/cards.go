@@ -68,7 +68,15 @@ func CardScanner(row pgx.Row) (*models.Card, error) {
 }
 
 func (r *CardRepository) FindByID(ctx context.Context, id string) (*models.Card, error) {
-	return r.base.FindByID(ctx, id)
+	card, err := r.base.FindByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			r.logger.Info("Card not found", zap.String("card_id", id))
+			return nil, models.ErrCardNotFound
+		}
+		return nil, err
+	}
+	return card, nil
 }
 
 func (r *CardRepository) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*models.Card, error) {
@@ -76,7 +84,16 @@ func (r *CardRepository) FindByUserID(ctx context.Context, userID string, limit,
 }
 
 func (r *CardRepository) Delete(ctx context.Context, id string) error {
-	return r.base.Delete(ctx, id)
+	err := r.base.Delete(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			r.logger.Warn("Card not found for deletion", zap.String("card_id", id))
+			return models.ErrCardNotFound
+		}
+		return err
+	}
+	r.logger.Info("Card deleted successfully", zap.String("card_id", id))
+	return nil
 }
 
 func (r *CardRepository) Exists(ctx context.Context, id string) (bool, error) {

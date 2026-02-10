@@ -138,10 +138,7 @@ message TextCreateResponse {
 // TextGetRequest fetches a text entry by id.
 message TextGetRequest {
   // id is the text ID.
-  string id = 1 [(validate.rules).string = {
-    min_len: 1,
-    max_len: 255
-  }];
+  string id = 1 [(validate.rules).string.uuid = true];
 }
 
 // TextGetResponse returns a text entry by id.
@@ -167,10 +164,7 @@ message TextListResponse {
 // TextUpdateRequest updates a text entry.
 message TextUpdateRequest {
   // id is the text ID.
-  string id = 1 [(validate.rules).string = {
-    min_len: 1,
-    max_len: 255
-  }];
+  string id = 1 [(validate.rules).string.uuid = true];
   // name is a user-provided label.
   string name = 2 [(validate.rules).string = {
     min_len: 1,
@@ -191,10 +185,7 @@ message TextUpdateResponse {
 // TextDeleteRequest deletes a text entry by id.
 message TextDeleteRequest {
   // id is the text ID.
-  string id = 1 [(validate.rules).string = {
-    min_len: 1,
-    max_len: 255
-  }];
+  string id = 1 [(validate.rules).string.uuid = true];
 }
 
 // TextDeleteResponse confirms deletion.

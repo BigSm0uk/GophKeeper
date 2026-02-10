@@ -2,15 +2,12 @@ package service
 
 import (
 	"context"
-	"errors"
 
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/models"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service/entity"
 	"github.com/BigSm0uk/GophKeeper/pkg/validation"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type CredentialsService struct {
@@ -29,7 +26,7 @@ func NewCredentialsService(logger *zap.Logger, repo interfaces.CredentialReposit
 // CreateCredential creates a new credential entry
 func (s *CredentialsService) CreateCredential(ctx context.Context, userID string, cred *entity.Credential) (*entity.Credential, error) {
 	if cred == nil {
-		return nil, status.Error(codes.InvalidArgument, "credential is required")
+		return nil, models.ErrInvalidCredential
 	}
 
 	if err := s.validateCredential(userID, cred); err != nil {
@@ -50,11 +47,7 @@ func (s *CredentialsService) CreateCredential(ctx context.Context, userID string
 
 	createdCred, err := s.repo.Create(ctx, domainCred)
 	if err != nil {
-		s.logger.Error("Failed to create credential",
-			zap.Error(err),
-			zap.String("user_id", userID),
-			zap.String("name", cred.Name))
-		return nil, status.Error(codes.Internal, "failed to create credential")
+		return nil, err
 	}
 
 	s.logger.Info("Credential created successfully",
@@ -78,26 +71,20 @@ func (s *CredentialsService) CreateCredential(ctx context.Context, userID string
 // GetCredential retrieves a credential by GetID
 func (s *CredentialsService) GetCredential(ctx context.Context, userID, credentialID string) (*entity.Credential, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, models.ErrInvalidUserID
 	}
 	if credentialID == "" {
-		return nil, status.Error(codes.InvalidArgument, "credential GetID is required")
+		return nil, models.ErrCredentialNotFound
 	}
 
 	cred, err := s.repo.FindByID(ctx, credentialID)
 	if err != nil {
-		if errors.Is(err, models.ErrCredentialNotFound) {
-			return nil, status.Error(codes.NotFound, "credential not found")
-		}
-		s.logger.Error("Failed to find credential",
-			zap.Error(err),
-			zap.String("credential_id", credentialID))
-		return nil, status.Error(codes.Internal, "failed to retrieve credential")
+		return nil, err
 	}
 
 	// Check ownership
 	if cred.UserID != userID {
-		return nil, status.Error(codes.PermissionDenied, "access denied")
+		return nil, models.ErrCredentialNotFound
 	}
 
 	return &entity.Credential{
@@ -116,23 +103,17 @@ func (s *CredentialsService) GetCredential(ctx context.Context, userID, credenti
 // ListCredentials retrieves all credentials for a user
 func (s *CredentialsService) ListCredentials(ctx context.Context, userID string, limit, offset int) ([]*entity.Credential, int64, error) {
 	if userID == "" {
-		return nil, 0, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, 0, models.ErrInvalidUserID
 	}
 
 	creds, err := s.repo.FindByUserId(ctx, userID, limit, offset)
 	if err != nil {
-		s.logger.Error("Failed to list credentials",
-			zap.Error(err),
-			zap.String("user_id", userID))
-		return nil, 0, status.Error(codes.Internal, "failed to list credentials")
+		return nil, 0, err
 	}
 
 	count, err := s.repo.CountByUserID(ctx, userID)
 	if err != nil {
-		s.logger.Error("Failed to count credentials",
-			zap.Error(err),
-			zap.String("user_id", userID))
-		return nil, 0, status.Error(codes.Internal, "failed to count credentials")
+		return nil, 0, err
 	}
 
 	result := make([]*entity.Credential, 0, len(creds))
@@ -156,30 +137,24 @@ func (s *CredentialsService) ListCredentials(ctx context.Context, userID string,
 // UpdateCredential updates an existing credential
 func (s *CredentialsService) UpdateCredential(ctx context.Context, userID string, cred *entity.Credential) (*entity.Credential, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, models.ErrInvalidUserID
 	}
 	if cred == nil {
-		return nil, status.Error(codes.InvalidArgument, "credential is required")
+		return nil, models.ErrInvalidCredential
 	}
 	if cred.ID == "" {
-		return nil, status.Error(codes.InvalidArgument, "credential GetID is required")
+		return nil, models.ErrCredentialNotFound
 	}
 
 	// Get existing credential to check ownership
 	existing, err := s.repo.FindByID(ctx, cred.ID)
 	if err != nil {
-		if errors.Is(err, models.ErrCredentialNotFound) {
-			return nil, status.Error(codes.NotFound, "credential not found")
-		}
-		s.logger.Error("Failed to find credential for update",
-			zap.Error(err),
-			zap.String("credential_id", cred.ID))
-		return nil, status.Error(codes.Internal, "failed to retrieve credential")
+		return nil, err
 	}
 
 	// Check ownership
 	if existing.UserID != userID {
-		return nil, status.Error(codes.PermissionDenied, "access denied")
+		return nil, models.ErrCredentialNotFound
 	}
 
 	if err := s.validateCredential(userID, cred); err != nil {
@@ -194,10 +169,7 @@ func (s *CredentialsService) UpdateCredential(ctx context.Context, userID string
 	existing.Metadata = cred.Metadata
 
 	if err := s.repo.Update(ctx, existing); err != nil {
-		s.logger.Error("Failed to update credential",
-			zap.Error(err),
-			zap.String("credential_id", cred.ID))
-		return nil, status.Error(codes.Internal, "failed to update credential")
+		return nil, err
 	}
 
 	s.logger.Info("Credential updated successfully",
@@ -207,10 +179,7 @@ func (s *CredentialsService) UpdateCredential(ctx context.Context, userID string
 	// Fetch updated credential to return with updated timestamp
 	updated, err := s.repo.FindByID(ctx, cred.ID)
 	if err != nil {
-		s.logger.Error("Failed to fetch updated credential",
-			zap.Error(err),
-			zap.String("credential_id", cred.ID))
-		return nil, status.Error(codes.Internal, "failed to retrieve updated credential")
+		return nil, err
 	}
 
 	return &entity.Credential{
@@ -229,37 +198,23 @@ func (s *CredentialsService) UpdateCredential(ctx context.Context, userID string
 // DeleteCredential deletes a credential by GetID
 func (s *CredentialsService) DeleteCredential(ctx context.Context, userID, credentialID string) error {
 	if userID == "" {
-		return status.Error(codes.InvalidArgument, "user GetID is required")
+		return models.ErrInvalidUserID
 	}
 	if credentialID == "" {
-		return status.Error(codes.InvalidArgument, "credential GetID is required")
+		return models.ErrCredentialNotFound
 	}
 
-	// Get credential to check ownership
 	cred, err := s.repo.FindByID(ctx, credentialID)
 	if err != nil {
-		if errors.Is(err, models.ErrCredentialNotFound) {
-			return status.Error(codes.NotFound, "credential not found")
-		}
-		s.logger.Error("Failed to find credential for deletion",
-			zap.Error(err),
-			zap.String("credential_id", credentialID))
-		return status.Error(codes.Internal, "failed to retrieve credential")
+		return err
 	}
 
-	// Check ownership
 	if cred.UserID != userID {
-		return status.Error(codes.PermissionDenied, "access denied")
+		return models.ErrCredentialNotFound
 	}
 
 	if err := s.repo.Delete(ctx, credentialID); err != nil {
-		if errors.Is(err, models.ErrCredentialNotFound) {
-			return status.Error(codes.NotFound, "credential not found")
-		}
-		s.logger.Error("Failed to delete credential",
-			zap.Error(err),
-			zap.String("credential_id", credentialID))
-		return status.Error(codes.Internal, "failed to delete credential")
+		return err
 	}
 
 	s.logger.Info("Credential deleted successfully",

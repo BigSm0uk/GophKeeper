@@ -15,8 +15,6 @@ import (
 	"github.com/BigSm0uk/GophKeeper/pkg/validation"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type BinaryService struct {
@@ -50,11 +48,7 @@ func (s *BinaryService) UploadStream(ctx context.Context, metadata *entity.Strea
 
 	existing, err := s.repo.FindByChecksum(ctx, metadata.UserID, metadata.Checksum)
 	if err != nil && !errors.Is(err, models.ErrBinaryNotFound) {
-		s.logger.Error("failed to check for existing file",
-			zap.Error(err),
-			zap.String("checksum", metadata.Checksum),
-		)
-		return nil, status.Error(codes.Internal, "failed to check for existing file")
+		return nil, err
 	}
 
 	if err == nil && existing != nil {
@@ -86,8 +80,7 @@ func (s *BinaryService) UploadStream(ctx context.Context, metadata *entity.Strea
 
 	file, cleanup, err := s.fileService.CreateFileForWriting(storagePath)
 	if err != nil {
-		s.logger.Error("failed to create file", zap.Error(err))
-		return nil, status.Error(codes.Internal, "failed to create file")
+		return nil, err
 	}
 	defer cleanup()
 
@@ -98,27 +91,18 @@ func (s *BinaryService) UploadStream(ctx context.Context, metadata *entity.Strea
 
 	written, err := io.Copy(file, teeReader)
 	if err != nil {
-		s.logger.Error("failed to write file", zap.Error(err))
-		return nil, status.Error(codes.Internal, "failed to write file")
+		return nil, err
 	}
 
 	totalReceived = written
 
 	if totalReceived != metadata.TotalSize {
-		s.logger.Error("size mismatch",
-			zap.Int64("expected", metadata.TotalSize),
-			zap.Int64("received", totalReceived),
-		)
-		return nil, status.Errorf(codes.InvalidArgument, "size mismatch: expected %d, received %d", metadata.TotalSize, totalReceived)
+		return nil, models.ErrInvalidFileSize
 	}
 
 	calculatedChecksum := hex.EncodeToString(hasher.Sum(nil))
 	if calculatedChecksum != metadata.Checksum {
-		s.logger.Warn("checksum mismatch",
-			zap.String("expected", metadata.Checksum),
-			zap.String("calculated", calculatedChecksum),
-		)
-		return nil, status.Error(codes.InvalidArgument, "checksum verification failed")
+		return nil, models.ErrInvalidBinary
 	}
 
 	err = file.Close()
@@ -129,8 +113,7 @@ func (s *BinaryService) UploadStream(ctx context.Context, metadata *entity.Strea
 
 	tempPath := storagePath + ".tmp"
 	if err := s.fileService.RenameFile(tempPath, storagePath); err != nil {
-		s.logger.Error("failed to rename file", zap.Error(err))
-		return nil, status.Error(codes.Internal, "failed to finalize file")
+		return nil, err
 	}
 
 	binary := &models.Binary{
@@ -147,13 +130,8 @@ func (s *BinaryService) UploadStream(ctx context.Context, metadata *entity.Strea
 
 	createdBinary, err := s.repo.Create(ctx, binary)
 	if err != nil {
-		deleteErr := s.fileService.DeleteFile(storagePath)
-		if deleteErr != nil {
-			s.logger.Error("failed to delete file", zap.Error(deleteErr))
-			return nil, err
-		}
-		s.logger.Error("failed to save binary metadata", zap.Error(err))
-		return nil, status.Error(codes.Internal, "failed to save metadata")
+		_ = s.fileService.DeleteFile(storagePath)
+		return nil, err
 	}
 
 	s.logger.Info("file uploaded successfully",
@@ -183,20 +161,11 @@ func (s *BinaryService) UploadStream(ctx context.Context, metadata *entity.Strea
 func (s *BinaryService) DownloadStream(ctx context.Context, userID, binaryID string, writer io.Writer) (int64, error) {
 	binary, err := s.repo.FindByID(ctx, binaryID)
 	if err != nil {
-		if errors.Is(err, models.ErrBinaryNotFound) {
-			return 0, status.Error(codes.NotFound, "binary not found")
-		}
-		s.logger.Error("failed to get binary metadata", zap.Error(err))
-		return 0, status.Error(codes.Internal, "failed to get binary metadata")
+		return 0, err
 	}
 
 	if binary.UserID != userID {
-		s.logger.Warn("unauthorized access attempt",
-			zap.String("user_id", userID),
-			zap.String("binary_id", binaryID),
-			zap.String("owner_id", binary.UserID),
-		)
-		return 0, status.Error(codes.PermissionDenied, "access denied")
+		return 0, models.ErrBinaryNotFound
 	}
 
 	s.logger.Info("starting file download",
@@ -208,8 +177,7 @@ func (s *BinaryService) DownloadStream(ctx context.Context, userID, binaryID str
 
 	file, fileSize, err := s.fileService.OpenFileForReading(binary.StoragePath)
 	if err != nil {
-		s.logger.Error("failed to open file", zap.Error(err))
-		return 0, status.Error(codes.Internal, "failed to open file")
+		return 0, err
 	}
 	defer func(file *os.File) {
 		err := file.Close()
@@ -220,16 +188,11 @@ func (s *BinaryService) DownloadStream(ctx context.Context, userID, binaryID str
 
 	written, err := io.Copy(writer, file)
 	if err != nil {
-		s.logger.Error("failed to write file to stream", zap.Error(err))
-		return 0, status.Error(codes.Internal, "failed to write file to stream")
+		return 0, err
 	}
 
 	if written != fileSize {
-		s.logger.Error("incomplete file transfer",
-			zap.Int64("expected", fileSize),
-			zap.Int64("written", written),
-		)
-		return written, status.Error(codes.Internal, "incomplete file transfer")
+		return written, models.ErrInvalidFileSize
 	}
 
 	s.logger.Info("file downloaded successfully",
@@ -245,14 +208,11 @@ func (s *BinaryService) DownloadStream(ctx context.Context, userID, binaryID str
 func (s *BinaryService) GetBinary(ctx context.Context, userID, binaryID string) (*entity.Binary, error) {
 	binary, err := s.repo.FindByID(ctx, binaryID)
 	if err != nil {
-		if errors.Is(err, models.ErrBinaryNotFound) {
-			return nil, status.Error(codes.NotFound, "binary not found")
-		}
 		return nil, err
 	}
 
 	if binary.UserID != userID {
-		return nil, status.Error(codes.PermissionDenied, "access denied")
+		return nil, models.ErrBinaryNotFound
 	}
 
 	return &entity.Binary{
@@ -304,14 +264,11 @@ func (s *BinaryService) ListBinaries(ctx context.Context, userID string, limit, 
 func (s *BinaryService) UpdateBinary(ctx context.Context, userID, binaryID, name string, metadata *string) (*entity.Binary, error) {
 	binary, err := s.repo.FindByID(ctx, binaryID)
 	if err != nil {
-		if errors.Is(err, models.ErrBinaryNotFound) {
-			return nil, status.Error(codes.NotFound, "binary not found")
-		}
 		return nil, err
 	}
 
 	if binary.UserID != userID {
-		return nil, status.Error(codes.PermissionDenied, "access denied")
+		return nil, models.ErrBinaryNotFound
 	}
 
 	binary.Name = name
@@ -339,14 +296,11 @@ func (s *BinaryService) UpdateBinary(ctx context.Context, userID, binaryID, name
 func (s *BinaryService) DeleteBinary(ctx context.Context, userID, binaryID string) error {
 	binary, err := s.repo.FindByID(ctx, binaryID)
 	if err != nil {
-		if errors.Is(err, models.ErrBinaryNotFound) {
-			return status.Error(codes.NotFound, "binary not found")
-		}
 		return err
 	}
 
 	if binary.UserID != userID {
-		return status.Error(codes.PermissionDenied, "access denied")
+		return models.ErrBinaryNotFound
 	}
 
 	if err := s.fileService.DeleteFile(binary.StoragePath); err != nil {

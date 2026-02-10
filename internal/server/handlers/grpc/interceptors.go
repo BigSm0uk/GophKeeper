@@ -27,6 +27,20 @@ type (
 	accessTokenKey   struct{}
 )
 
+// wrappedStream wraps grpc.ServerStream to modify context
+type wrappedStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (w *wrappedStream) Context() context.Context {
+	return w.ctx
+}
+
+func newWrappedStream(s grpc.ServerStream, ctx context.Context) grpc.ServerStream {
+	return &wrappedStream{s, ctx}
+}
+
 // AuthInterceptor validates JWT tokens for protected gRPC methods.
 func AuthInterceptor(authService *service.AuthService, authConfig config.AuthConfig, logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
@@ -48,6 +62,32 @@ func AuthInterceptor(authService *service.AuthService, authConfig config.AuthCon
 		}
 
 		return handler(ctx, req)
+	}
+}
+
+// StreamAuthInterceptor validates JWT tokens for protected gRPC streaming methods.
+func StreamAuthInterceptor(authService *service.AuthService, authConfig config.AuthConfig, logger *zap.Logger) grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		ctx := ss.Context()
+
+		if requiresAuth(info.FullMethod, authConfig) {
+			user, token, err := authenticateUser(ctx, authService, logger)
+			if err != nil {
+				return err
+			}
+
+			ctx = context.WithValue(ctx, userKey{}, user)
+			ctx = context.WithValue(ctx, accessTokenKey{}, token)
+			logger.Debug("User authenticated (stream)",
+				zap.String("method", info.FullMethod),
+				zap.String("user_id", user.ID),
+				zap.String("username", user.Username))
+		} else {
+			logger.Debug("Public method, skipping authentication (stream)",
+				zap.String("method", info.FullMethod))
+		}
+
+		return handler(srv, newWrappedStream(ss, ctx))
 	}
 }
 
@@ -116,6 +156,24 @@ func RecoveryInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
+// StreamRecoveryInterceptor handles panic in streams and converts it to gRPC errors.
+func StreamRecoveryInterceptor(logger *zap.Logger) grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("gRPC stream handler panic recovered",
+					zap.String("method", info.FullMethod),
+					zap.Any("panic", r),
+					zap.Stack("stack"),
+				)
+				err = status.Error(codes.Internal, "Internal server error")
+			}
+		}()
+
+		return handler(srv, ss)
+	}
+}
+
 // RequestIDInterceptor generates unique request GetID for each gRPC call and adds it to context
 func RequestIDInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
@@ -138,6 +196,32 @@ func RequestIDInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		_ = grpc.SetHeader(ctx, metadata.Pairs("x-request-id", requestID))
 
 		return handler(ctx, req)
+	}
+}
+
+// StreamRequestIDInterceptor generates unique request GetID for each gRPC stream and adds it to context
+func StreamRequestIDInterceptor(logger *zap.Logger) grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		ctx := ss.Context()
+		requestID := uuid.New().String()
+
+		clientIP := extractClientIP(ctx)
+		userAgent := extractUserAgent(ctx)
+
+		ctx = context.WithValue(ctx, requestIDKey{}, requestID)
+		ctx = context.WithValue(ctx, clientIPKey{}, clientIP)
+		ctx = context.WithValue(ctx, userAgentKey{}, userAgent)
+
+		requestLogger := logger.With(
+			zap.String("request_id", requestID),
+			zap.String("client_ip", clientIP),
+			zap.String("user_agent", userAgent),
+		)
+		ctx = context.WithValue(ctx, requestLoggerKey{}, requestLogger)
+
+		_ = ss.SetHeader(metadata.Pairs("x-request-id", requestID))
+
+		return handler(srv, newWrappedStream(ss, ctx))
 	}
 }
 
@@ -208,6 +292,40 @@ func LoggingInterceptor(logger *zap.Logger) grpc.UnaryServerInterceptor {
 		}
 
 		return resp, err
+	}
+}
+
+// StreamLoggingInterceptor logs all gRPC stream calls with request_id
+func StreamLoggingInterceptor(logger *zap.Logger) grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		start := time.Now()
+		ctx := ss.Context()
+
+		// Use request-scoped logger if available
+		reqLogger := GetLoggerFromContext(ctx, logger)
+
+		reqLogger.Debug("gRPC stream call",
+			zap.String("method", info.FullMethod),
+		)
+
+		err := handler(srv, ss)
+
+		duration := time.Since(start)
+
+		if err != nil {
+			reqLogger.Error("gRPC stream call failed",
+				zap.String("method", info.FullMethod),
+				zap.Duration("duration", duration),
+				zap.Error(err),
+			)
+		} else {
+			reqLogger.Debug("gRPC stream call completed",
+				zap.String("method", info.FullMethod),
+				zap.Duration("duration", duration),
+			)
+		}
+
+		return err
 	}
 }
 

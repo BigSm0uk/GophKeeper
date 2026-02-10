@@ -11,6 +11,7 @@ import (
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/models"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 // JWTService handles JWT token operations
@@ -54,7 +55,7 @@ func NewJWTService(cfg config.JWTConfig) (*JWTService, error) {
 // GenerateAccessToken generates an access JWT token for a user
 func (s *JWTService) GenerateAccessToken(user *models.User, clientID string) (string, error) {
 	if user == nil || user.ID == "" || clientID == "" {
-		return "", errors.New("invalid use or client id")
+		return "", errors.New("invalid user or client id")
 	}
 
 	now := time.Now()
@@ -63,6 +64,7 @@ func (s *JWTService) GenerateAccessToken(user *models.User, clientID string) (st
 		Username: user.Username,
 		ClientID: clientID,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.New().String(),
 			Issuer:    s.config.Issuer,
 			Subject:   user.ID,
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -91,6 +93,7 @@ func (s *JWTService) GenerateRefreshToken(user *models.User) (string, error) {
 		UserID:   user.ID,
 		Username: user.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.New().String(),
 			Issuer:    s.config.Issuer,
 			Subject:   user.ID,
 			IssuedAt:  jwt.NewNumericDate(now),

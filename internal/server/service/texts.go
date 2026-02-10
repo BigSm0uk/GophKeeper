@@ -2,15 +2,12 @@ package service
 
 import (
 	"context"
-	"errors"
 
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/models"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service/entity"
 	"github.com/BigSm0uk/GophKeeper/pkg/validation"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // TextsService handles text business logic.
@@ -30,7 +27,7 @@ func NewTextsService(logger *zap.Logger, repo interfaces.TextRepository) *TextsS
 // CreateText creates a new text entry.
 func (s *TextsService) CreateText(ctx context.Context, userID string, text *entity.Text) (*entity.Text, error) {
 	if text == nil {
-		return nil, status.Error(codes.InvalidArgument, "text is required")
+		return nil, models.ErrInvalidText
 	}
 
 	if err := s.validateText(userID, text); err != nil {
@@ -48,11 +45,7 @@ func (s *TextsService) CreateText(ctx context.Context, userID string, text *enti
 
 	created, err := s.repo.Create(ctx, domainText)
 	if err != nil {
-		s.logger.Error("Failed to create text",
-			zap.Error(err),
-			zap.String("user_id", userID),
-			zap.String("name", text.Name))
-		return nil, status.Error(codes.Internal, "failed to create text")
+		return nil, err
 	}
 
 	s.logger.Info("Text created successfully",
@@ -65,25 +58,19 @@ func (s *TextsService) CreateText(ctx context.Context, userID string, text *enti
 // GetText retrieves a text by GetID.
 func (s *TextsService) GetText(ctx context.Context, userID, textID string) (*entity.Text, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, models.ErrInvalidUserID
 	}
 	if textID == "" {
-		return nil, status.Error(codes.InvalidArgument, "text GetID is required")
+		return nil, models.ErrTextNotFound
 	}
 
 	text, err := s.repo.FindByID(ctx, textID)
 	if err != nil {
-		if errors.Is(err, models.ErrTextNotFound) {
-			return nil, status.Error(codes.NotFound, "text not found")
-		}
-		s.logger.Error("Failed to find text",
-			zap.Error(err),
-			zap.String("text_id", textID))
-		return nil, status.Error(codes.Internal, "failed to retrieve text")
+		return nil, err
 	}
 
 	if text.UserID != userID {
-		return nil, status.Error(codes.PermissionDenied, "access denied")
+		return nil, models.ErrTextNotFound
 	}
 
 	return textModelToEntity(text), nil
@@ -92,23 +79,17 @@ func (s *TextsService) GetText(ctx context.Context, userID, textID string) (*ent
 // ListTexts retrieves all texts for a user.
 func (s *TextsService) ListTexts(ctx context.Context, userID string, limit, offset int) ([]*entity.Text, int64, error) {
 	if userID == "" {
-		return nil, 0, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, 0, models.ErrInvalidUserID
 	}
 
 	texts, err := s.repo.FindByUserID(ctx, userID, limit, offset)
 	if err != nil {
-		s.logger.Error("Failed to list texts",
-			zap.Error(err),
-			zap.String("user_id", userID))
-		return nil, 0, status.Error(codes.Internal, "failed to list texts")
+		return nil, 0, err
 	}
 
 	count, err := s.repo.CountByUserID(ctx, userID)
 	if err != nil {
-		s.logger.Error("Failed to count texts",
-			zap.Error(err),
-			zap.String("user_id", userID))
-		return nil, 0, status.Error(codes.Internal, "failed to count texts")
+		return nil, 0, err
 	}
 
 	result := make([]*entity.Text, 0, len(texts))
@@ -121,28 +102,22 @@ func (s *TextsService) ListTexts(ctx context.Context, userID string, limit, offs
 // UpdateText updates an existing text.
 func (s *TextsService) UpdateText(ctx context.Context, userID string, text *entity.Text) (*entity.Text, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, models.ErrInvalidUserID
 	}
 	if text == nil {
-		return nil, status.Error(codes.InvalidArgument, "text is required")
+		return nil, models.ErrInvalidText
 	}
 	if text.ID == "" {
-		return nil, status.Error(codes.InvalidArgument, "text GetID is required")
+		return nil, models.ErrTextNotFound
 	}
 
 	existing, err := s.repo.FindByID(ctx, text.ID)
 	if err != nil {
-		if errors.Is(err, models.ErrTextNotFound) {
-			return nil, status.Error(codes.NotFound, "text not found")
-		}
-		s.logger.Error("Failed to find text for update",
-			zap.Error(err),
-			zap.String("text_id", text.ID))
-		return nil, status.Error(codes.Internal, "failed to retrieve text")
+		return nil, err
 	}
 
 	if existing.UserID != userID {
-		return nil, status.Error(codes.PermissionDenied, "access denied")
+		return nil, models.ErrTextNotFound
 	}
 
 	if err := s.validateText(userID, text); err != nil {
@@ -154,13 +129,7 @@ func (s *TextsService) UpdateText(ctx context.Context, userID string, text *enti
 	existing.Metadata = text.Metadata
 
 	if err := s.repo.Update(ctx, existing); err != nil {
-		if errors.Is(err, models.ErrTextNotFound) {
-			return nil, status.Error(codes.NotFound, "text not found")
-		}
-		s.logger.Error("Failed to update text",
-			zap.Error(err),
-			zap.String("text_id", text.ID))
-		return nil, status.Error(codes.Internal, "failed to update text")
+		return nil, err
 	}
 
 	s.logger.Info("Text updated successfully",
@@ -169,10 +138,7 @@ func (s *TextsService) UpdateText(ctx context.Context, userID string, text *enti
 
 	updated, err := s.repo.FindByID(ctx, text.ID)
 	if err != nil {
-		s.logger.Error("Failed to fetch updated text",
-			zap.Error(err),
-			zap.String("text_id", text.ID))
-		return nil, status.Error(codes.Internal, "failed to retrieve updated text")
+		return nil, err
 	}
 
 	return textModelToEntity(updated), nil
@@ -181,35 +147,23 @@ func (s *TextsService) UpdateText(ctx context.Context, userID string, text *enti
 // DeleteText deletes a text by GetID.
 func (s *TextsService) DeleteText(ctx context.Context, userID, textID string) error {
 	if userID == "" {
-		return status.Error(codes.InvalidArgument, "user GetID is required")
+		return models.ErrInvalidUserID
 	}
 	if textID == "" {
-		return status.Error(codes.InvalidArgument, "text GetID is required")
+		return models.ErrTextNotFound
 	}
 
 	text, err := s.repo.FindByID(ctx, textID)
 	if err != nil {
-		if errors.Is(err, models.ErrTextNotFound) {
-			return status.Error(codes.NotFound, "text not found")
-		}
-		s.logger.Error("Failed to find text for deletion",
-			zap.Error(err),
-			zap.String("text_id", textID))
-		return status.Error(codes.Internal, "failed to retrieve text")
+		return err
 	}
 
 	if text.UserID != userID {
-		return status.Error(codes.PermissionDenied, "access denied")
+		return models.ErrTextNotFound
 	}
 
 	if err := s.repo.Delete(ctx, textID); err != nil {
-		if errors.Is(err, models.ErrTextNotFound) {
-			return status.Error(codes.NotFound, "text not found")
-		}
-		s.logger.Error("Failed to delete text",
-			zap.Error(err),
-			zap.String("text_id", textID))
-		return status.Error(codes.Internal, "failed to delete text")
+		return err
 	}
 
 	s.logger.Info("Text deleted successfully",

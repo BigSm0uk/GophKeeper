@@ -176,10 +176,7 @@ message BinaryUploadResponse {
 // BinaryDownloadRequest fetches binary content by id.
 message BinaryDownloadRequest {
   // id is the binary entry ID.
-  string id = 1 [(validate.rules).string = {
-    min_len: 1,
-    max_len: 255
-  }];
+  string id = 1 [(validate.rules).string.uuid = true];
 }
 
 // BinaryDownloadChunk represents a chunk of data during streaming download.
@@ -200,10 +197,7 @@ message BinaryDownloadChunk {
 // BinaryGetRequest fetches binary metadata by id.
 message BinaryGetRequest {
   // id is the binary entry ID.
-  string id = 1 [(validate.rules).string = {
-    min_len: 1,
-    max_len: 255
-  }];
+  string id = 1 [(validate.rules).string.uuid = true];
 }
 
 // BinaryGetResponse returns binary metadata by id.
@@ -229,10 +223,7 @@ message BinaryListResponse {
 // BinaryUpdateRequest updates binary metadata.
 message BinaryUpdateRequest {
   // id is the binary entry ID.
-  string id = 1 [(validate.rules).string = {
-    min_len: 1,
-    max_len: 255
-  }];
+  string id = 1 [(validate.rules).string.uuid = true];
   // name is a user-provided label.
   string name = 2 [(validate.rules).string = {
     min_len: 1,
@@ -251,10 +242,7 @@ message BinaryUpdateResponse {
 // BinaryDeleteRequest deletes a binary entry by id.
 message BinaryDeleteRequest {
   // id is the binary entry ID.
-  string id = 1 [(validate.rules).string = {
-    min_len: 1,
-    max_len: 255
-  }];
+  string id = 1 [(validate.rules).string.uuid = true];
 }
 
 // BinaryDeleteResponse confirms deletion.

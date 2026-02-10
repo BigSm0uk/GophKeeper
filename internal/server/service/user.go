@@ -100,7 +100,7 @@ func (s *UserService) ChangePassword(ctx context.Context, userID, oldPassword, n
 		return status.Error(codes.Internal, "failed to verify password")
 	}
 	if !valid {
-		return status.Error(codes.Unauthenticated, "invalid old password")
+		return models.ErrInvalidCredentials
 	}
 	hashed, err := util.HashPassword(newPassword)
 	if err != nil {
@@ -146,7 +146,7 @@ func (s *UserService) DeleteAccount(ctx context.Context, userID, password string
 		return status.Error(codes.Internal, "failed to verify password")
 	}
 	if !valid {
-		return status.Error(codes.Unauthenticated, "invalid password")
+		return models.ErrInvalidCredentials
 	}
 	if err := s.userRepo.Delete(ctx, userID); err != nil {
 		s.logger.Error("Failed to delete user account",

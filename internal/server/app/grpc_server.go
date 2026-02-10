@@ -34,6 +34,12 @@ func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *se
 			grpchandlers.AuthInterceptor(authService, cfg.Auth, logger), // Third: authenticate
 			grpchandlers.LoggingInterceptor(logger),                     // Last: log with all context
 		),
+		grpc.ChainStreamInterceptor(
+			grpchandlers.StreamRequestIDInterceptor(logger),                   // First: generate request GetID
+			grpchandlers.StreamRecoveryInterceptor(logger),                    // Second: catch panics
+			grpchandlers.StreamAuthInterceptor(authService, cfg.Auth, logger), // Third: authenticate
+			grpchandlers.StreamLoggingInterceptor(logger),                     // Last: log with all context
+		),
 	)
 
 	authHandler := grpchandlers.NewAuthHandler(logger, authService, cfg.JWT)

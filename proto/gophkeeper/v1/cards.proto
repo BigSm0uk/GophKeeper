@@ -158,10 +158,7 @@ message CardCreateResponse {
 // CardGetRequest fetches a card entry by id.
 message CardGetRequest {
   // id is the card ID.
-  string id = 1 [(validate.rules).string = {
-    min_len: 1,
-    max_len: 255
-  }];
+  string id = 1 [(validate.rules).string.uuid = true];
 }
 
 // CardGetResponse returns a card entry by id.
@@ -187,10 +184,7 @@ message CardListResponse {
 // CardUpdateRequest updates a card entry.
 message CardUpdateRequest {
   // id is the card ID.
-  string id = 1 [(validate.rules).string = {
-    min_len: 1,
-    max_len: 255
-  }];
+  string id = 1 [(validate.rules).string.uuid = true];
   // name is a user-provided label.
   string name = 2 [(validate.rules).string = {
     min_len: 1,
@@ -222,10 +216,7 @@ message CardUpdateResponse {
 // CardDeleteRequest deletes a card entry by id.
 message CardDeleteRequest {
   // id is the card ID.
-  string id = 1 [(validate.rules).string = {
-    min_len: 1,
-    max_len: 255
-  }];
+  string id = 1 [(validate.rules).string.uuid = true];
 }
 
 // CardDeleteResponse confirms deletion.

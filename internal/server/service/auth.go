@@ -332,18 +332,43 @@ func (as *AuthService) Token(ctx context.Context, grantType, username, password,
 
 // ValidateToken validates an access token and returns user information
 func (as *AuthService) ValidateToken(ctx context.Context, token string) (*models.User, error) {
-	userID, err := as.jwtService.ExtractUserID(token)
+	// 1. Parse token and extract claims
+	claims, err := as.jwtService.ValidateAccessToken(token)
 	if err != nil {
-		as.logger.Error("Failed to extract user GetID from token",
-			zap.Error(err))
+		as.logger.Warn("Failed to validate access token", zap.Error(err))
 		return nil, models.ErrInvalidToken
 	}
 
-	user, err := as.ur.FindByID(ctx, userID)
+	// 2. Check if session exists and is active
+	session, err := as.sr.FindByUserIDAndClientID(ctx, claims.UserID, claims.ClientID)
+	if err != nil {
+		as.logger.Warn("Session not found during token validation",
+			zap.Error(err),
+			zap.String("user_id", claims.UserID),
+			zap.String("client_id", claims.ClientID))
+		return nil, models.ErrSessionNotFound
+	}
+
+	if session.Revoked {
+		as.logger.Warn("Session revoked during token validation",
+			zap.String("session_id", session.ID),
+			zap.String("user_id", claims.UserID))
+		return nil, models.ErrSessionRevoked
+	}
+
+	if session.IsExpired() {
+		as.logger.Warn("Session expired during token validation",
+			zap.String("session_id", session.ID),
+			zap.String("user_id", claims.UserID))
+		return nil, models.ErrSessionExpired
+	}
+
+	// 3. Get user
+	user, err := as.ur.FindByID(ctx, claims.UserID)
 	if err != nil {
 		as.logger.Error("Failed to get user by GetID during token validation",
 			zap.Error(err),
-			zap.String("user_id", userID))
+			zap.String("user_id", claims.UserID))
 		return nil, err
 	}
 

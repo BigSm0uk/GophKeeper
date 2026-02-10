@@ -2,15 +2,12 @@ package service
 
 import (
 	"context"
-	"errors"
 
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/models"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service/entity"
 	"github.com/BigSm0uk/GophKeeper/pkg/validation"
 	"go.uber.org/zap"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // CardsService handles card business logic.
@@ -30,7 +27,7 @@ func NewCardsService(logger *zap.Logger, repo interfaces.CardRepository) *CardsS
 // CreateCard creates a new card entry.
 func (s *CardsService) CreateCard(ctx context.Context, userID string, card *entity.Card) (*entity.Card, error) {
 	if card == nil {
-		return nil, status.Error(codes.InvalidArgument, "card is required")
+		return nil, models.ErrInvalidCard
 	}
 
 	if err := s.validateCard(userID, card); err != nil {
@@ -52,11 +49,7 @@ func (s *CardsService) CreateCard(ctx context.Context, userID string, card *enti
 
 	created, err := s.repo.Create(ctx, domainCard)
 	if err != nil {
-		s.logger.Error("Failed to create card",
-			zap.Error(err),
-			zap.String("user_id", userID),
-			zap.String("name", card.Name))
-		return nil, status.Error(codes.Internal, "failed to create card")
+		return nil, err
 	}
 
 	s.logger.Info("Card created successfully",
@@ -69,25 +62,19 @@ func (s *CardsService) CreateCard(ctx context.Context, userID string, card *enti
 // GetCard retrieves a card by GetID.
 func (s *CardsService) GetCard(ctx context.Context, userID, cardID string) (*entity.Card, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, models.ErrInvalidUserID
 	}
 	if cardID == "" {
-		return nil, status.Error(codes.InvalidArgument, "card GetID is required")
+		return nil, models.ErrCardNotFound
 	}
 
 	card, err := s.repo.FindByID(ctx, cardID)
 	if err != nil {
-		if errors.Is(err, models.ErrCardNotFound) {
-			return nil, status.Error(codes.NotFound, "card not found")
-		}
-		s.logger.Error("Failed to find card",
-			zap.Error(err),
-			zap.String("card_id", cardID))
-		return nil, status.Error(codes.Internal, "failed to retrieve card")
+		return nil, err
 	}
 
 	if card.UserID != userID {
-		return nil, status.Error(codes.PermissionDenied, "access denied")
+		return nil, models.ErrCardNotFound
 	}
 
 	return cardModelToEntity(card), nil
@@ -96,23 +83,17 @@ func (s *CardsService) GetCard(ctx context.Context, userID, cardID string) (*ent
 // ListCards retrieves all cards for a user.
 func (s *CardsService) ListCards(ctx context.Context, userID string, limit, offset int) ([]*entity.Card, int64, error) {
 	if userID == "" {
-		return nil, 0, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, 0, models.ErrInvalidUserID
 	}
 
 	cards, err := s.repo.FindByUserID(ctx, userID, limit, offset)
 	if err != nil {
-		s.logger.Error("Failed to list cards",
-			zap.Error(err),
-			zap.String("user_id", userID))
-		return nil, 0, status.Error(codes.Internal, "failed to list cards")
+		return nil, 0, err
 	}
 
 	count, err := s.repo.CountByUserID(ctx, userID)
 	if err != nil {
-		s.logger.Error("Failed to count cards",
-			zap.Error(err),
-			zap.String("user_id", userID))
-		return nil, 0, status.Error(codes.Internal, "failed to count cards")
+		return nil, 0, err
 	}
 
 	result := make([]*entity.Card, 0, len(cards))
@@ -125,28 +106,22 @@ func (s *CardsService) ListCards(ctx context.Context, userID string, limit, offs
 // UpdateCard updates an existing card.
 func (s *CardsService) UpdateCard(ctx context.Context, userID string, card *entity.Card) (*entity.Card, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, models.ErrInvalidUserID
 	}
 	if card == nil {
-		return nil, status.Error(codes.InvalidArgument, "card is required")
+		return nil, models.ErrInvalidCard
 	}
 	if card.ID == "" {
-		return nil, status.Error(codes.InvalidArgument, "card GetID is required")
+		return nil, models.ErrCardNotFound
 	}
 
 	existing, err := s.repo.FindByID(ctx, card.ID)
 	if err != nil {
-		if errors.Is(err, models.ErrCardNotFound) {
-			return nil, status.Error(codes.NotFound, "card not found")
-		}
-		s.logger.Error("Failed to find card for update",
-			zap.Error(err),
-			zap.String("card_id", card.ID))
-		return nil, status.Error(codes.Internal, "failed to retrieve card")
+		return nil, err
 	}
 
 	if existing.GetUserID() != userID {
-		return nil, status.Error(codes.PermissionDenied, "access denied")
+		return nil, models.ErrCardNotFound
 	}
 
 	if err := s.validateCard(userID, card); err != nil {
@@ -162,13 +137,7 @@ func (s *CardsService) UpdateCard(ctx context.Context, userID string, card *enti
 	existing.Metadata = card.Metadata
 
 	if err := s.repo.Update(ctx, existing); err != nil {
-		if errors.Is(err, models.ErrCardNotFound) {
-			return nil, status.Error(codes.NotFound, "card not found")
-		}
-		s.logger.Error("Failed to update card",
-			zap.Error(err),
-			zap.String("card_id", card.ID))
-		return nil, status.Error(codes.Internal, "failed to update card")
+		return nil, err
 	}
 
 	s.logger.Info("Card updated successfully",
@@ -177,10 +146,7 @@ func (s *CardsService) UpdateCard(ctx context.Context, userID string, card *enti
 
 	updated, err := s.repo.FindByID(ctx, card.ID)
 	if err != nil {
-		s.logger.Error("Failed to fetch updated card",
-			zap.Error(err),
-			zap.String("card_id", card.ID))
-		return nil, status.Error(codes.Internal, "failed to retrieve updated card")
+		return nil, err
 	}
 
 	return cardModelToEntity(updated), nil
@@ -189,35 +155,23 @@ func (s *CardsService) UpdateCard(ctx context.Context, userID string, card *enti
 // DeleteCard deletes a card by GetID.
 func (s *CardsService) DeleteCard(ctx context.Context, userID, cardID string) error {
 	if userID == "" {
-		return status.Error(codes.InvalidArgument, "user GetID is required")
+		return models.ErrInvalidUserID
 	}
 	if cardID == "" {
-		return status.Error(codes.InvalidArgument, "card GetID is required")
+		return models.ErrCardNotFound
 	}
 
 	card, err := s.repo.FindByID(ctx, cardID)
 	if err != nil {
-		if errors.Is(err, models.ErrCardNotFound) {
-			return status.Error(codes.NotFound, "card not found")
-		}
-		s.logger.Error("Failed to find card for deletion",
-			zap.Error(err),
-			zap.String("card_id", cardID))
-		return status.Error(codes.Internal, "failed to retrieve card")
+		return err
 	}
 
 	if card.GetUserID() != userID {
-		return status.Error(codes.PermissionDenied, "access denied")
+		return models.ErrCardNotFound
 	}
 
 	if err := s.repo.Delete(ctx, cardID); err != nil {
-		if errors.Is(err, models.ErrCardNotFound) {
-			return status.Error(codes.NotFound, "card not found")
-		}
-		s.logger.Error("Failed to delete card",
-			zap.Error(err),
-			zap.String("card_id", cardID))
-		return status.Error(codes.Internal, "failed to delete card")
+		return err
 	}
 
 	s.logger.Info("Card deleted successfully",

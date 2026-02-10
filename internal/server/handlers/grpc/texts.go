@@ -56,7 +56,7 @@ func (h *TextsHandler) Create(ctx context.Context, req *pb.TextCreateRequest) (*
 
 	createdText, err := h.textsService.CreateText(ctx, user.ID, text)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbText, err := entity.MapTextToResponse(createdText)
@@ -97,7 +97,7 @@ func (h *TextsHandler) Get(ctx context.Context, req *pb.TextGetRequest) (*pb.Tex
 
 	text, err := h.textsService.GetText(ctx, user.ID, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbText, err := entity.MapTextToResponse(text)
@@ -140,7 +140,7 @@ func (h *TextsHandler) List(ctx context.Context, req *pb.TextListRequest) (*pb.T
 
 	texts, total, err := h.textsService.ListTexts(ctx, user.ID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbTexts := make([]*pb.Text, 0, len(texts))
@@ -190,7 +190,7 @@ func (h *TextsHandler) Update(ctx context.Context, req *pb.TextUpdateRequest) (*
 
 	existingText, err := h.textsService.GetText(ctx, user.ID, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	if err := entity.MapTextFromUpdateRequest(existingText, req); err != nil {
@@ -202,7 +202,7 @@ func (h *TextsHandler) Update(ctx context.Context, req *pb.TextUpdateRequest) (*
 
 	updatedText, err := h.textsService.UpdateText(ctx, user.ID, existingText)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	pbText, err := entity.MapTextToResponse(updatedText)
@@ -243,7 +243,7 @@ func (h *TextsHandler) Delete(ctx context.Context, req *pb.TextDeleteRequest) (*
 
 	err = h.textsService.DeleteText(ctx, user.ID, req.Id)
 	if err != nil {
-		return nil, err
+		return nil, classifyServiceError(h.logger, err)
 	}
 
 	logger.Info("Delete text request completed successfully",

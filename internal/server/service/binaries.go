@@ -12,6 +12,7 @@ import (
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/models"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service/entity"
+	"github.com/BigSm0uk/GophKeeper/pkg/validation"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
@@ -371,37 +372,21 @@ func (s *BinaryService) DeleteBinary(ctx context.Context, userID, binaryID strin
 
 // validateUploadRequest validates the upload request
 func (s *BinaryService) validateUploadRequest(req *entity.StreamUploadRequest) error {
-	if req.UserID == "" {
-		return status.Error(codes.InvalidArgument, "user GetID is required")
-	}
-	if req.Name == "" {
-		return status.Error(codes.InvalidArgument, "name is required")
-	}
-	if req.Filename == "" {
-		return status.Error(codes.InvalidArgument, "filename is required")
-	}
-	if req.ContentType == "" {
-		return status.Error(codes.InvalidArgument, "content type is required")
-	}
-	if req.TotalSize <= 0 {
-		return status.Error(codes.InvalidArgument, "total size must be greater than 0")
-	}
-	if req.TotalSize > s.maxFileSize {
-		return status.Errorf(codes.ResourceExhausted, "file size %d exceeds maximum allowed size %d", req.TotalSize, s.maxFileSize)
-	}
-	if req.Checksum == "" {
-		return status.Error(codes.InvalidArgument, "checksum is required")
-	}
-	if len(req.Checksum) != 64 {
-		return status.Error(codes.InvalidArgument, "invalid checksum format (expected SHA256)")
-	}
+	v := validation.New()
 
-	return nil
+	v.Check(req.UserID != "", "user_id", "required")
+	v.Check(req.Name != "", "name", "required")
+	v.Check(req.Filename != "", "filename", "required")
+	v.Check(req.ContentType != "", "content_type", "required")
+	v.Check(req.TotalSize > 0, "total_size", "must be greater than 0")
+	v.Check(req.TotalSize <= s.maxFileSize, "total_size", fmt.Sprintf("exceeds max size %d", s.maxFileSize))
+	v.Check(len(req.Checksum) == 64, "checksum", "must be 64 characters (SHA256)")
+
+	return v.Err()
 }
 
 // generateStoragePath generates a storage path for a binary file
 func (s *BinaryService) generateStoragePath(userID, binaryID, filename string) string {
-	// Create path like: userID/binary_id_filename
 	safeName := fmt.Sprintf("%s_%s", binaryID, filename)
 	return fmt.Sprintf("%s/%s", userID, safeName)
 }

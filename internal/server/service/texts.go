@@ -7,6 +7,7 @@ import (
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/models"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service/entity"
+	"github.com/BigSm0uk/GophKeeper/pkg/validation"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,18 +29,12 @@ func NewTextsService(logger *zap.Logger, repo interfaces.TextRepository) *TextsS
 
 // CreateText creates a new text entry.
 func (s *TextsService) CreateText(ctx context.Context, userID string, text *entity.Text) (*entity.Text, error) {
-	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
-	}
 	if text == nil {
 		return nil, status.Error(codes.InvalidArgument, "text is required")
 	}
 
-	if text.Name == "" {
-		return nil, status.Error(codes.InvalidArgument, "name is required")
-	}
-	if text.Content == "" {
-		return nil, status.Error(codes.InvalidArgument, "content is required")
+	if err := s.validateText(userID, text); err != nil {
+		return nil, err
 	}
 
 	domainText := &models.Text{
@@ -142,11 +137,8 @@ func (s *TextsService) UpdateText(ctx context.Context, userID string, text *enti
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
-	if text.Name == "" {
-		return nil, status.Error(codes.InvalidArgument, "name is required")
-	}
-	if text.Content == "" {
-		return nil, status.Error(codes.InvalidArgument, "content is required")
+	if err := s.validateText(userID, text); err != nil {
+		return nil, err
 	}
 
 	existing.Name = text.Name
@@ -217,6 +209,17 @@ func (s *TextsService) DeleteText(ctx context.Context, userID, textID string) er
 		zap.String("user_id", userID))
 
 	return nil
+}
+
+// validateText validates text fields with error accumulation.
+func (s *TextsService) validateText(userID string, text *entity.Text) error {
+	v := validation.New()
+
+	v.Check(userID != "", "user_id", "required")
+	v.Check(text.Name != "", "name", "required")
+	v.Check(text.Content != "", "content", "required")
+
+	return v.Err()
 }
 
 func textModelToEntity(t *models.Text) *entity.Text {

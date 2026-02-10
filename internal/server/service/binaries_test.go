@@ -635,7 +635,7 @@ func TestBinaryService_ValidateUploadRequest(t *testing.T) {
 				Checksum:    validChecksum,
 			},
 			wantErr:     true,
-			wantErrCode: codes.ResourceExhausted,
+			wantErrCode: codes.InvalidArgument,
 		},
 		{
 			name: "missing checksum",

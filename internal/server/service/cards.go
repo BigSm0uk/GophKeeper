@@ -7,6 +7,7 @@ import (
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/models"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service/entity"
+	"github.com/BigSm0uk/GophKeeper/pkg/validation"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,27 +29,12 @@ func NewCardsService(logger *zap.Logger, repo interfaces.CardRepository) *CardsS
 
 // CreateCard creates a new card entry.
 func (s *CardsService) CreateCard(ctx context.Context, userID string, card *entity.Card) (*entity.Card, error) {
-	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
-	}
 	if card == nil {
 		return nil, status.Error(codes.InvalidArgument, "card is required")
 	}
 
-	if card.Name == "" {
-		return nil, status.Error(codes.InvalidArgument, "name is required")
-	}
-	if card.CardNumber == "" {
-		return nil, status.Error(codes.InvalidArgument, "card number is required")
-	}
-	if card.CardholderName == "" {
-		return nil, status.Error(codes.InvalidArgument, "cardholder name is required")
-	}
-	if card.ExpiryDate == "" {
-		return nil, status.Error(codes.InvalidArgument, "expiry date is required")
-	}
-	if card.CVV == "" {
-		return nil, status.Error(codes.InvalidArgument, "cvv is required")
+	if err := s.validateCard(userID, card); err != nil {
+		return nil, err
 	}
 
 	domainCard := &models.Card{
@@ -155,20 +141,8 @@ func (s *CardsService) UpdateCard(ctx context.Context, userID string, card *enti
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
-	if card.Name == "" {
-		return nil, status.Error(codes.InvalidArgument, "name is required")
-	}
-	if card.CardNumber == "" {
-		return nil, status.Error(codes.InvalidArgument, "card number is required")
-	}
-	if card.CardholderName == "" {
-		return nil, status.Error(codes.InvalidArgument, "cardholder name is required")
-	}
-	if card.ExpiryDate == "" {
-		return nil, status.Error(codes.InvalidArgument, "expiry date is required")
-	}
-	if card.CVV == "" {
-		return nil, status.Error(codes.InvalidArgument, "cvv is required")
+	if err := s.validateCard(userID, card); err != nil {
+		return nil, err
 	}
 
 	existing.Name = card.Name
@@ -243,6 +217,20 @@ func (s *CardsService) DeleteCard(ctx context.Context, userID, cardID string) er
 		zap.String("user_id", userID))
 
 	return nil
+}
+
+// validateCard validates card fields with error accumulation.
+func (s *CardsService) validateCard(userID string, card *entity.Card) error {
+	v := validation.New()
+
+	v.Check(userID != "", "user_id", "required")
+	v.Check(card.Name != "", "name", "required")
+	v.Check(card.CardNumber != "", "card_number", "required")
+	v.Check(card.CardholderName != "", "cardholder_name", "required")
+	v.Check(card.ExpiryDate != "", "expiry_date", "required")
+	v.Check(card.CVV != "", "cvv", "required")
+
+	return v.Err()
 }
 
 func cardModelToEntity(c *models.Card) *entity.Card {

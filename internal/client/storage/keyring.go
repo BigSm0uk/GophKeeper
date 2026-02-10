@@ -10,9 +10,9 @@ const serviceName = "gophkeeper"
 
 // TokenStore сохраняет токены в системном keyring.
 type TokenStore struct {
-	ring       keyring.Keyring
-	saltCache  map[string][]byte // кэш для соли
-	hashCache  map[string][]byte // кэш для хешей паролей
+	ring      keyring.Keyring
+	saltCache map[string][]byte // кэш для соли
+	hashCache map[string][]byte // кэш для хешей паролей
 }
 
 func NewTokenStore() (*TokenStore, error) {
@@ -104,7 +104,7 @@ func (s *TokenStore) GetEncryptionSalt(username string) ([]byte, error) {
 	if salt, exists := s.saltCache[username]; exists {
 		return salt, nil
 	}
-	
+
 	// Загружаем из keyring
 	item, err := s.ring.Get(fmt.Sprintf("%s:encryption_salt", username))
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *TokenStore) GetEncryptionSalt(username string) ([]byte, error) {
 		}
 		return nil, err
 	}
-	
+
 	// Сохраняем в кэш
 	s.saltCache[username] = item.Data
 	return item.Data, nil
@@ -138,7 +138,7 @@ func (s *TokenStore) GetMasterPasswordHash(username string) ([]byte, error) {
 	if hash, exists := s.hashCache[username]; exists {
 		return hash, nil
 	}
-	
+
 	// Загружаем из keyring
 	item, err := s.ring.Get(fmt.Sprintf("%s:master_password_hash", username))
 	if err != nil {
@@ -147,7 +147,7 @@ func (s *TokenStore) GetMasterPasswordHash(username string) ([]byte, error) {
 		}
 		return nil, err
 	}
-	
+
 	// Сохраняем в кэш
 	s.hashCache[username] = item.Data
 	return item.Data, nil
@@ -160,7 +160,7 @@ func (s *TokenStore) ClearUserData(username string) {
 	_ = s.ring.Remove(fmt.Sprintf("%s:encryption_salt", username))
 	_ = s.ring.Remove(fmt.Sprintf("%s:master_password_hash", username))
 	_ = s.ring.Remove("current_username")
-	
+
 	// Очищаем кэши
 	delete(s.saltCache, username)
 	delete(s.hashCache, username)

@@ -58,7 +58,7 @@ type BinariesViewModel struct {
 	width  int
 	height int
 
-	err error
+	err      error
 	message  string
 	quitting bool
 	loading  bool

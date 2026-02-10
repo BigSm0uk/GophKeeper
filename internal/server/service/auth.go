@@ -11,6 +11,7 @@ import (
 	"github.com/BigSm0uk/GophKeeper/pkg/util"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -35,23 +36,43 @@ func NewAuthService(logger *zap.Logger, ur interfaces.UserRepository, jwtService
 }
 
 func (as *AuthService) Register(ctx context.Context, user entity.User) (*entity.User, error) {
-	exists, err := as.ur.ExistsByUsername(ctx, user.Username)
-	if err != nil {
-		as.logger.Error("Failed to check username existence", zap.Error(err))
+	var (
+		exists         bool
+		hashedPassword string
+	)
+
+	var g errgroup.Group
+
+	g.Go(func() error {
+		var err error
+		exists, err = as.ur.ExistsByUsername(ctx, user.Username)
+		if err != nil {
+			as.logger.Error("Failed to check username existence", zap.Error(err))
+			return err
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		var err error
+		hashedPassword, err = util.HashPassword(user.Password)
+		if err != nil {
+			as.logger.Error("Failed to hash password during registration",
+				zap.Error(err),
+				zap.String("username", user.Username))
+			return err
+		}
+		return nil
+	})
+
+	if err := g.Wait(); err != nil {
 		return nil, err
 	}
+
 	if exists {
 		as.logger.Warn("Registration attempt for existing username",
 			zap.String("username", user.Username))
 		return nil, models.ErrUserAlreadyExists
-	}
-
-	hashedPassword, err := util.HashPassword(user.Password)
-	if err != nil {
-		as.logger.Error("Failed to hash password during registration",
-			zap.Error(err),
-			zap.String("username", user.Username))
-		return nil, err
 	}
 
 	domainUser := &models.User{

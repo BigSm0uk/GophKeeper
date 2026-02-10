@@ -7,6 +7,7 @@ import (
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/interfaces"
 	"github.com/BigSm0uk/GophKeeper/internal/server/domain/models"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service/entity"
+	"github.com/BigSm0uk/GophKeeper/pkg/validation"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,23 +28,12 @@ func NewCredentialsService(logger *zap.Logger, repo interfaces.CredentialReposit
 
 // CreateCredential creates a new credential entry
 func (s *CredentialsService) CreateCredential(ctx context.Context, userID string, cred *entity.Credential) (*entity.Credential, error) {
-	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
-	}
-
 	if cred == nil {
 		return nil, status.Error(codes.InvalidArgument, "credential is required")
 	}
 
-	// Validate credential data
-	if cred.Name == "" {
-		return nil, status.Error(codes.InvalidArgument, "name is required")
-	}
-	if cred.Login == "" {
-		return nil, status.Error(codes.InvalidArgument, "login is required")
-	}
-	if cred.Password == "" {
-		return nil, status.Error(codes.InvalidArgument, "password is required")
+	if err := s.validateCredential(userID, cred); err != nil {
+		return nil, err
 	}
 
 	// Convert entity.Credential to domain models.Credential
@@ -184,15 +174,8 @@ func (s *CredentialsService) UpdateCredential(ctx context.Context, userID string
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
-	// Validate credential data
-	if cred.Name == "" {
-		return nil, status.Error(codes.InvalidArgument, "name is required")
-	}
-	if cred.Login == "" {
-		return nil, status.Error(codes.InvalidArgument, "login is required")
-	}
-	if cred.Password == "" {
-		return nil, status.Error(codes.InvalidArgument, "password is required")
+	if err := s.validateCredential(userID, cred); err != nil {
+		return nil, err
 	}
 
 	// Update domain credential
@@ -276,4 +259,16 @@ func (s *CredentialsService) DeleteCredential(ctx context.Context, userID, crede
 		zap.String("user_id", userID))
 
 	return nil
+}
+
+// validateCredential validates credential fields with error accumulation.
+func (s *CredentialsService) validateCredential(userID string, cred *entity.Credential) error {
+	v := validation.New()
+
+	v.Check(userID != "", "user_id", "required")
+	v.Check(cred.Name != "", "name", "required")
+	v.Check(cred.Login != "", "login", "required")
+	v.Check(cred.Password != "", "password", "required")
+
+	return v.Err()
 }

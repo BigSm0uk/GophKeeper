@@ -118,7 +118,7 @@ func (h *TextsHandler) Get(ctx context.Context, req *pb.TextGetRequest) (*pb.Tex
 }
 
 // List returns paginated text entries.
-func (h *TextsHandler) List(ctx context.Context, _ *pb.TextListRequest) (*pb.TextListResponse, error) {
+func (h *TextsHandler) List(ctx context.Context, req *pb.TextListRequest) (*pb.TextListResponse, error) {
 	logger := GetLoggerFromContext(ctx, h.logger)
 
 	logger.Info("List texts request received")
@@ -128,7 +128,17 @@ func (h *TextsHandler) List(ctx context.Context, _ *pb.TextListRequest) (*pb.Tex
 		return nil, err
 	}
 
-	texts, err := h.textsService.ListTexts(ctx, user.ID)
+	limit := int(req.Page.Limit)
+	offset := int(req.Page.Offset)
+
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	texts, total, err := h.textsService.ListTexts(ctx, user.ID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +162,9 @@ func (h *TextsHandler) List(ctx context.Context, _ *pb.TextListRequest) (*pb.Tex
 	return &pb.TextListResponse{
 		Items: pbTexts,
 		Page: &pb.PageResponse{
-			Total: uint32(len(pbTexts)),
+			Total:  uint32(total),
+			Limit:  uint32(limit),
+			Offset: uint32(offset),
 		},
 	}, nil
 }

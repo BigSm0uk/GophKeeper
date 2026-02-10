@@ -89,7 +89,7 @@ func (s *FileService) GetFile(relativePath string) (*FileResponse, error) {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	contentType := s.detectContentType(fullPath, content)
+	contentType := s.detectContentType(fullPath)
 
 	s.logger.Debug("File served successfully",
 		zap.String("path", relativePath),
@@ -123,7 +123,7 @@ func (s *FileService) FileExists(relativePath string) bool {
 }
 
 // detectContentType determines the MIME type of a file
-func (s *FileService) detectContentType(filePath string, content []byte) string {
+func (s *FileService) detectContentType(filePath string) string {
 	ext := filepath.Ext(filePath)
 	if ext != "" {
 		mimeType := mime.TypeByExtension(ext)

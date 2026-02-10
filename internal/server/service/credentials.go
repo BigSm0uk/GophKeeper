@@ -114,17 +114,25 @@ func (s *CredentialsService) GetCredential(ctx context.Context, userID, credenti
 }
 
 // ListCredentials retrieves all credentials for a user
-func (s *CredentialsService) ListCredentials(ctx context.Context, userID string) ([]*entity.Credential, error) {
+func (s *CredentialsService) ListCredentials(ctx context.Context, userID string, limit, offset int) ([]*entity.Credential, int64, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, 0, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 
-	creds, err := s.repo.FindByUserId(ctx, userID)
+	creds, err := s.repo.FindByUserId(ctx, userID, limit, offset)
 	if err != nil {
 		s.logger.Error("Failed to list credentials",
 			zap.Error(err),
 			zap.String("user_id", userID))
-		return nil, status.Error(codes.Internal, "failed to list credentials")
+		return nil, 0, status.Error(codes.Internal, "failed to list credentials")
+	}
+
+	count, err := s.repo.CountByUserID(ctx, userID)
+	if err != nil {
+		s.logger.Error("Failed to count credentials",
+			zap.Error(err),
+			zap.String("user_id", userID))
+		return nil, 0, status.Error(codes.Internal, "failed to count credentials")
 	}
 
 	result := make([]*entity.Credential, 0, len(creds))
@@ -142,7 +150,7 @@ func (s *CredentialsService) ListCredentials(ctx context.Context, userID string)
 		})
 	}
 
-	return result, nil
+	return result, count, nil
 }
 
 // UpdateCredential updates an existing credential

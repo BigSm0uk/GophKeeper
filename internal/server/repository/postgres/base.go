@@ -302,18 +302,25 @@ func (p *BaseRepository[T]) FindByID(ctx context.Context, id string) (T, error) 
 }
 
 // FindByUserID implements [interfaces.BaseRepository].
-func (p *BaseRepository[T]) FindByUserID(ctx context.Context, userID string) ([]T, error) {
+func (p *BaseRepository[T]) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]T, error) {
 	if userID == "" {
 		return nil, nil
 	}
 
-	query, args, err := applySoftDeleteFilter(
+	selectBuilder := applySoftDeleteFilter(
 		sq.Select("*").
 			From(p.tableName).
 			Where(sq.Eq{"user_id": userID}),
-	).
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
+	)
+
+	if limit > 0 {
+		selectBuilder = selectBuilder.Limit(uint64(limit))
+	}
+	if offset > 0 {
+		selectBuilder = selectBuilder.Offset(uint64(offset))
+	}
+
+	query, args, err := selectBuilder.PlaceholderFormat(sq.Dollar).ToSql()
 	if err != nil {
 		p.logger.Error("Failed to build find by user ID query",
 			zap.Error(err),

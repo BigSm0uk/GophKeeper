@@ -7,7 +7,7 @@ type BaseRepository[T Entity] interface {
 	FindByID(ctx context.Context, id string) (T, error)
 
 	// FindByUserID retrieves all entities by user ID.
-	FindByUserID(ctx context.Context, userID string) ([]T, error)
+	FindByUserID(ctx context.Context, userID string, limit, offset int) ([]T, error)
 
 	// Delete removes an entity by its unique identifier (soft delete).
 	Delete(ctx context.Context, id string) error

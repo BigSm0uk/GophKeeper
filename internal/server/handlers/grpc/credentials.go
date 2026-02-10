@@ -130,7 +130,17 @@ func (h *CredentialsHandler) List(ctx context.Context, req *pb.CredentialListReq
 		return nil, err
 	}
 
-	creds, err := h.credentialsService.ListCredentials(ctx, user.ID)
+	limit := int(req.Page.Limit)
+	offset := int(req.Page.Offset)
+
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	creds, total, err := h.credentialsService.ListCredentials(ctx, user.ID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +165,9 @@ func (h *CredentialsHandler) List(ctx context.Context, req *pb.CredentialListReq
 	return &pb.CredentialListResponse{
 		Items: pbCreds,
 		Page: &pb.PageResponse{
-			Total: uint32(len(pbCreds)),
+			Total:  uint32(total),
+			Limit:  uint32(limit),
+			Offset: uint32(offset),
 		},
 	}, nil
 }

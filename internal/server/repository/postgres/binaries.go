@@ -129,7 +129,7 @@ func (r *BinaryRepository) FindByID(ctx context.Context, id string) (*models.Bin
 
 // FindByUserID finds all binary entries for a specific user.
 func (r *BinaryRepository) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*models.Binary, error) {
-	return r.base.FindByUserID(ctx, userID)
+	return r.base.FindByUserID(ctx, userID, limit, offset)
 }
 
 // Update updates binary metadata (name and metadata fields).

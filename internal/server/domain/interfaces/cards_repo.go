@@ -15,7 +15,7 @@ type CardRepository interface {
 	FindByID(ctx context.Context, id string) (*models.Card, error)
 
 	// FindByUserID retrieves all cards by user ID.
-	FindByUserID(ctx context.Context, userID string) ([]*models.Card, error)
+	FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*models.Card, error)
 
 	// Update modifies an existing card's information.
 	Update(ctx context.Context, card *models.Card) error

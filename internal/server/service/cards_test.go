@@ -304,11 +304,13 @@ func TestCardsService_ListCards_Success(t *testing.T) {
 		validCardModel("card-2", "user-1"),
 	}
 	list[1].Name = "Mastercard"
-	repo.EXPECT().FindByUserID(ctx, "user-1").Return(list, nil)
+	repo.EXPECT().FindByUserID(ctx, "user-1", 10, 0).Return(list, nil)
+	repo.EXPECT().CountByUserID(ctx, "user-1").Return(int64(2), nil)
 
-	got, err := svc.ListCards(ctx, "user-1")
+	got, total, err := svc.ListCards(ctx, "user-1", 10, 0)
 	require.NoError(t, err)
 	require.Len(t, got, 2)
+	assert.Equal(t, int64(2), total)
 	assert.Equal(t, "card-1", got[0].ID)
 	assert.Equal(t, "card-2", got[1].ID)
 	assert.Equal(t, "Visa", got[0].Name)
@@ -319,24 +321,26 @@ func TestCardsService_ListCards_EmptyUserID(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := setupCardsService(t)
 
-	got, err := svc.ListCards(ctx, "")
+	got, total, err := svc.ListCards(ctx, "", 10, 0)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	assert.Equal(t, int64(0), total)
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
-	repo.EXPECT().FindByUserID(gomock.Any(), gomock.Any()).Times(0)
+	repo.EXPECT().FindByUserID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 }
 
 func TestCardsService_ListCards_RepoError(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := setupCardsService(t)
 
-	repo.EXPECT().FindByUserID(ctx, "user-1").Return(nil, errors.New("db error"))
+	repo.EXPECT().FindByUserID(ctx, "user-1", 10, 0).Return(nil, errors.New("db error"))
 
-	got, err := svc.ListCards(ctx, "user-1")
+	got, total, err := svc.ListCards(ctx, "user-1", 10, 0)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	assert.Equal(t, int64(0), total)
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.Internal, st.Code())

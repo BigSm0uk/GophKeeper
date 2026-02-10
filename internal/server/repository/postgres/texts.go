@@ -144,8 +144,8 @@ func (r *TextRepository) FindByID(ctx context.Context, id string) (*models.Text,
 	return text, nil
 }
 
-func (r *TextRepository) FindByUserID(ctx context.Context, userID string) ([]*models.Text, error) {
-	texts, err := r.base.FindByUserID(ctx, userID)
+func (r *TextRepository) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*models.Text, error) {
+	texts, err := r.base.FindByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}

@@ -71,8 +71,8 @@ func (r *CardRepository) FindByID(ctx context.Context, id string) (*models.Card,
 	return r.base.FindByID(ctx, id)
 }
 
-func (r *CardRepository) FindByUserID(ctx context.Context, userID string) ([]*models.Card, error) {
-	return r.base.FindByUserID(ctx, userID)
+func (r *CardRepository) FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*models.Card, error) {
+	return r.base.FindByUserID(ctx, userID, limit, offset)
 }
 
 func (r *CardRepository) Delete(ctx context.Context, id string) error {

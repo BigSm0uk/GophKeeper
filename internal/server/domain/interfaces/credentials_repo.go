@@ -15,7 +15,7 @@ type CredentialRepository interface {
 	FindByID(ctx context.Context, id string) (*models.Credential, error)
 
 	// FindByUserId retrieves all credentials by user GetID.
-	FindByUserId(ctx context.Context, id string) ([]*models.Credential, error)
+	FindByUserId(ctx context.Context, id string, limit, offset int) ([]*models.Credential, error)
 
 	// Update modifies an existing credential's information.
 	Update(ctx context.Context, credential *models.Credential) error

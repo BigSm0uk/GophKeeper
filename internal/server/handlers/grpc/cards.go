@@ -118,7 +118,7 @@ func (h *CardsHandler) Get(ctx context.Context, req *pb.CardGetRequest) (*pb.Car
 }
 
 // List returns paginated card entries.
-func (h *CardsHandler) List(ctx context.Context, _ *pb.CardListRequest) (*pb.CardListResponse, error) {
+func (h *CardsHandler) List(ctx context.Context, req *pb.CardListRequest) (*pb.CardListResponse, error) {
 	logger := GetLoggerFromContext(ctx, h.logger)
 
 	logger.Info("List cards request received")
@@ -128,7 +128,17 @@ func (h *CardsHandler) List(ctx context.Context, _ *pb.CardListRequest) (*pb.Car
 		return nil, err
 	}
 
-	cards, err := h.cardsService.ListCards(ctx, user.ID)
+	limit := int(req.Page.Limit)
+	offset := int(req.Page.Offset)
+
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	cards, total, err := h.cardsService.ListCards(ctx, user.ID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +162,9 @@ func (h *CardsHandler) List(ctx context.Context, _ *pb.CardListRequest) (*pb.Car
 	return &pb.CardListResponse{
 		Items: pbCards,
 		Page: &pb.PageResponse{
-			Total: uint32(len(pbCards)),
+			Total:  uint32(total),
+			Limit:  uint32(limit),
+			Offset: uint32(offset),
 		},
 	}, nil
 }

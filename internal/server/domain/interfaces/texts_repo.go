@@ -15,7 +15,7 @@ type TextRepository interface {
 	FindByID(ctx context.Context, id string) (*models.Text, error)
 
 	// FindByUserID retrieves all texts by user GetID.
-	FindByUserID(ctx context.Context, userID string) ([]*models.Text, error)
+	FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*models.Text, error)
 
 	// Update modifies an existing text's information.
 	Update(ctx context.Context, text *models.Text) error

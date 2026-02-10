@@ -265,11 +265,13 @@ func TestCredentialsService_ListCredentials_Success(t *testing.T) {
 		validCredentialModel("cred-2", "user-1"),
 	}
 	list[1].Name = "GitLab"
-	repo.EXPECT().FindByUserId(ctx, "user-1").Return(list, nil)
+	repo.EXPECT().FindByUserId(ctx, "user-1", 10, 0).Return(list, nil)
+	repo.EXPECT().CountByUserID(ctx, "user-1").Return(int64(2), nil)
 
-	got, err := svc.ListCredentials(ctx, "user-1")
+	got, total, err := svc.ListCredentials(ctx, "user-1", 10, 0)
 	require.NoError(t, err)
 	require.Len(t, got, 2)
+	assert.Equal(t, int64(2), total)
 	assert.Equal(t, "cred-1", got[0].ID)
 	assert.Equal(t, "cred-2", got[1].ID)
 	assert.Equal(t, "GitHub", got[0].Name)
@@ -280,24 +282,26 @@ func TestCredentialsService_ListCredentials_EmptyUserID(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := setupCredentialsService(t)
 
-	got, err := svc.ListCredentials(ctx, "")
+	got, total, err := svc.ListCredentials(ctx, "", 10, 0)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	assert.Equal(t, int64(0), total)
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
-	repo.EXPECT().FindByUserId(gomock.Any(), gomock.Any()).Times(0)
+	repo.EXPECT().FindByUserId(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 }
 
 func TestCredentialsService_ListCredentials_RepoError(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := setupCredentialsService(t)
 
-	repo.EXPECT().FindByUserId(ctx, "user-1").Return(nil, errors.New("db error"))
+	repo.EXPECT().FindByUserId(ctx, "user-1", 10, 0).Return(nil, errors.New("db error"))
 
-	got, err := svc.ListCredentials(ctx, "user-1")
+	got, total, err := svc.ListCredentials(ctx, "user-1", 10, 0)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	assert.Equal(t, int64(0), total)
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.Internal, st.Code())

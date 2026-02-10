@@ -90,24 +90,32 @@ func (s *TextsService) GetText(ctx context.Context, userID, textID string) (*ent
 }
 
 // ListTexts retrieves all texts for a user.
-func (s *TextsService) ListTexts(ctx context.Context, userID string) ([]*entity.Text, error) {
+func (s *TextsService) ListTexts(ctx context.Context, userID string, limit, offset int) ([]*entity.Text, int64, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, 0, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 
-	texts, err := s.repo.FindByUserID(ctx, userID)
+	texts, err := s.repo.FindByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		s.logger.Error("Failed to list texts",
 			zap.Error(err),
 			zap.String("user_id", userID))
-		return nil, status.Error(codes.Internal, "failed to list texts")
+		return nil, 0, status.Error(codes.Internal, "failed to list texts")
+	}
+
+	count, err := s.repo.CountByUserID(ctx, userID)
+	if err != nil {
+		s.logger.Error("Failed to count texts",
+			zap.Error(err),
+			zap.String("user_id", userID))
+		return nil, 0, status.Error(codes.Internal, "failed to count texts")
 	}
 
 	result := make([]*entity.Text, 0, len(texts))
 	for _, t := range texts {
 		result = append(result, textModelToEntity(t))
 	}
-	return result, nil
+	return result, count, nil
 }
 
 // UpdateText updates an existing text.

@@ -138,8 +138,8 @@ func (r *CredentialsRepository) FindByID(ctx context.Context, id string) (*model
 	return credential, nil
 }
 
-func (r *CredentialsRepository) FindByUserId(ctx context.Context, id string) ([]*models.Credential, error) {
-	return r.base.FindByUserID(ctx, id)
+func (r *CredentialsRepository) FindByUserId(ctx context.Context, id string, limit, offset int) ([]*models.Credential, error) {
+	return r.base.FindByUserID(ctx, id, limit, offset)
 }
 
 func (r *CredentialsRepository) Update(ctx context.Context, credential *models.Credential) error {

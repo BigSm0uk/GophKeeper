@@ -94,24 +94,32 @@ func (s *CardsService) GetCard(ctx context.Context, userID, cardID string) (*ent
 }
 
 // ListCards retrieves all cards for a user.
-func (s *CardsService) ListCards(ctx context.Context, userID string) ([]*entity.Card, error) {
+func (s *CardsService) ListCards(ctx context.Context, userID string, limit, offset int) ([]*entity.Card, int64, error) {
 	if userID == "" {
-		return nil, status.Error(codes.InvalidArgument, "user GetID is required")
+		return nil, 0, status.Error(codes.InvalidArgument, "user GetID is required")
 	}
 
-	cards, err := s.repo.FindByUserID(ctx, userID)
+	cards, err := s.repo.FindByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		s.logger.Error("Failed to list cards",
 			zap.Error(err),
 			zap.String("user_id", userID))
-		return nil, status.Error(codes.Internal, "failed to list cards")
+		return nil, 0, status.Error(codes.Internal, "failed to list cards")
+	}
+
+	count, err := s.repo.CountByUserID(ctx, userID)
+	if err != nil {
+		s.logger.Error("Failed to count cards",
+			zap.Error(err),
+			zap.String("user_id", userID))
+		return nil, 0, status.Error(codes.Internal, "failed to count cards")
 	}
 
 	result := make([]*entity.Card, 0, len(cards))
 	for _, c := range cards {
 		result = append(result, cardModelToEntity(c))
 	}
-	return result, nil
+	return result, count, nil
 }
 
 // UpdateCard updates an existing card.

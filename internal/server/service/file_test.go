@@ -172,7 +172,7 @@ func TestFileService_DetectContentType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
-			got := svc.detectContentType(tt.path, nil)
+			got := svc.detectContentType(tt.path)
 			// mime.TypeByExtension may override for some extensions
 			if got != tt.want {
 				// Fallback: at least non-empty for known types

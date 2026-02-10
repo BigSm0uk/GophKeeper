@@ -243,11 +243,13 @@ func TestTextsService_ListTexts_Success(t *testing.T) {
 		{ID: "t1", UserID: "user-1", Name: "a", Content: "x"},
 		{ID: "t2", UserID: "user-1", Name: "b", Content: "y"},
 	}
-	repo.EXPECT().FindByUserID(ctx, "user-1").Return(list, nil)
+	repo.EXPECT().FindByUserID(ctx, "user-1", 10, 0).Return(list, nil)
+	repo.EXPECT().CountByUserID(ctx, "user-1").Return(int64(2), nil)
 
-	got, err := svc.ListTexts(ctx, "user-1")
+	got, total, err := svc.ListTexts(ctx, "user-1", 10, 0)
 	require.NoError(t, err)
 	require.Len(t, got, 2)
+	assert.Equal(t, int64(2), total)
 	assert.Equal(t, "t1", got[0].ID)
 	assert.Equal(t, "t2", got[1].ID)
 }
@@ -256,24 +258,26 @@ func TestTextsService_ListTexts_EmptyUserID(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := setupTextsService(t)
 
-	got, err := svc.ListTexts(ctx, "")
+	got, total, err := svc.ListTexts(ctx, "", 10, 0)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	assert.Equal(t, int64(0), total)
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
-	repo.EXPECT().FindByUserID(gomock.Any(), gomock.Any()).Times(0)
+	repo.EXPECT().FindByUserID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 }
 
 func TestTextsService_ListTexts_RepoError(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := setupTextsService(t)
 
-	repo.EXPECT().FindByUserID(ctx, "user-1").Return(nil, errors.New("db error"))
+	repo.EXPECT().FindByUserID(ctx, "user-1", 10, 0).Return(nil, errors.New("db error"))
 
-	got, err := svc.ListTexts(ctx, "user-1")
+	got, total, err := svc.ListTexts(ctx, "user-1", 10, 0)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	assert.Equal(t, int64(0), total)
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.Internal, st.Code())

@@ -59,7 +59,7 @@ tasks:
           GOBIN="{{.BIN_DIR}}" go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@{{.PROTOC_GEN_GRPC_GATEWAY_VERSION}}
         }
   update-deps:
-    deps: [buf:install]
+    deps: [buf:install, lint]
     desc: Обновляем зависимости protobuf (нужен VPN)
     dir: proto
     cmds:

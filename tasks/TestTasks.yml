@@ -77,11 +77,23 @@ tasks:
       - go test -v -race -coverprofile={{.COVERAGE_INTEGRATION}} -covermode=atomic ./tests/integration/...
       - go tool cover -func={{.COVERAGE_INTEGRATION}}
 
+  # Install golangci-lint into ./bin
+  lint:install:
+    desc: Install golangci-lint binary
+    cmds:
+      - mkdir -p "{{.BIN_DIR}}"
+      - |
+        [ -f "{{.BIN_DIR}}/golangci-lint" ] || {
+          echo '📦 Installing golangci-lint...'
+          GOBIN="{{.BIN_DIR}}" go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+        }
+
   # Lint (golangci-lint)
   lint:
+    deps: [lint:install]
     desc: Run golangci-lint
     cmds:
-      - golangci-lint run --timeout=5m ./...
+      - "{{.BIN_DIR}}/golangci-lint run --timeout=5m ./..."
 
   # All checks: unit, integration, lint
   all:

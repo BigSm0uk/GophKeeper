@@ -22,8 +22,14 @@ jobs:
         go-version: '1.25.3'
         cache: true
 
+    - name: Install Task
+      uses: go-task/setup-task@v1
+
+    - name: Generate proto files
+      run: task proto:gen
+
     - name: Run unit tests
-      run: go test -short -v -race -coverprofile=coverage-unit.out -covermode=atomic ./...
+      run: task test:unit:cover
 
     - name: Upload unit test coverage
       uses: codecov/codecov-action@v4
@@ -47,8 +53,14 @@ jobs:
         go-version: '1.22'
         cache: true
 
+    - name: Install Task
+      uses: go-task/setup-task@v1
+
+    - name: Generate proto files
+      run: task proto:gen
+
     - name: Run integration tests
-      run: go test -v -race -coverprofile=coverage-integration.out -covermode=atomic ./tests/integration/...
+      run: task test:integration:cover
 
     - name: Upload integration test coverage
       uses: codecov/codecov-action@v4
@@ -72,11 +84,14 @@ jobs:
         go-version: '1.22'
         cache: true
 
-    - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v4
-      with:
-        version: latest
-        args: --timeout=5m
+    - name: Install Task
+      uses: go-task/setup-task@v1
+
+    - name: Generate proto files
+      run: task proto:gen
+
+    - name: Run lint
+      run: task test:lint
 
   # Общий статус для всех проверок
   tests-status:

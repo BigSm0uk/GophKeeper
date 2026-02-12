@@ -177,6 +177,80 @@ func TestStreamEncryptor_RoundTrip_LargeFile(t *testing.T) {
 	assert.Equal(t, original, decrypted)
 }
 
+func TestStreamEncryptor_RoundTrip_100MB(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping 100MB test in short mode")
+	}
+
+	se := setupStreamEncryptor(t)
+	// Default chunk size (1MB) — real production scenario
+	tmpDir := t.TempDir()
+
+	const fileSize = 100 * 1024 * 1024 // 100MB
+
+	// Generate 100MB random file
+	srcPath := filepath.Join(tmpDir, "large_100mb.bin")
+	f, err := os.Create(srcPath)
+	require.NoError(t, err)
+
+	// Write in 1MB blocks to avoid allocating 100MB in memory at once
+	block := make([]byte, 1024*1024)
+	written := int64(0)
+	for written < fileSize {
+		_, err := io.ReadFull(rand.Reader, block)
+		require.NoError(t, err)
+		n, err := f.Write(block)
+		require.NoError(t, err)
+		written += int64(n)
+	}
+	f.Close()
+
+	// Compute source SHA256 for verification
+	srcChecksum, err := ComputeFileChecksum(srcPath)
+	require.NoError(t, err)
+
+	// Encrypt
+	encPath := filepath.Join(tmpDir, "encrypted_100mb.enc")
+	t.Log("Encrypting 100MB file...")
+	encSize, encChecksum, err := se.EncryptFile(srcPath, encPath)
+	require.NoError(t, err)
+	assert.Greater(t, encSize, int64(fileSize), "encrypted file should be larger than original")
+	assert.NotEmpty(t, encChecksum)
+	t.Logf("Encrypted size: %d bytes (overhead: %.2f%%)", encSize, float64(encSize-fileSize)/float64(fileSize)*100)
+
+	// Verify predicted size matches
+	expectedSize := se.EncryptedFileSize(fileSize)
+	assert.Equal(t, expectedSize, encSize, "predicted encrypted size should match actual")
+
+	// Verify encrypted checksum matches recomputation
+	recomputedChecksum, err := ComputeFileChecksum(encPath)
+	require.NoError(t, err)
+	assert.Equal(t, encChecksum, recomputedChecksum, "encrypted checksum should be reproducible")
+
+	// Verify original size from header
+	origSize, err := se.GetOriginalSize(encPath)
+	require.NoError(t, err)
+	assert.Equal(t, int64(fileSize), origSize, "header should store correct original size")
+
+	// Decrypt
+	decPath := filepath.Join(tmpDir, "decrypted_100mb.bin")
+	t.Log("Decrypting 100MB file...")
+	err = se.DecryptFile(encPath, decPath)
+	require.NoError(t, err)
+
+	// Verify decrypted file matches original via checksum (avoid loading 100MB into memory)
+	decChecksum, err := ComputeFileChecksum(decPath)
+	require.NoError(t, err)
+	assert.Equal(t, srcChecksum, decChecksum, "decrypted file checksum must match original")
+
+	// Verify decrypted file size
+	decInfo, err := os.Stat(decPath)
+	require.NoError(t, err)
+	assert.Equal(t, int64(fileSize), decInfo.Size(), "decrypted file size must match original")
+
+	t.Log("100MB round-trip test passed successfully")
+}
+
 func TestStreamEncryptor_CorruptedChunk(t *testing.T) {
 	se := setupStreamEncryptor(t)
 	se.chunkSize = 256

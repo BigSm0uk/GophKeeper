@@ -49,19 +49,19 @@ tasks:
       - task: test:unit
       - task: test:integration
 
-  # Unit tests only (fast, -short skips integration)
+  # Unit tests only (excludes tests/integration)
   unit:
     deps: [mockgen:gen]
     desc: Run unit tests
     cmds:
-      - go test -short -v -race ./...
+      - go test -v -race $(go list ./... | grep -v tests/integration)
 
   # Unit tests with coverage
   unit:cover:
     deps: [mockgen:gen]
     desc: Run unit tests with coverage report
     cmds:
-      - go test -short -v -race -coverprofile={{.COVERAGE_UNIT}} -covermode=atomic ./...
+      - go test -v -race -coverprofile={{.COVERAGE_UNIT}} -covermode=atomic $(go list ./... | grep -v tests/integration)
       - go tool cover -func={{.COVERAGE_UNIT}}
 
   # Integration tests (require DB, see tests/integration)

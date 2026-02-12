@@ -27,7 +27,7 @@ func main() {
 
 	// Инициализация хранилища
 	fmt.Println("📦 Initializing storage...")
-	sm, err := storage.InitializeStorage(dbPath, username, masterPassword, nil)
+	sm, err := storage.InitializeStorage(dbPath, username, masterPassword, nil, nil)
 	if err != nil {
 		log.Fatal(err)
 	}

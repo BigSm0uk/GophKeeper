@@ -239,8 +239,8 @@ func (m MasterPasswordModel) initStorage() tea.Cmd {
 			return storageInitResult{err: fmt.Errorf("master password is required")}
 		}
 
-		// Initialize StorageManager with optional server salt provider
-		sm, err := storage.InitializeStorage(m.dbPath, m.username, masterPassword, m.saltProvider)
+		// Initialize StorageManager reusing the existing TokenStore to avoid duplicate keyring.Open()
+		sm, err := storage.InitializeStorage(m.dbPath, m.username, masterPassword, m.tokenStore, m.saltProvider)
 		if err != nil {
 			return storageInitResult{err: fmt.Errorf("failed to initialize storage: %w", err)}
 		}

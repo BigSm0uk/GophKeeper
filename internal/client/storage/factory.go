@@ -33,17 +33,21 @@ type SaltProvider interface {
 // InitializeStorage creates a new storage manager for a user.
 // If the user already exists, it verifies the master password.
 // If the user is new, it creates a new salt and saves the password hash.
+// tokenStore should be a pre-existing TokenStore instance to avoid duplicate keyring.Open() calls.
+// If tokenStore is nil, a new one is created (for standalone/test usage).
 // saltProvider may be nil if server is unavailable (offline mode).
-func InitializeStorage(dbPath, username, masterPassword string, saltProvider SaltProvider) (*StorageManager, error) {
+func InitializeStorage(dbPath, username, masterPassword string, tokenStore *TokenStore, saltProvider SaltProvider) (*StorageManager, error) {
 	db, err := NewLocalDB(dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open local database: %w", err)
 	}
 
-	tokenStore, err := NewTokenStore()
-	if err != nil {
-		db.Close()
-		return nil, fmt.Errorf("failed to open token store: %w", err)
+	if tokenStore == nil {
+		tokenStore, err = NewTokenStore()
+		if err != nil {
+			db.Close()
+			return nil, fmt.Errorf("failed to open token store: %w", err)
+		}
 	}
 
 	salt, isNewUser, err := resolveSalt(username, tokenStore, saltProvider)

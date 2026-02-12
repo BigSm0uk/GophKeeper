@@ -22,7 +22,7 @@ func setupTestStorage(t *testing.T) (*storage.StorageManager, func()) {
 	masterPassword := "test-master-password-123"
 
 	// Initialize storage
-	sm, err := storage.InitializeStorage(dbPath, username, masterPassword, nil)
+	sm, err := storage.InitializeStorage(dbPath, username, masterPassword, nil, nil)
 	require.NoError(t, err)
 	require.NotNil(t, sm)
 
@@ -330,7 +330,7 @@ func TestStorageManager_MasterPassword(t *testing.T) {
 		username := "test-invalid-pw@example.com"
 
 		// Initialize with password
-		sm, err := storage.InitializeStorage(dbPath, username, "correct-password", nil)
+		sm, err := storage.InitializeStorage(dbPath, username, "correct-password", nil, nil)
 		require.NoError(t, err)
 		require.NotNil(t, sm)
 
@@ -343,7 +343,7 @@ func TestStorageManager_MasterPassword(t *testing.T) {
 		sm.Close()
 
 		// Try to open with wrong password
-		sm2, err := storage.InitializeStorage(dbPath, username, "wrong-password", nil)
+		sm2, err := storage.InitializeStorage(dbPath, username, "wrong-password", nil, nil)
 		assert.Error(t, err)
 		assert.Nil(t, sm2)
 		assert.Contains(t, err.Error(), "invalid master password")
@@ -360,7 +360,7 @@ func TestStorageManager_MasterPassword(t *testing.T) {
 		password := "correct-password"
 
 		// Initialize and save data
-		sm, err := storage.InitializeStorage(dbPath, username, password, nil)
+		sm, err := storage.InitializeStorage(dbPath, username, password, nil, nil)
 		require.NoError(t, err)
 
 		cred := storage.CreateCredentialWithEncryption(
@@ -371,7 +371,7 @@ func TestStorageManager_MasterPassword(t *testing.T) {
 		sm.Close()
 
 		// Reopen with same password
-		sm2, err := storage.InitializeStorage(dbPath, username, password, nil)
+		sm2, err := storage.InitializeStorage(dbPath, username, password, nil, nil)
 		require.NoError(t, err)
 		require.NotNil(t, sm2)
 

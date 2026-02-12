@@ -15,9 +15,14 @@ type TokenStore struct {
 	hashCache map[string][]byte // кэш для хешей паролей
 }
 
+// NewTokenStore creates a TokenStore backed by the OS keyring.
+// On macOS, KeychainTrustApplication adds the binary to the Keychain ACL so
+// subsequent accesses do not trigger a system password dialog.
 func NewTokenStore() (*TokenStore, error) {
 	r, err := keyring.Open(keyring.Config{
-		ServiceName: serviceName,
+		ServiceName:                    serviceName,
+		KeychainTrustApplication:       true,
+		KeychainAccessibleWhenUnlocked: true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("open keyring: %w", err)

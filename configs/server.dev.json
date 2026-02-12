@@ -14,7 +14,12 @@
         "host": "0.0.0.0",
         "port": 50051,
         "read_timeout": "15s",
-        "write_timeout": "15s"
+        "write_timeout": "15s",
+        "tls": {
+            "enabled": true,
+            "cert_file": "keys/server.crt",
+            "key_file": "keys/server.key"
+        }
     },
     "http":{
         "host": "0.0.0.0",

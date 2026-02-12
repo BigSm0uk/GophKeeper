@@ -9,6 +9,7 @@ import (
 	grpchandlers "github.com/BigSm0uk/GophKeeper/internal/server/handlers/grpc"
 	"github.com/BigSm0uk/GophKeeper/internal/server/service"
 	pb "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1"
+	"github.com/BigSm0uk/GophKeeper/pkg/util"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -27,7 +28,7 @@ type GRPCServer struct {
 }
 
 func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *service.AuthService, binariesService *service.BinaryService, credentialsService *service.CredentialsService, cardsService *service.CardsService, textsService *service.TextsService, userService *service.UserService, jwtService *service.JWTService) *GRPCServer {
-	server := grpc.NewServer(
+	opts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			grpchandlers.RequestIDInterceptor(logger),                   // First: generate request GetID
 			grpchandlers.RecoveryInterceptor(logger),                    // Second: catch panics
@@ -40,7 +41,18 @@ func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *se
 			grpchandlers.StreamAuthInterceptor(authService, cfg.Auth, logger), // Third: authenticate
 			grpchandlers.StreamLoggingInterceptor(logger),                     // Last: log with all context
 		),
-	)
+	}
+
+	if cfg.GRPC.TLS.Enabled {
+		creds, err := util.LoadServerTLSCredentials(cfg.GRPC.TLS.CertFile, cfg.GRPC.TLS.KeyFile)
+		if err != nil {
+			logger.Fatal("failed to load TLS credentials", zap.Error(err))
+		}
+		opts = append(opts, grpc.Creds(creds))
+		logger.Info("gRPC TLS enabled")
+	}
+
+	server := grpc.NewServer(opts...)
 
 	authHandler := grpchandlers.NewAuthHandler(logger, authService, cfg.JWT)
 	binariesHandler := grpchandlers.NewBinariesHandler(logger, binariesService)

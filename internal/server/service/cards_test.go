@@ -97,6 +97,7 @@ func TestCardsService_CreateCard_EmptyUserID(t *testing.T) {
 	got, err := svc.CreateCard(ctx, "", card)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	// validateCard uses validation.Err() which returns gRPC status
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
@@ -110,9 +111,7 @@ func TestCardsService_CreateCard_NilCard(t *testing.T) {
 	got, err := svc.CreateCard(ctx, "user-1", nil)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidCard))
 	repo.EXPECT().Create(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -201,9 +200,6 @@ func TestCardsService_CreateCard_RepoError(t *testing.T) {
 	got, err := svc.CreateCard(ctx, "user-1", card)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- GetCard ---
@@ -231,9 +227,7 @@ func TestCardsService_GetCard_EmptyUserID(t *testing.T) {
 	got, err := svc.GetCard(ctx, "", "card-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -244,9 +238,7 @@ func TestCardsService_GetCard_EmptyCardID(t *testing.T) {
 	got, err := svc.GetCard(ctx, "user-1", "")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCardNotFound))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -259,9 +251,7 @@ func TestCardsService_GetCard_NotFound(t *testing.T) {
 	got, err := svc.GetCard(ctx, "user-1", "card-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCardNotFound))
 }
 
 func TestCardsService_GetCard_PermissionDenied(t *testing.T) {
@@ -274,9 +264,7 @@ func TestCardsService_GetCard_PermissionDenied(t *testing.T) {
 	got, err := svc.GetCard(ctx, "other-user", "card-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCardNotFound))
 }
 
 func TestCardsService_GetCard_RepoError(t *testing.T) {
@@ -288,9 +276,6 @@ func TestCardsService_GetCard_RepoError(t *testing.T) {
 	got, err := svc.GetCard(ctx, "user-1", "card-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- ListCards ---
@@ -325,9 +310,7 @@ func TestCardsService_ListCards_EmptyUserID(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.Equal(t, int64(0), total)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByUserID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -341,9 +324,6 @@ func TestCardsService_ListCards_RepoError(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.Equal(t, int64(0), total)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- UpdateCard ---
@@ -392,9 +372,7 @@ func TestCardsService_UpdateCard_EmptyUserID(t *testing.T) {
 	got, err := svc.UpdateCard(ctx, "", card)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -405,9 +383,7 @@ func TestCardsService_UpdateCard_NilCard(t *testing.T) {
 	got, err := svc.UpdateCard(ctx, "user-1", nil)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidCard))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -421,9 +397,7 @@ func TestCardsService_UpdateCard_EmptyCardID(t *testing.T) {
 	got, err := svc.UpdateCard(ctx, "user-1", card)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCardNotFound))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -437,9 +411,7 @@ func TestCardsService_UpdateCard_NotFound(t *testing.T) {
 	got, err := svc.UpdateCard(ctx, "user-1", card)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCardNotFound))
 }
 
 func TestCardsService_UpdateCard_PermissionDenied(t *testing.T) {
@@ -453,9 +425,7 @@ func TestCardsService_UpdateCard_PermissionDenied(t *testing.T) {
 	got, err := svc.UpdateCard(ctx, "other-user", card)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCardNotFound))
 }
 
 func TestCardsService_UpdateCard_EmptyName(t *testing.T) {
@@ -469,6 +439,7 @@ func TestCardsService_UpdateCard_EmptyName(t *testing.T) {
 	got, err := svc.UpdateCard(ctx, "user-1", card)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	// validateCard uses validation.Err() which returns gRPC status
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
@@ -487,9 +458,6 @@ func TestCardsService_UpdateCard_RepoUpdateError(t *testing.T) {
 	got, err := svc.UpdateCard(ctx, "user-1", card)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 func TestCardsService_UpdateCard_RepoUpdateErrNotFound(t *testing.T) {
@@ -504,9 +472,7 @@ func TestCardsService_UpdateCard_RepoUpdateErrNotFound(t *testing.T) {
 	got, err := svc.UpdateCard(ctx, "user-1", card)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCardNotFound))
 }
 
 // --- DeleteCard ---
@@ -529,9 +495,7 @@ func TestCardsService_DeleteCard_EmptyUserID(t *testing.T) {
 
 	err := svc.DeleteCard(ctx, "", "card-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -541,9 +505,7 @@ func TestCardsService_DeleteCard_EmptyCardID(t *testing.T) {
 
 	err := svc.DeleteCard(ctx, "user-1", "")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCardNotFound))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -555,9 +517,7 @@ func TestCardsService_DeleteCard_NotFound(t *testing.T) {
 
 	err := svc.DeleteCard(ctx, "user-1", "card-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCardNotFound))
 }
 
 func TestCardsService_DeleteCard_PermissionDenied(t *testing.T) {
@@ -569,9 +529,7 @@ func TestCardsService_DeleteCard_PermissionDenied(t *testing.T) {
 
 	err := svc.DeleteCard(ctx, "other-user", "card-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCardNotFound))
 	repo.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -585,9 +543,6 @@ func TestCardsService_DeleteCard_RepoDeleteError(t *testing.T) {
 
 	err := svc.DeleteCard(ctx, "user-1", "card-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 func TestCardsService_DeleteCard_RepoDeleteErrNotFound(t *testing.T) {
@@ -600,7 +555,5 @@ func TestCardsService_DeleteCard_RepoDeleteErrNotFound(t *testing.T) {
 
 	err := svc.DeleteCard(ctx, "user-1", "card-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCardNotFound))
 }

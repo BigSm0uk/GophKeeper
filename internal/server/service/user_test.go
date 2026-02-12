@@ -261,9 +261,7 @@ func TestUserService_ChangePassword_InvalidOldPassword(t *testing.T) {
 
 	err = svc.ChangePassword(ctx, "user-1", "wrong", "newpass")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Unauthenticated, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidCredentials))
 	userRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -360,9 +358,7 @@ func TestUserService_DeleteAccount_InvalidPassword(t *testing.T) {
 
 	err = svc.DeleteAccount(ctx, "user-1", "wrong")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Unauthenticated, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidCredentials))
 	userRepo.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(0)
 }
 

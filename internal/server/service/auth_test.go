@@ -377,12 +377,16 @@ func TestAuthService_Token_RefreshToken_SessionRevoked(t *testing.T) {
 
 func TestAuthService_ValidateToken_Success(t *testing.T) {
 	ctx := context.Background()
-	as, ur, _, jwt := setupAuthService(t)
+	as, ur, sr, jwt := setupAuthService(t)
 
 	userID := "uid-1"
+	clientID := "client-1"
 	user := &models.User{ID: userID, Username: "u"}
+	claims := &models.JWTClaims{UserID: userID, ClientID: clientID}
+	session := &models.Session{ID: "s1", UserID: userID, ClientID: clientID, ExpiresAt: time.Now().Add(time.Hour)}
 
-	jwt.EXPECT().ExtractUserID("valid-token").Return(userID, nil)
+	jwt.EXPECT().ValidateAccessToken("valid-token").Return(claims, nil)
+	sr.EXPECT().FindByUserIDAndClientID(ctx, userID, clientID).Return(session, nil)
 	ur.EXPECT().FindByID(ctx, userID).Return(user, nil)
 
 	got, err := as.ValidateToken(ctx, "valid-token")
@@ -391,13 +395,12 @@ func TestAuthService_ValidateToken_Success(t *testing.T) {
 	assert.Equal(t, userID, got.ID)
 }
 
-func TestAuthService_ValidateToken_ExtractUserIDError(t *testing.T) {
-	ctx := context.Background()
+func TestAuthService_ValidateToken_InvalidToken(t *testing.T) {
 	as, _, _, jwt := setupAuthService(t)
 
-	jwt.EXPECT().ExtractUserID("bad-token").Return("", errors.New("invalid"))
+	jwt.EXPECT().ValidateAccessToken("bad-token").Return(nil, errors.New("invalid"))
 
-	got, err := as.ValidateToken(ctx, "bad-token")
+	got, err := as.ValidateToken(context.Background(), "bad-token")
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.ErrorIs(t, err, models.ErrInvalidToken)
@@ -405,10 +408,16 @@ func TestAuthService_ValidateToken_ExtractUserIDError(t *testing.T) {
 
 func TestAuthService_ValidateToken_UserNotFound(t *testing.T) {
 	ctx := context.Background()
-	as, ur, _, jwt := setupAuthService(t)
+	as, ur, sr, jwt := setupAuthService(t)
 
-	jwt.EXPECT().ExtractUserID("token").Return("uid", nil)
-	ur.EXPECT().FindByID(ctx, "uid").Return(nil, errors.New("user not found"))
+	userID := "uid"
+	clientID := "client-1"
+	claims := &models.JWTClaims{UserID: userID, ClientID: clientID}
+	session := &models.Session{ID: "s1", UserID: userID, ClientID: clientID, ExpiresAt: time.Now().Add(time.Hour)}
+
+	jwt.EXPECT().ValidateAccessToken("token").Return(claims, nil)
+	sr.EXPECT().FindByUserIDAndClientID(ctx, userID, clientID).Return(session, nil)
+	ur.EXPECT().FindByID(ctx, userID).Return(nil, errors.New("user not found"))
 
 	got, err := as.ValidateToken(ctx, "token")
 	require.Error(t, err)

@@ -51,12 +51,14 @@ tasks:
 
   # Unit tests only (fast, -short skips integration)
   unit:
+    deps: [mockgen:gen]
     desc: Run unit tests
     cmds:
       - go test -short -v -race ./...
 
   # Unit tests with coverage
   unit:cover:
+    deps: [mockgen:gen]
     desc: Run unit tests with coverage report
     cmds:
       - go test -short -v -race -coverprofile={{.COVERAGE_UNIT}} -covermode=atomic ./...
@@ -85,6 +87,6 @@ tasks:
   all:
     desc: Run unit tests, integration tests and lint
     cmds:
-      - task: test:unit
-      - task: test:integration
-      - task: test:lint
+      - task: unit
+      - task: integration
+      - task: lint

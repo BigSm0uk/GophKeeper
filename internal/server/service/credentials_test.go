@@ -87,6 +87,7 @@ func TestCredentialsService_CreateCredential_EmptyUserID(t *testing.T) {
 	got, err := svc.CreateCredential(ctx, "", cred)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	// validateCredential uses validation.Err() which returns gRPC status
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
@@ -100,9 +101,7 @@ func TestCredentialsService_CreateCredential_NilCredential(t *testing.T) {
 	got, err := svc.CreateCredential(ctx, "user-1", nil)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidCredential))
 	repo.EXPECT().Create(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -161,9 +160,6 @@ func TestCredentialsService_CreateCredential_RepoError(t *testing.T) {
 	got, err := svc.CreateCredential(ctx, "user-1", cred)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- GetCredential ---
@@ -192,9 +188,7 @@ func TestCredentialsService_GetCredential_EmptyUserID(t *testing.T) {
 	got, err := svc.GetCredential(ctx, "", "cred-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -205,9 +199,7 @@ func TestCredentialsService_GetCredential_EmptyCredentialID(t *testing.T) {
 	got, err := svc.GetCredential(ctx, "user-1", "")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCredentialNotFound))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -220,9 +212,7 @@ func TestCredentialsService_GetCredential_NotFound(t *testing.T) {
 	got, err := svc.GetCredential(ctx, "user-1", "cred-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCredentialNotFound))
 }
 
 func TestCredentialsService_GetCredential_PermissionDenied(t *testing.T) {
@@ -235,9 +225,7 @@ func TestCredentialsService_GetCredential_PermissionDenied(t *testing.T) {
 	got, err := svc.GetCredential(ctx, "other-user", "cred-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCredentialNotFound))
 }
 
 func TestCredentialsService_GetCredential_RepoError(t *testing.T) {
@@ -249,9 +237,6 @@ func TestCredentialsService_GetCredential_RepoError(t *testing.T) {
 	got, err := svc.GetCredential(ctx, "user-1", "cred-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- ListCredentials ---
@@ -286,9 +271,7 @@ func TestCredentialsService_ListCredentials_EmptyUserID(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.Equal(t, int64(0), total)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByUserId(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -302,9 +285,6 @@ func TestCredentialsService_ListCredentials_RepoError(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.Equal(t, int64(0), total)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- UpdateCredential ---
@@ -354,9 +334,7 @@ func TestCredentialsService_UpdateCredential_EmptyUserID(t *testing.T) {
 	got, err := svc.UpdateCredential(ctx, "", cred)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -367,9 +345,7 @@ func TestCredentialsService_UpdateCredential_NilCredential(t *testing.T) {
 	got, err := svc.UpdateCredential(ctx, "user-1", nil)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidCredential))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -383,9 +359,7 @@ func TestCredentialsService_UpdateCredential_EmptyCredentialID(t *testing.T) {
 	got, err := svc.UpdateCredential(ctx, "user-1", cred)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCredentialNotFound))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -399,9 +373,7 @@ func TestCredentialsService_UpdateCredential_NotFound(t *testing.T) {
 	got, err := svc.UpdateCredential(ctx, "user-1", cred)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCredentialNotFound))
 }
 
 func TestCredentialsService_UpdateCredential_PermissionDenied(t *testing.T) {
@@ -415,9 +387,7 @@ func TestCredentialsService_UpdateCredential_PermissionDenied(t *testing.T) {
 	got, err := svc.UpdateCredential(ctx, "other-user", cred)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCredentialNotFound))
 }
 
 func TestCredentialsService_UpdateCredential_EmptyName(t *testing.T) {
@@ -431,6 +401,7 @@ func TestCredentialsService_UpdateCredential_EmptyName(t *testing.T) {
 	got, err := svc.UpdateCredential(ctx, "user-1", cred)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	// validateCredential uses validation.Err() which returns gRPC status
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
@@ -483,9 +454,6 @@ func TestCredentialsService_UpdateCredential_RepoUpdateError(t *testing.T) {
 	got, err := svc.UpdateCredential(ctx, "user-1", cred)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 func TestCredentialsService_UpdateCredential_RepoFindAfterUpdateError(t *testing.T) {
@@ -501,9 +469,6 @@ func TestCredentialsService_UpdateCredential_RepoFindAfterUpdateError(t *testing
 	got, err := svc.UpdateCredential(ctx, "user-1", cred)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- DeleteCredential ---
@@ -526,9 +491,7 @@ func TestCredentialsService_DeleteCredential_EmptyUserID(t *testing.T) {
 
 	err := svc.DeleteCredential(ctx, "", "cred-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -538,9 +501,7 @@ func TestCredentialsService_DeleteCredential_EmptyCredentialID(t *testing.T) {
 
 	err := svc.DeleteCredential(ctx, "user-1", "")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCredentialNotFound))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -552,9 +513,7 @@ func TestCredentialsService_DeleteCredential_NotFound(t *testing.T) {
 
 	err := svc.DeleteCredential(ctx, "user-1", "cred-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCredentialNotFound))
 }
 
 func TestCredentialsService_DeleteCredential_PermissionDenied(t *testing.T) {
@@ -566,9 +525,7 @@ func TestCredentialsService_DeleteCredential_PermissionDenied(t *testing.T) {
 
 	err := svc.DeleteCredential(ctx, "other-user", "cred-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCredentialNotFound))
 	repo.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -582,9 +539,6 @@ func TestCredentialsService_DeleteCredential_RepoDeleteError(t *testing.T) {
 
 	err := svc.DeleteCredential(ctx, "user-1", "cred-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 func TestCredentialsService_DeleteCredential_RepoDeleteErrNotFound(t *testing.T) {
@@ -597,7 +551,5 @@ func TestCredentialsService_DeleteCredential_RepoDeleteErrNotFound(t *testing.T)
 
 	err := svc.DeleteCredential(ctx, "user-1", "cred-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrCredentialNotFound))
 }

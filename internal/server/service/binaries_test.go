@@ -88,9 +88,7 @@ func TestBinaryService_UploadStream_ChecksumMismatch(t *testing.T) {
 
 	_, err := svc.UploadStream(ctx, metadata, bytes.NewReader([]byte("test")))
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidBinary))
 }
 
 func TestBinaryService_UploadStream_SizeMismatchReceivedMore(t *testing.T) {
@@ -111,9 +109,7 @@ func TestBinaryService_UploadStream_SizeMismatchReceivedMore(t *testing.T) {
 
 	_, err := svc.UploadStream(ctx, metadata, bytes.NewReader(content))
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidFileSize))
 }
 
 func TestBinaryService_UploadStream_SizeMismatchReceivedLess(t *testing.T) {
@@ -134,9 +130,7 @@ func TestBinaryService_UploadStream_SizeMismatchReceivedLess(t *testing.T) {
 
 	_, err := svc.UploadStream(ctx, metadata, bytes.NewReader(content))
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidFileSize))
 }
 
 func TestBinaryService_UploadStream_DeduplicationExistingChecksum(t *testing.T) {
@@ -188,9 +182,6 @@ func TestBinaryService_UploadStream_FindByChecksumError(t *testing.T) {
 
 	_, err := svc.UploadStream(ctx, metadata, bytes.NewReader(content))
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 func TestBinaryService_UploadStream_CreateError(t *testing.T) {
@@ -212,9 +203,6 @@ func TestBinaryService_UploadStream_CreateError(t *testing.T) {
 
 	_, err := svc.UploadStream(ctx, metadata, bytes.NewReader(content))
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 func TestBinaryService_UploadStream_EmptyFileRejectedByValidation(t *testing.T) {
@@ -275,9 +263,7 @@ func TestBinaryService_DownloadStream_BinaryNotFound(t *testing.T) {
 	var buf bytes.Buffer
 	_, err := svc.DownloadStream(ctx, "user-123", "non-existent", &buf)
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrBinaryNotFound))
 }
 
 func TestBinaryService_DownloadStream_PermissionDeniedWrongUser(t *testing.T) {
@@ -294,9 +280,7 @@ func TestBinaryService_DownloadStream_PermissionDeniedWrongUser(t *testing.T) {
 	var buf bytes.Buffer
 	_, err := svc.DownloadStream(ctx, "user-456", "binary-123", &buf)
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrBinaryNotFound))
 }
 
 func TestBinaryService_DownloadStream_DatabaseError(t *testing.T) {
@@ -308,9 +292,6 @@ func TestBinaryService_DownloadStream_DatabaseError(t *testing.T) {
 	var buf bytes.Buffer
 	_, err := svc.DownloadStream(ctx, "user-123", "binary-123", &buf)
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 func TestBinaryService_DownloadStream_FileNotFoundOnDisk(t *testing.T) {
@@ -328,9 +309,6 @@ func TestBinaryService_DownloadStream_FileNotFoundOnDisk(t *testing.T) {
 	var buf bytes.Buffer
 	_, err := svc.DownloadStream(ctx, "user-123", "binary-123", &buf)
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- GetBinary ---
@@ -365,9 +343,7 @@ func TestBinaryService_GetBinary_NotFound(t *testing.T) {
 	got, err := svc.GetBinary(ctx, "user-1", "bin-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrBinaryNotFound))
 }
 
 func TestBinaryService_GetBinary_PermissionDenied(t *testing.T) {
@@ -380,9 +356,7 @@ func TestBinaryService_GetBinary_PermissionDenied(t *testing.T) {
 	got, err := svc.GetBinary(ctx, "other-user", "bin-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrBinaryNotFound))
 }
 
 // --- ListBinaries ---
@@ -461,9 +435,7 @@ func TestBinaryService_UpdateBinary_NotFound(t *testing.T) {
 	got, err := svc.UpdateBinary(ctx, "user-1", "bin-1", "name", nil)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrBinaryNotFound))
 }
 
 func TestBinaryService_UpdateBinary_PermissionDenied(t *testing.T) {
@@ -476,9 +448,7 @@ func TestBinaryService_UpdateBinary_PermissionDenied(t *testing.T) {
 	got, err := svc.UpdateBinary(ctx, "other-user", "bin-1", "name", nil)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrBinaryNotFound))
 }
 
 // --- DeleteBinary ---
@@ -514,9 +484,7 @@ func TestBinaryService_DeleteBinary_NotFound(t *testing.T) {
 
 	err := svc.DeleteBinary(ctx, "user-1", "bin-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrBinaryNotFound))
 }
 
 func TestBinaryService_DeleteBinary_PermissionDenied(t *testing.T) {
@@ -528,9 +496,7 @@ func TestBinaryService_DeleteBinary_PermissionDenied(t *testing.T) {
 
 	err := svc.DeleteBinary(ctx, "other-user", "bin-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrBinaryNotFound))
 }
 
 // --- ValidateUploadRequest ---

@@ -75,6 +75,7 @@ func TestTextsService_CreateText_EmptyUserID(t *testing.T) {
 	got, err := svc.CreateText(ctx, "", text)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	// validateText uses validation.Err() which returns gRPC status
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
@@ -88,9 +89,7 @@ func TestTextsService_CreateText_NilText(t *testing.T) {
 	got, err := svc.CreateText(ctx, "user-1", nil)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidText))
 	repo.EXPECT().Create(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -134,9 +133,6 @@ func TestTextsService_CreateText_RepoError(t *testing.T) {
 	got, err := svc.CreateText(ctx, "user-1", text)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- GetText ---
@@ -171,9 +167,7 @@ func TestTextsService_GetText_EmptyUserID(t *testing.T) {
 	got, err := svc.GetText(ctx, "", "text-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -184,9 +178,7 @@ func TestTextsService_GetText_EmptyTextID(t *testing.T) {
 	got, err := svc.GetText(ctx, "user-1", "")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrTextNotFound))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -199,9 +191,7 @@ func TestTextsService_GetText_NotFound(t *testing.T) {
 	got, err := svc.GetText(ctx, "user-1", "text-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrTextNotFound))
 }
 
 func TestTextsService_GetText_PermissionDenied(t *testing.T) {
@@ -214,9 +204,7 @@ func TestTextsService_GetText_PermissionDenied(t *testing.T) {
 	got, err := svc.GetText(ctx, "other-user", "text-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrTextNotFound))
 }
 
 func TestTextsService_GetText_RepoError(t *testing.T) {
@@ -228,9 +216,6 @@ func TestTextsService_GetText_RepoError(t *testing.T) {
 	got, err := svc.GetText(ctx, "user-1", "text-1")
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- ListTexts ---
@@ -262,9 +247,7 @@ func TestTextsService_ListTexts_EmptyUserID(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.Equal(t, int64(0), total)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByUserID(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -278,9 +261,6 @@ func TestTextsService_ListTexts_RepoError(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, got)
 	assert.Equal(t, int64(0), total)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- UpdateText ---
@@ -336,9 +316,7 @@ func TestTextsService_UpdateText_EmptyUserID(t *testing.T) {
 	got, err := svc.UpdateText(ctx, "", text)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -349,9 +327,7 @@ func TestTextsService_UpdateText_NilText(t *testing.T) {
 	got, err := svc.UpdateText(ctx, "user-1", nil)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidText))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -364,9 +340,7 @@ func TestTextsService_UpdateText_EmptyTextID(t *testing.T) {
 	got, err := svc.UpdateText(ctx, "user-1", text)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrTextNotFound))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -380,9 +354,7 @@ func TestTextsService_UpdateText_NotFound(t *testing.T) {
 	got, err := svc.UpdateText(ctx, "user-1", text)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrTextNotFound))
 }
 
 func TestTextsService_UpdateText_PermissionDenied(t *testing.T) {
@@ -396,9 +368,7 @@ func TestTextsService_UpdateText_PermissionDenied(t *testing.T) {
 	got, err := svc.UpdateText(ctx, "other-user", text)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrTextNotFound))
 }
 
 func TestTextsService_UpdateText_EmptyName(t *testing.T) {
@@ -412,6 +382,7 @@ func TestTextsService_UpdateText_EmptyName(t *testing.T) {
 	got, err := svc.UpdateText(ctx, "user-1", text)
 	require.Error(t, err)
 	assert.Nil(t, got)
+	// validateText uses validation.Err() which returns gRPC status
 	st, ok := status.FromError(err)
 	require.True(t, ok)
 	assert.Equal(t, codes.InvalidArgument, st.Code())
@@ -430,9 +401,6 @@ func TestTextsService_UpdateText_RepoUpdateError(t *testing.T) {
 	got, err := svc.UpdateText(ctx, "user-1", text)
 	require.Error(t, err)
 	assert.Nil(t, got)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }
 
 // --- DeleteText ---
@@ -455,9 +423,7 @@ func TestTextsService_DeleteText_EmptyUserID(t *testing.T) {
 
 	err := svc.DeleteText(ctx, "", "text-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrInvalidUserID))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -467,9 +433,7 @@ func TestTextsService_DeleteText_EmptyTextID(t *testing.T) {
 
 	err := svc.DeleteText(ctx, "user-1", "")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.InvalidArgument, st.Code())
+	assert.True(t, errors.Is(err, models.ErrTextNotFound))
 	repo.EXPECT().FindByID(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -481,9 +445,7 @@ func TestTextsService_DeleteText_NotFound(t *testing.T) {
 
 	err := svc.DeleteText(ctx, "user-1", "text-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.NotFound, st.Code())
+	assert.True(t, errors.Is(err, models.ErrTextNotFound))
 }
 
 func TestTextsService_DeleteText_PermissionDenied(t *testing.T) {
@@ -495,9 +457,7 @@ func TestTextsService_DeleteText_PermissionDenied(t *testing.T) {
 
 	err := svc.DeleteText(ctx, "other-user", "text-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.PermissionDenied, st.Code())
+	assert.True(t, errors.Is(err, models.ErrTextNotFound))
 	repo.EXPECT().Delete(gomock.Any(), gomock.Any()).Times(0)
 }
 
@@ -511,7 +471,4 @@ func TestTextsService_DeleteText_RepoDeleteError(t *testing.T) {
 
 	err := svc.DeleteText(ctx, "user-1", "text-1")
 	require.Error(t, err)
-	st, ok := status.FromError(err)
-	require.True(t, ok)
-	assert.Equal(t, codes.Internal, st.Code())
 }

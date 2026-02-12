@@ -69,6 +69,8 @@ func NewCredentialsViewModel(offlineService *service.OfflineService) Credentials
 	l.Title = "🔑 Credentials"
 	l.SetShowStatusBar(true)
 	l.SetFilteringEnabled(true)
+	l.SetShowHelp(false)
+	l.DisableQuitKeybindings()
 	l.Styles.Title = menuTitleStyle
 
 	// Инициализация полей ввода
@@ -123,6 +125,10 @@ func (m CredentialsViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.list.SetWidth(msg.Width)
 		m.list.SetHeight(msg.Height - 4)
+		return m, nil
+
+	case tea.MouseMsg:
+		// Block all mouse events to prevent unintended navigation
 		return m, nil
 
 	case tea.KeyMsg:

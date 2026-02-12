@@ -72,6 +72,8 @@ func NewBinariesViewModel(storageManager *storage.StorageManager) BinariesViewMo
 	l.Title = "📁 Binary Files"
 	l.SetShowStatusBar(true)
 	l.SetFilteringEnabled(true)
+	l.SetShowHelp(false)
+	l.DisableQuitKeybindings()
 	l.Styles.Title = menuTitleStyle
 
 	nameInput := textinput.New()
@@ -114,6 +116,10 @@ func (m BinariesViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.list.SetWidth(msg.Width)
 		m.list.SetHeight(msg.Height - 4)
+		return m, nil
+
+	case tea.MouseMsg:
+		// Block all mouse events to prevent unintended navigation
 		return m, nil
 
 	case tea.KeyMsg:

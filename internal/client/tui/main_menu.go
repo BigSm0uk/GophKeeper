@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/BigSm0uk/GophKeeper/internal/client/api"
@@ -12,6 +13,30 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
+
+// teaSubCmd wraps a tea.Model to run as a sub-program via tea.Exec.
+// This ensures the parent program properly suspends while the child runs,
+// preventing input competition and rendering conflicts.
+type teaSubCmd struct {
+	model  tea.Model
+	opts   []tea.ProgramOption
+	stdin  io.Reader
+	stdout io.Writer
+	stderr io.Writer
+}
+
+func (c *teaSubCmd) SetStdin(r io.Reader)  { c.stdin = r }
+func (c *teaSubCmd) SetStdout(w io.Writer) { c.stdout = w }
+func (c *teaSubCmd) SetStderr(w io.Writer) { c.stderr = w }
+
+// Run creates and runs a new tea.Program with the parent's I/O.
+func (c *teaSubCmd) Run() error {
+	opts := make([]tea.ProgramOption, len(c.opts))
+	copy(opts, c.opts)
+	opts = append(opts, tea.WithInput(c.stdin), tea.WithOutput(c.stdout))
+	_, err := tea.NewProgram(c.model, opts...).Run()
+	return err
+}
 
 type menuItem struct {
 	title       string
@@ -92,6 +117,8 @@ func NewMainMenuModel(client *api.Client, tokenStore *storage.TokenStore, offlin
 	l.Title = "GophKeeper - Main Menu"
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
+	l.SetShowHelp(false)
+	l.DisableQuitKeybindings()
 	l.Styles.Title = menuTitleStyle
 
 	return mainMenuModel{
@@ -135,6 +162,10 @@ func (m mainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.list.SetHeight(msg.Height - 4)
 		return m, nil
 
+	case tea.MouseMsg:
+		// Block all mouse events to prevent unintended navigation
+		return m, nil
+
 	case onlineStatusMsg:
 		m.isOnline = msg.online
 		m.lastCheck = time.Now()
@@ -144,7 +175,8 @@ func (m mainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.checkOnlineStatus()
 
 	case subProgramReturnedMsg:
-		return m, m.checkOnlineStatus()
+		// Re-query window size to force a full re-render after returning from sub-program
+		return m, tea.Batch(m.checkOnlineStatus(), tea.WindowSize())
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -174,59 +206,59 @@ func (m mainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				)
 
 			case "credentials":
-				// Открываем экран credentials
 				if m.offlineService == nil {
 					return m, nil
 				}
-				credView := NewCredentialsViewModel(m.offlineService)
-				return m, func() tea.Msg {
-					tea.NewProgram(credView, tea.WithAltScreen()).Run()
+				return m, tea.Exec(&teaSubCmd{
+					model: NewCredentialsViewModel(m.offlineService),
+					opts:  []tea.ProgramOption{tea.WithAltScreen()},
+				}, func(err error) tea.Msg {
 					return subProgramReturnedMsg{}
-				}
+				})
 
 			case "cards":
-				// Открываем экран cards
 				if m.offlineService == nil {
 					return m, nil
 				}
-				cardView := NewCardsViewModel(m.offlineService)
-				return m, func() tea.Msg {
-					tea.NewProgram(cardView, tea.WithAltScreen()).Run()
+				return m, tea.Exec(&teaSubCmd{
+					model: NewCardsViewModel(m.offlineService),
+					opts:  []tea.ProgramOption{tea.WithAltScreen()},
+				}, func(err error) tea.Msg {
 					return subProgramReturnedMsg{}
-				}
+				})
 
 			case "texts":
-				// Открываем экран texts
 				if m.offlineService == nil {
 					return m, nil
 				}
-				textView := NewTextsViewModel(m.offlineService)
-				return m, func() tea.Msg {
-					tea.NewProgram(textView, tea.WithAltScreen()).Run()
+				return m, tea.Exec(&teaSubCmd{
+					model: NewTextsViewModel(m.offlineService),
+					opts:  []tea.ProgramOption{tea.WithAltScreen()},
+				}, func(err error) tea.Msg {
 					return subProgramReturnedMsg{}
-				}
+				})
 
 			case "sync":
-				// Открываем экран синхронизации
 				if m.storageManager == nil {
 					return m, nil
 				}
-				syncView := NewSyncViewModel(m.storageManager, m.syncManager)
-				return m, func() tea.Msg {
-					tea.NewProgram(syncView, tea.WithAltScreen()).Run()
+				return m, tea.Exec(&teaSubCmd{
+					model: NewSyncViewModel(m.storageManager, m.syncManager),
+					opts:  []tea.ProgramOption{tea.WithAltScreen()},
+				}, func(err error) tea.Msg {
 					return subProgramReturnedMsg{}
-				}
+				})
 
 			case "binaries":
-				// Открываем экран binaries
 				if m.storageManager == nil {
 					return m, nil
 				}
-				binaryView := NewBinariesViewModel(m.storageManager)
-				return m, func() tea.Msg {
-					tea.NewProgram(binaryView, tea.WithAltScreen()).Run()
+				return m, tea.Exec(&teaSubCmd{
+					model: NewBinariesViewModel(m.storageManager),
+					opts:  []tea.ProgramOption{tea.WithAltScreen()},
+				}, func(err error) tea.Msg {
 					return subProgramReturnedMsg{}
-				}
+				})
 			}
 		}
 	}

@@ -49,6 +49,10 @@ func (m SyncViewModel) Init() tea.Cmd {
 
 func (m SyncViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.MouseMsg:
+		// Block all mouse events to prevent unintended navigation
+		return m, nil
+
 	case tea.KeyMsg:
 		key := msg.String()
 

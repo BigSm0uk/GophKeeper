@@ -227,7 +227,7 @@ var cardListCmd = &cobra.Command{
 
 var cardGetCmd = &cobra.Command{
 	Use:   "get <id>",
-	Short: "Get a card by GetID",
+	Short: "Get a card by ID",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if container == nil {
@@ -236,56 +236,88 @@ var cardGetCmd = &cobra.Command{
 
 		id := args[0]
 
-		// Инициализируем encryptor
 		if err := ensureEncryptor(); err != nil {
 			return err
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+		// Try online first
+		if isOnline() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 
-		resp, err := container.API.GetCard(ctx, id)
-		if err != nil {
-			return fmt.Errorf("failed to get card: %w", err)
+			resp, err := container.API.GetCard(ctx, id)
+			if err == nil {
+				card := resp.Card
+
+				decryptedCardNumber, err := container.Encryptor.Decrypt(card.CardNumber)
+				if err != nil {
+					return fmt.Errorf("failed to decrypt card number: %w", err)
+				}
+				decryptedExpiryDate, err := container.Encryptor.Decrypt(card.ExpiryDate)
+				if err != nil {
+					return fmt.Errorf("failed to decrypt expiry date: %w", err)
+				}
+				decryptedCVV, err := container.Encryptor.Decrypt(card.Cvv)
+				if err != nil {
+					return fmt.Errorf("failed to decrypt CVV: %w", err)
+				}
+
+				fmt.Printf("Card Details:\n")
+				fmt.Printf("  ID:          %s\n", card.Id)
+				fmt.Printf("  Name:        %s\n", card.Name)
+				fmt.Printf("  Cardholder:  %s\n", card.CardholderName)
+				fmt.Printf("  Number:      %s\n", decryptedCardNumber)
+				fmt.Printf("  Expiry:      %s\n", decryptedExpiryDate)
+				fmt.Printf("  CVV:         %s\n", decryptedCVV)
+
+				if card.BankName != nil {
+					fmt.Printf("  Bank:        %s\n", *card.BankName)
+				}
+				if card.Metadata != nil {
+					fmt.Printf("  Metadata:    %s\n", *card.Metadata)
+				}
+
+				if card.CreatedAt != nil {
+					fmt.Printf("  Created:     %s\n", card.CreatedAt.AsTime().Format(time.RFC3339))
+				}
+				if card.UpdatedAt != nil {
+					fmt.Printf("  Updated:     %s\n", card.UpdatedAt.AsTime().Format(time.RFC3339))
+				}
+
+				return nil
+			}
+			fmt.Printf("⚠ Server unavailable, showing local data: %v\n", err)
 		}
 
-		card := resp.Card
-
-		// Дешифруем чувствительные данные
-		decryptedCardNumber, err := container.Encryptor.Decrypt(card.CardNumber)
-		if err != nil {
-			return fmt.Errorf("failed to decrypt card number: %w", err)
-		}
-		decryptedExpiryDate, err := container.Encryptor.Decrypt(card.ExpiryDate)
-		if err != nil {
-			return fmt.Errorf("failed to decrypt expiry date: %w", err)
-		}
-		decryptedCVV, err := container.Encryptor.Decrypt(card.Cvv)
-		if err != nil {
-			return fmt.Errorf("failed to decrypt CVV: %w", err)
+		// Offline: get from local
+		offlineSvc := getOfflineService()
+		if offlineSvc == nil {
+			return fmt.Errorf("offline storage not initialized")
 		}
 
-		fmt.Printf("Card Details:\n")
-		fmt.Printf("  GetID:          %s\n", card.Id)
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel2()
+
+		card, err := offlineSvc.GetCard(ctx2, id)
+		if err != nil {
+			return fmt.Errorf("failed to get card locally: %w", err)
+		}
+
+		fmt.Printf("Card Details (offline):\n")
+		fmt.Printf("  ID:          %s\n", card.ID)
 		fmt.Printf("  Name:        %s\n", card.Name)
 		fmt.Printf("  Cardholder:  %s\n", card.CardholderName)
-		fmt.Printf("  Number:      %s\n", decryptedCardNumber)
-		fmt.Printf("  Expiry:      %s\n", decryptedExpiryDate)
-		fmt.Printf("  CVV:         %s\n", decryptedCVV)
-
+		fmt.Printf("  Number:      %s\n", card.CardNumber)
+		fmt.Printf("  Expiry:      %s\n", card.ExpiryDate)
+		fmt.Printf("  CVV:         %s\n", card.CVV)
 		if card.BankName != nil {
 			fmt.Printf("  Bank:        %s\n", *card.BankName)
 		}
 		if card.Metadata != nil {
 			fmt.Printf("  Metadata:    %s\n", *card.Metadata)
 		}
-
-		if card.CreatedAt != nil {
-			fmt.Printf("  Created:     %s\n", card.CreatedAt.AsTime().Format(time.RFC3339))
-		}
-		if card.UpdatedAt != nil {
-			fmt.Printf("  Updated:     %s\n", card.UpdatedAt.AsTime().Format(time.RFC3339))
-		}
+		fmt.Printf("  Status:      %s\n", card.SyncStatus)
+		fmt.Printf("  Updated:     %s\n", card.UpdatedAt.Format(time.RFC3339))
 
 		return nil
 	},
@@ -314,66 +346,127 @@ var cardUpdateCmd = &cobra.Command{
 			return fmt.Errorf("at least one field must be specified for update")
 		}
 
-		// Get current card to preserve unchanged fields
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		current, err := container.API.GetCard(ctx, id)
-		if err != nil {
-			return fmt.Errorf("failed to get current card: %w", err)
+		if err := ensureEncryptor(); err != nil {
+			return err
 		}
 
-		// Use current values if not specified
+		// Try online first
+		if isOnline() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			current, err := container.API.GetCard(ctx, id)
+			if err == nil {
+				if name == "" {
+					name = current.Card.Name
+				}
+				if cardNumber == "" {
+					cardNumber = current.Card.CardNumber
+				}
+				if cardholderName == "" {
+					cardholderName = current.Card.CardholderName
+				}
+				if expiryDate == "" {
+					expiryDate = current.Card.ExpiryDate
+				}
+				if cvv == "" {
+					cvv = current.Card.Cvv
+				}
+
+				req := &pb.CardUpdateRequest{
+					Id:             id,
+					Name:           name,
+					CardNumber:     cardNumber,
+					CardholderName: cardholderName,
+					ExpiryDate:     expiryDate,
+					Cvv:            cvv,
+				}
+
+				if cmd.Flags().Changed("bank") {
+					if bankName != "" {
+						req.BankName = &bankName
+					}
+				} else {
+					req.BankName = current.Card.BankName
+				}
+
+				if cmd.Flags().Changed("metadata") {
+					if metadata != "" {
+						req.Metadata = &metadata
+					}
+				} else {
+					req.Metadata = current.Card.Metadata
+				}
+
+				resp, apiErr := container.API.UpdateCard(ctx, req)
+				if apiErr == nil {
+					fmt.Printf("✓ Card updated successfully!\n")
+					fmt.Printf("  ID:          %s\n", resp.Card.Id)
+					fmt.Printf("  Name:        %s\n", resp.Card.Name)
+					fmt.Printf("  Cardholder:  %s\n", resp.Card.CardholderName)
+					return nil
+				}
+				fmt.Printf("⚠ Server unavailable for update, saving locally: %v\n", apiErr)
+			} else {
+				fmt.Printf("⚠ Server unavailable, updating locally: %v\n", err)
+			}
+		}
+
+		// Offline: update locally
+		offlineSvc := getOfflineService()
+		if offlineSvc == nil {
+			return fmt.Errorf("offline storage not initialized")
+		}
+
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel2()
+
+		existing, err := offlineSvc.GetCard(ctx2, id)
+		if err != nil {
+			return fmt.Errorf("card not found locally: %w", err)
+		}
+
 		if name == "" {
-			name = current.Card.Name
+			name = existing.Name
 		}
 		if cardNumber == "" {
-			cardNumber = current.Card.CardNumber
+			cardNumber = existing.CardNumber
 		}
 		if cardholderName == "" {
-			cardholderName = current.Card.CardholderName
+			cardholderName = existing.CardholderName
 		}
 		if expiryDate == "" {
-			expiryDate = current.Card.ExpiryDate
+			expiryDate = existing.ExpiryDate
 		}
 		if cvv == "" {
-			cvv = current.Card.Cvv
+			cvv = existing.CVV
 		}
 
-		req := &pb.CardUpdateRequest{
-			Id:             id,
-			Name:           name,
-			CardNumber:     cardNumber,
-			CardholderName: cardholderName,
-			ExpiryDate:     expiryDate,
-			Cvv:            cvv,
-		}
-
+		var bankPtr, metaPtr *string
 		if cmd.Flags().Changed("bank") {
 			if bankName != "" {
-				req.BankName = &bankName
+				bankPtr = &bankName
 			}
 		} else {
-			req.BankName = current.Card.BankName
+			bankPtr = existing.BankName
 		}
-
 		if cmd.Flags().Changed("metadata") {
 			if metadata != "" {
-				req.Metadata = &metadata
+				metaPtr = &metadata
 			}
 		} else {
-			req.Metadata = current.Card.Metadata
+			metaPtr = existing.Metadata
 		}
 
-		resp, err := container.API.UpdateCard(ctx, req)
+		updated, err := offlineSvc.UpdateCard(ctx2, id, name, cardNumber, cardholderName, expiryDate, cvv, bankPtr, metaPtr)
 		if err != nil {
-			return fmt.Errorf("failed to update card: %w", err)
+			return fmt.Errorf("failed to update card locally: %w", err)
 		}
 
-		fmt.Printf("✓ Card updated successfully!\n")
-		fmt.Printf("  GetID:          %s\n", resp.Card.Id)
-		fmt.Printf("  Name:        %s\n", resp.Card.Name)
-		fmt.Printf("  Cardholder:  %s\n", resp.Card.CardholderName)
+		fmt.Printf("✓ Card updated locally (will sync when online)\n")
+		fmt.Printf("  ID:          %s\n", updated.ID)
+		fmt.Printf("  Name:        %s\n", updated.Name)
+		fmt.Printf("  Cardholder:  %s\n", updated.CardholderName)
 
 		return nil
 	},

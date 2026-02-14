@@ -189,7 +189,7 @@ var textListCmd = &cobra.Command{
 
 var textGetCmd = &cobra.Command{
 	Use:   "get <id>",
-	Short: "Get a text note by GetID",
+	Short: "Get a text note by ID",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if container == nil {
@@ -198,42 +198,68 @@ var textGetCmd = &cobra.Command{
 
 		id := args[0]
 
-		// Инициализируем encryptor
 		if err := ensureEncryptor(); err != nil {
 			return err
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+		// Try online first
+		if isOnline() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 
-		resp, err := container.API.GetText(ctx, id)
-		if err != nil {
-			return fmt.Errorf("failed to get text: %w", err)
+			resp, err := container.API.GetText(ctx, id)
+			if err == nil {
+				text := resp.Text
+
+				decryptedContent, decErr := container.Encryptor.Decrypt(text.Content)
+				if decErr != nil {
+					return fmt.Errorf("failed to decrypt content: %w", decErr)
+				}
+
+				fmt.Printf("Text Note Details:\n")
+				fmt.Printf("  ID:      %s\n", text.Id)
+				fmt.Printf("  Name:    %s\n", text.Name)
+				fmt.Printf("  Content:\n%s\n", decryptedContent)
+
+				if text.Metadata != nil {
+					fmt.Printf("  Metadata: %s\n", *text.Metadata)
+				}
+
+				if text.CreatedAt != nil {
+					fmt.Printf("  Created:  %s\n", text.CreatedAt.AsTime().Format(time.RFC3339))
+				}
+				if text.UpdatedAt != nil {
+					fmt.Printf("  Updated:  %s\n", text.UpdatedAt.AsTime().Format(time.RFC3339))
+				}
+
+				return nil
+			}
+			fmt.Printf("⚠ Server unavailable, showing local data: %v\n", err)
 		}
 
-		text := resp.Text
-
-		// Дешифруем content
-		decryptedContent, err := container.Encryptor.Decrypt(text.Content)
-		if err != nil {
-			return fmt.Errorf("failed to decrypt content: %w", err)
+		// Offline: get from local
+		offlineSvc := getOfflineService()
+		if offlineSvc == nil {
+			return fmt.Errorf("offline storage not initialized")
 		}
 
-		fmt.Printf("Text Note Details:\n")
-		fmt.Printf("  GetID:      %s\n", text.Id)
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel2()
+
+		text, err := offlineSvc.GetText(ctx2, id)
+		if err != nil {
+			return fmt.Errorf("failed to get text locally: %w", err)
+		}
+
+		fmt.Printf("Text Note Details (offline):\n")
+		fmt.Printf("  ID:      %s\n", text.ID)
 		fmt.Printf("  Name:    %s\n", text.Name)
-		fmt.Printf("  Content:\n%s\n", decryptedContent)
-
+		fmt.Printf("  Content:\n%s\n", text.Content)
 		if text.Metadata != nil {
 			fmt.Printf("  Metadata: %s\n", *text.Metadata)
 		}
-
-		if text.CreatedAt != nil {
-			fmt.Printf("  Created:  %s\n", text.CreatedAt.AsTime().Format(time.RFC3339))
-		}
-		if text.UpdatedAt != nil {
-			fmt.Printf("  Updated:  %s\n", text.UpdatedAt.AsTime().Format(time.RFC3339))
-		}
+		fmt.Printf("  Status:  %s\n", text.SyncStatus)
+		fmt.Printf("  Updated: %s\n", text.UpdatedAt.Format(time.RFC3339))
 
 		return nil
 	},
@@ -258,46 +284,91 @@ var textUpdateCmd = &cobra.Command{
 			return fmt.Errorf("at least one field must be specified for update")
 		}
 
-		// Get current text to preserve unchanged fields
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		current, err := container.API.GetText(ctx, id)
-		if err != nil {
-			return fmt.Errorf("failed to get current text: %w", err)
+		if err := ensureEncryptor(); err != nil {
+			return err
 		}
 
-		// Use current values if not specified
+		// Try online first
+		if isOnline() {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			current, err := container.API.GetText(ctx, id)
+			if err == nil {
+				if name == "" {
+					name = current.Text.Name
+				}
+				if content == "" {
+					content = current.Text.Content
+				}
+
+				req := &pb.TextUpdateRequest{
+					Id:      id,
+					Name:    name,
+					Content: content,
+				}
+
+				if cmd.Flags().Changed("metadata") {
+					if metadata != "" {
+						req.Metadata = &metadata
+					}
+				} else {
+					req.Metadata = current.Text.Metadata
+				}
+
+				resp, apiErr := container.API.UpdateText(ctx, req)
+				if apiErr == nil {
+					fmt.Printf("✓ Text note updated successfully!\n")
+					fmt.Printf("  ID:      %s\n", resp.Text.Id)
+					fmt.Printf("  Name:    %s\n", resp.Text.Name)
+					fmt.Printf("  Content: %s\n", truncate(resp.Text.Content, 50))
+					return nil
+				}
+				fmt.Printf("⚠ Server unavailable for update, saving locally: %v\n", apiErr)
+			} else {
+				fmt.Printf("⚠ Server unavailable, updating locally: %v\n", err)
+			}
+		}
+
+		// Offline: update locally
+		offlineSvc := getOfflineService()
+		if offlineSvc == nil {
+			return fmt.Errorf("offline storage not initialized")
+		}
+
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel2()
+
+		existing, err := offlineSvc.GetText(ctx2, id)
+		if err != nil {
+			return fmt.Errorf("text not found locally: %w", err)
+		}
+
 		if name == "" {
-			name = current.Text.Name
+			name = existing.Name
 		}
 		if content == "" {
-			content = current.Text.Content
+			content = existing.Content
 		}
 
-		req := &pb.TextUpdateRequest{
-			Id:      id,
-			Name:    name,
-			Content: content,
-		}
-
+		var metaPtr *string
 		if cmd.Flags().Changed("metadata") {
 			if metadata != "" {
-				req.Metadata = &metadata
+				metaPtr = &metadata
 			}
 		} else {
-			req.Metadata = current.Text.Metadata
+			metaPtr = existing.Metadata
 		}
 
-		resp, err := container.API.UpdateText(ctx, req)
+		updated, err := offlineSvc.UpdateText(ctx2, id, name, content, metaPtr)
 		if err != nil {
-			return fmt.Errorf("failed to update text: %w", err)
+			return fmt.Errorf("failed to update text locally: %w", err)
 		}
 
-		fmt.Printf("✓ Text note updated successfully!\n")
-		fmt.Printf("  GetID:      %s\n", resp.Text.Id)
-		fmt.Printf("  Name:    %s\n", resp.Text.Name)
-		fmt.Printf("  Content: %s\n", truncate(resp.Text.Content, 50))
+		fmt.Printf("✓ Text note updated locally (will sync when online)\n")
+		fmt.Printf("  ID:      %s\n", updated.ID)
+		fmt.Printf("  Name:    %s\n", updated.Name)
+		fmt.Printf("  Content: %s\n", truncate(updated.Content, 50))
 
 		return nil
 	},

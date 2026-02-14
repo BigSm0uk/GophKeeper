@@ -328,70 +328,128 @@ var credUpdateCmd = &cobra.Command{
 			return fmt.Errorf("at least one field must be specified for update")
 		}
 
-		// Инициализируем encryptor
 		if err := ensureEncryptor(); err != nil {
 			return err
 		}
 
-		// Get current credential to preserve unchanged fields
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+		// Try online first
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		serverOnline := container.API.IsServerAvailable(ctx)
+		cancel()
 
-		current, err := container.API.GetCredential(ctx, id)
-		if err != nil {
-			return fmt.Errorf("failed to get current credential: %w", err)
+		if serverOnline {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+
+			current, err := container.API.GetCredential(ctx, id)
+			if err == nil {
+				if name == "" {
+					name = current.Credential.Name
+				}
+				if login == "" {
+					login = current.Credential.Login
+				}
+
+				encryptedPassword := current.Credential.Password
+				if password != "" {
+					encryptedPassword, err = container.Encryptor.Encrypt(password)
+					if err != nil {
+						return fmt.Errorf("failed to encrypt password: %w", err)
+					}
+				}
+
+				req := &pb.CredentialUpdateRequest{
+					Id:       id,
+					Name:     name,
+					Login:    login,
+					Password: encryptedPassword,
+				}
+
+				if cmd.Flags().Changed("url") {
+					if url != "" {
+						req.Url = &url
+					}
+				} else {
+					req.Url = current.Credential.Url
+				}
+
+				if cmd.Flags().Changed("metadata") {
+					if metadata != "" {
+						req.Metadata = &metadata
+					}
+				} else {
+					req.Metadata = current.Credential.Metadata
+				}
+
+				resp, apiErr := container.API.UpdateCredential(ctx, req)
+				if apiErr == nil {
+					fmt.Printf("✓ Credential updated successfully!\n")
+					fmt.Printf("  ID:    %s\n", resp.Credential.Id)
+					fmt.Printf("  Name:  %s\n", resp.Credential.Name)
+					fmt.Printf("  Login: %s\n", resp.Credential.Login)
+
+					// Also update locally
+					offlineSvc := getOfflineService()
+					if offlineSvc != nil {
+						_, _ = offlineSvc.UpdateCredential(ctx, id, resp.Credential.Name, resp.Credential.Login, resp.Credential.Password, resp.Credential.Url, resp.Credential.Metadata)
+					}
+					return nil
+				}
+				fmt.Printf("⚠ Server unavailable for update, saving locally: %v\n", apiErr)
+			} else {
+				fmt.Printf("⚠ Server unavailable, updating locally: %v\n", err)
+			}
 		}
 
-		// Use current values if not specified
+		// Offline: update locally
+		offlineSvc := getOfflineService()
+		if offlineSvc == nil {
+			return fmt.Errorf("offline storage not initialized")
+		}
+
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel2()
+
+		existing, err := offlineSvc.GetCredential(ctx2, id)
+		if err != nil {
+			return fmt.Errorf("credential not found locally: %w", err)
+		}
+
 		if name == "" {
-			name = current.Credential.Name
+			name = existing.Name
 		}
 		if login == "" {
-			login = current.Credential.Login
+			login = existing.Login
+		}
+		if password == "" {
+			password = existing.Password
 		}
 
-		// Для пароля нужно шифровать если он изменился
-		encryptedPassword := current.Credential.Password // по умолчанию оставляем старый
-		if password != "" {
-			// Шифруем новый пароль
-			encryptedPassword, err = container.Encryptor.Encrypt(password)
-			if err != nil {
-				return fmt.Errorf("failed to encrypt password: %w", err)
-			}
-		}
-
-		req := &pb.CredentialUpdateRequest{
-			Id:       id,
-			Name:     name,
-			Login:    login,
-			Password: encryptedPassword,
-		}
-
+		var urlPtr, metaPtr *string
 		if cmd.Flags().Changed("url") {
 			if url != "" {
-				req.Url = &url
+				urlPtr = &url
 			}
 		} else {
-			req.Url = current.Credential.Url
+			urlPtr = existing.URL
 		}
-
 		if cmd.Flags().Changed("metadata") {
 			if metadata != "" {
-				req.Metadata = &metadata
+				metaPtr = &metadata
 			}
 		} else {
-			req.Metadata = current.Credential.Metadata
+			metaPtr = existing.Metadata
 		}
 
-		resp, err := container.API.UpdateCredential(ctx, req)
+		updated, err := offlineSvc.UpdateCredential(ctx2, id, name, login, password, urlPtr, metaPtr)
 		if err != nil {
-			return fmt.Errorf("failed to update credential: %w", err)
+			return fmt.Errorf("failed to update credential locally: %w", err)
 		}
 
-		fmt.Printf("✓ Credential updated successfully!\n")
-		fmt.Printf("  GetID:    %s\n", resp.Credential.Id)
-		fmt.Printf("  Name:  %s\n", resp.Credential.Name)
-		fmt.Printf("  Login: %s\n", resp.Credential.Login)
+		fmt.Printf("✓ Credential updated locally (will sync when online)\n")
+		fmt.Printf("  ID:    %s\n", updated.ID)
+		fmt.Printf("  Name:  %s\n", updated.Name)
+		fmt.Printf("  Login: %s\n", updated.Login)
 
 		return nil
 	},

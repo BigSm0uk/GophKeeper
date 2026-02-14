@@ -125,10 +125,18 @@ func TestStorageManager_Credentials(t *testing.T) {
 		err := sm.Encrypted.DeleteCredential("test-cred-1")
 		require.NoError(t, err)
 
-		// Verify deletion
+		// Soft-delete: item still exists with StatusDeleted
 		deleted, err := sm.Encrypted.GetCredential("test-cred-1")
 		require.NoError(t, err)
-		assert.Nil(t, deleted)
+		require.NotNil(t, deleted)
+		assert.Equal(t, storage.StatusDeleted, deleted.SyncStatus)
+
+		// But ListCredentials should NOT include deleted items
+		creds, err := sm.Encrypted.ListCredentials()
+		require.NoError(t, err)
+		for _, c := range creds {
+			assert.NotEqual(t, "test-cred-1", c.ID, "deleted credential should not appear in list")
+		}
 	})
 }
 
@@ -179,9 +187,18 @@ func TestStorageManager_Cards(t *testing.T) {
 		err := sm.Encrypted.DeleteCard("test-card-1")
 		require.NoError(t, err)
 
+		// Soft-delete: item still exists with StatusDeleted
 		deleted, err := sm.Encrypted.GetCard("test-card-1")
 		require.NoError(t, err)
-		assert.Nil(t, deleted)
+		require.NotNil(t, deleted)
+		assert.Equal(t, storage.StatusDeleted, deleted.SyncStatus)
+
+		// But ListCards should NOT include deleted items
+		cards, err := sm.Encrypted.ListCards()
+		require.NoError(t, err)
+		for _, c := range cards {
+			assert.NotEqual(t, "test-card-1", c.ID, "deleted card should not appear in list")
+		}
 	})
 }
 
@@ -224,9 +241,18 @@ func TestStorageManager_Texts(t *testing.T) {
 		err := sm.Encrypted.DeleteText("test-text-1")
 		require.NoError(t, err)
 
+		// Soft-delete: item still exists with StatusDeleted
 		deleted, err := sm.Encrypted.GetText("test-text-1")
 		require.NoError(t, err)
-		assert.Nil(t, deleted)
+		require.NotNil(t, deleted)
+		assert.Equal(t, storage.StatusDeleted, deleted.SyncStatus)
+
+		// But ListTexts should NOT include deleted items
+		texts, err := sm.Encrypted.ListTexts()
+		require.NoError(t, err)
+		for _, tx := range texts {
+			assert.NotEqual(t, "test-text-1", tx.ID, "deleted text should not appear in list")
+		}
 	})
 }
 
@@ -273,9 +299,18 @@ func TestStorageManager_Binaries(t *testing.T) {
 		err := sm.Encrypted.DeleteBinary("test-binary-1")
 		require.NoError(t, err)
 
+		// Soft-delete: item still exists with StatusDeleted
 		deleted, err := sm.Encrypted.GetBinary("test-binary-1")
 		require.NoError(t, err)
-		assert.Nil(t, deleted)
+		require.NotNil(t, deleted)
+		assert.Equal(t, storage.StatusDeleted, deleted.SyncStatus)
+
+		// But ListBinaries should NOT include deleted items
+		binaries, err := sm.Encrypted.ListBinaries()
+		require.NoError(t, err)
+		for _, b := range binaries {
+			assert.NotEqual(t, "test-binary-1", b.ID, "deleted binary should not appear in list")
+		}
 	})
 }
 

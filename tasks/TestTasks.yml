@@ -90,7 +90,7 @@ tasks:
 
   # Lint (golangci-lint)
   lint:
-    deps: [lint:install]
+    deps: [lint:install, mockgen:gen]
     desc: Run golangci-lint
     cmds:
       - "{{.BIN_DIR}}/golangci-lint run --timeout=5m ./..."

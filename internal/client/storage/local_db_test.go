@@ -224,23 +224,50 @@ func TestLocalDB_DeleteCredential(t *testing.T) {
 		UpdatedAt:  now,
 	}
 
-	// Сохраняем
+	// Save
 	if err := db.SaveCredential(cred); err != nil {
 		t.Fatalf("failed to save credential: %v", err)
 	}
 
-	// Удаляем
+	// Soft-delete
 	if err := db.DeleteCredential("test-id"); err != nil {
 		t.Fatalf("failed to delete credential: %v", err)
 	}
 
-	// Проверяем что его нет
+	// Get still returns the item but with StatusDeleted
 	retrieved, err := db.GetCredential("test-id")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if retrieved != nil {
-		t.Error("expected credential to be deleted")
+	if retrieved == nil {
+		t.Fatal("expected soft-deleted credential to still be retrievable via Get")
+	}
+	if retrieved.SyncStatus != storage.StatusDeleted {
+		t.Errorf("expected sync_status %s, got %s", storage.StatusDeleted, retrieved.SyncStatus)
+	}
+
+	// ListCredentials should NOT include deleted items
+	list, err := db.ListCredentials()
+	if err != nil {
+		t.Fatalf("unexpected error listing credentials: %v", err)
+	}
+	for _, c := range list {
+		if c.ID == "test-id" {
+			t.Error("deleted credential should not appear in list")
+		}
+	}
+
+	// PurgeCredential physically removes
+	if err := db.PurgeCredential("test-id"); err != nil {
+		t.Fatalf("failed to purge credential: %v", err)
+	}
+
+	purged, err := db.GetCredential("test-id")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if purged != nil {
+		t.Error("expected purged credential to be nil")
 	}
 }
 

@@ -362,7 +362,7 @@ func (m CardsViewModel) viewForm(title string) string {
 }
 
 func (m CardsViewModel) renderField(label string, input textinput.Model, fieldIndex int, activeStyle, inactiveStyle lipgloss.Style) string {
-	labelText := label
+	var labelText string
 	if m.focusedField == fieldIndex {
 		labelText = "→ " + activeStyle.Render(label)
 	} else {

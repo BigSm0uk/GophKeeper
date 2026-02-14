@@ -65,7 +65,7 @@ var (
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("62"))
 
-	selectedButtonStyle = buttonStyle.Copy().
+	selectedButtonStyle = buttonStyle.
 				Foreground(lipgloss.Color("62")).
 				BorderForeground(lipgloss.Color("62"))
 )
@@ -358,9 +358,7 @@ func (m authModel) View() string {
 
 	var form string
 	if m.mode == ModeRegister {
-		usernameLabel := "Username:"
-		passwordLabel := "Password:"
-		emailLabel := "Email (optional):"
+		var usernameLabel, passwordLabel, emailLabel string
 
 		if m.focused == 0 {
 			usernameLabel = "→ " + activeFieldStyle.Render("Username:")
@@ -389,8 +387,7 @@ func (m authModel) View() string {
 			"  "+m.email.View(),
 		)
 	} else {
-		usernameLabel := "Username:"
-		passwordLabel := "Password:"
+		var usernameLabel, passwordLabel string
 
 		if m.focused == 0 {
 			usernameLabel = "→ " + activeFieldStyle.Render("Username:")
@@ -497,27 +494,6 @@ func (m *authModel) fieldsCount() int {
 		return 3
 	}
 	return 2
-}
-
-func (m *authModel) focus() tea.Cmd {
-	switch m.focused {
-	case 0:
-		m.password.Blur()
-		m.email.Blur()
-		cmd := m.username.Focus()
-		return cmd
-	case 1:
-		m.username.Blur()
-		m.email.Blur()
-		cmd := m.password.Focus()
-		return cmd
-	case 2:
-		m.username.Blur()
-		m.password.Blur()
-		cmd := m.email.Focus()
-		return cmd
-	}
-	return nil
 }
 
 type submitResult struct {

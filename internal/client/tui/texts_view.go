@@ -298,9 +298,7 @@ func (m TextsViewModel) viewForm(title string) string {
 	activeStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("62")).Bold(true)
 	inactiveStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 
-	nameLabel := "Name:"
-	contentLabel := "Content:"
-	metadataLabel := "Metadata:"
+	var nameLabel, contentLabel, metadataLabel string
 
 	if m.focusedField == 0 {
 		nameLabel = "→ " + activeStyle.Render("Name:")

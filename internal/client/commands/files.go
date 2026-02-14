@@ -301,7 +301,7 @@ var fileDeleteCmd = &cobra.Command{
 		if !force {
 			fmt.Printf("Are you sure you want to delete file %s? (y/N): ", binaryID)
 			var confirm string
-			fmt.Scanln(&confirm)
+			_, _ = fmt.Scanln(&confirm)
 			if confirm != "y" && confirm != "Y" {
 				fmt.Println("Cancelled")
 				return nil

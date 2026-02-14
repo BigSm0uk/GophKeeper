@@ -49,7 +49,7 @@ func NewMasterPasswordModel(username, dbPath string, tokenStore *storage.TokenSt
 
 	// Проверяем, существует ли salt для этого пользователя
 	salt, _ := tokenStore.GetEncryptionSalt(username)
-	isNewUser := salt == nil || len(salt) == 0
+	isNewUser := len(salt) == 0
 
 	// Устанавливаем фокус на первое поле сразу
 	p.Focus()
@@ -148,8 +148,7 @@ func (m MasterPasswordModel) View() string {
 
 	var form string
 	if m.isNewUser {
-		passwordLabel := "Master Password:"
-		confirmLabel := "Confirm Password:"
+		var passwordLabel, confirmLabel string
 
 		if m.focused == 0 {
 			passwordLabel = "→ " + activeFieldStyle.Render("Master Password:")

@@ -6,7 +6,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -150,20 +149,6 @@ func (tc *TestContext) SeedTestData(t *testing.T, queries ...string) {
 		_, err := tc.Pool.Exec(tc.Ctx, query)
 		require.NoError(t, err, "Failed to execute seed query")
 	}
-}
-
-func freePort(t *testing.T) int {
-	t.Helper()
-
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err, "failed to find free port")
-
-	defer func() {
-		_ = l.Close()
-	}()
-
-	addr := l.Addr().(*net.TCPAddr)
-	return addr.Port
 }
 
 func generateTestJWTKeys(dir string) (priv, pub string) {

@@ -67,7 +67,6 @@ func TestBinariesService_UploadStream_SmallFile(t *testing.T) {
 			},
 		})
 		if errors.Is(err, io.EOF) {
-			err = nil
 			break
 		}
 		require.NoError(t, err)
@@ -138,7 +137,6 @@ func TestBinariesService_UploadStream_LargeFile(t *testing.T) {
 			},
 		})
 		if errors.Is(err, io.EOF) {
-			err = nil
 			break
 		}
 		require.NoError(t, err)
@@ -207,7 +205,6 @@ func TestBinariesService_DownloadStream_Success(t *testing.T) {
 			},
 		})
 		if errors.Is(err, io.EOF) {
-			err = nil
 			break
 		}
 		require.NoError(t, err)
@@ -295,7 +292,6 @@ func TestBinariesService_Get_Success(t *testing.T) {
 			},
 		})
 		if errors.Is(err, io.EOF) {
-			err = nil
 			break
 		}
 		require.NoError(t, err)
@@ -442,7 +438,6 @@ func TestBinariesService_Update_Success(t *testing.T) {
 			},
 		})
 		if errors.Is(err, io.EOF) {
-			err = nil
 			break
 		}
 		require.NoError(t, err)
@@ -521,7 +516,6 @@ func TestBinariesService_Delete_Success(t *testing.T) {
 			},
 		})
 		if errors.Is(err, io.EOF) {
-			err = nil
 			break
 		}
 		require.NoError(t, err)
@@ -608,7 +602,6 @@ func TestBinariesService_Upload_VeryLargeFile(t *testing.T) {
 			},
 		})
 		if errors.Is(err, io.EOF) {
-			err = nil
 			break
 		}
 		require.NoError(t, err)

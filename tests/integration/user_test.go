@@ -358,9 +358,8 @@ func TestUserService_RevokeSession_Success(t *testing.T) {
 
 	// Verify the revoked token cannot be used
 	authCtx2 := GetAuthContext(tc.Ctx, token2Resp.AccessToken)
-	_, err = client.GetProfile(authCtx2, &gophkeepv1.UserProfileGetRequest{})
-	// This should fail if the token was revoked
-	// Note: This depends on your token/session implementation
+	_, _ = client.GetProfile(authCtx2, &gophkeepv1.UserProfileGetRequest{})
+	// This should fail if the token was revoked (implementation-dependent)
 }
 
 func TestUserService_RevokeAllSessions_Success(t *testing.T) {

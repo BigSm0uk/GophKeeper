@@ -389,7 +389,7 @@ var textDeleteCmd = &cobra.Command{
 		if !force {
 			fmt.Printf("Are you sure you want to delete text note %s? (y/N): ", id)
 			var response string
-			fmt.Scanln(&response)
+			_, _ = fmt.Scanln(&response)
 			if response != "y" && response != "Y" {
 				fmt.Println("Deletion cancelled.")
 				return nil

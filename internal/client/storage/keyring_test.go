@@ -15,10 +15,10 @@ func TestTokenStore_SaveAndGetAccessToken(t *testing.T) {
 	username := "testuser"
 	token := "test-access-token"
 
-	// Сохраняем
 	if err := ts.SaveAccessToken(username, token); err != nil {
-		t.Fatalf("failed to save access token: %v", err)
+		t.Skipf("keyring not available (e.g. CI): %v", err)
 	}
+	defer ts.DeleteTokens(username)
 
 	// Получаем
 	retrieved, err := ts.GetAccessToken(username)
@@ -29,9 +29,6 @@ func TestTokenStore_SaveAndGetAccessToken(t *testing.T) {
 	if retrieved != token {
 		t.Errorf("expected token %s, got %s", token, retrieved)
 	}
-
-	// Cleanup
-	ts.DeleteTokens(username)
 }
 
 func TestTokenStore_SaveAndGetRefreshToken(t *testing.T) {
@@ -43,10 +40,10 @@ func TestTokenStore_SaveAndGetRefreshToken(t *testing.T) {
 	username := "testuser"
 	token := "test-refresh-token"
 
-	// Сохраняем
 	if err := ts.SaveRefreshToken(username, token); err != nil {
-		t.Fatalf("failed to save refresh token: %v", err)
+		t.Skipf("keyring not available (e.g. CI): %v", err)
 	}
+	defer ts.DeleteTokens(username)
 
 	// Получаем
 	retrieved, err := ts.GetRefreshToken(username)
@@ -57,9 +54,6 @@ func TestTokenStore_SaveAndGetRefreshToken(t *testing.T) {
 	if retrieved != token {
 		t.Errorf("expected token %s, got %s", token, retrieved)
 	}
-
-	// Cleanup
-	ts.DeleteTokens(username)
 }
 
 func TestTokenStore_DeleteTokens(t *testing.T) {
@@ -70,12 +64,11 @@ func TestTokenStore_DeleteTokens(t *testing.T) {
 
 	username := "testuser"
 
-	// Сохраняем токены
 	if err := ts.SaveAccessToken(username, "access"); err != nil {
-		t.Fatalf("failed to save access token: %v", err)
+		t.Skipf("keyring not available (e.g. CI): %v", err)
 	}
 	if err := ts.SaveRefreshToken(username, "refresh"); err != nil {
-		t.Fatalf("failed to save refresh token: %v", err)
+		t.Skipf("keyring not available (e.g. CI): %v", err)
 	}
 
 	// Удаляем
@@ -102,10 +95,10 @@ func TestTokenStore_EncryptionSalt(t *testing.T) {
 	username := "testuser"
 	salt := []byte("test-salt-123456789012345678901234")
 
-	// Сохраняем
 	if err := ts.SaveEncryptionSalt(username, salt); err != nil {
-		t.Fatalf("failed to save encryption salt: %v", err)
+		t.Skipf("keyring not available (e.g. CI): %v", err)
 	}
+	defer ts.ClearUserData(username)
 
 	// Получаем
 	retrieved, err := ts.GetEncryptionSalt(username)
@@ -116,7 +109,4 @@ func TestTokenStore_EncryptionSalt(t *testing.T) {
 	if string(retrieved) != string(salt) {
 		t.Errorf("expected salt %s, got %s", salt, retrieved)
 	}
-
-	// Cleanup
-	ts.ClearUserData(username)
 }

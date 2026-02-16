@@ -25,6 +25,7 @@ type GRPCServer struct {
 	cardsHandler       *grpchandlers.CardsHandler
 	textsHandler       *grpchandlers.TextsHandler
 	userHandler        *grpchandlers.UserHandler
+	healthHandler      *grpchandlers.HealthHandler
 }
 
 func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *service.AuthService, binariesService *service.BinaryService, credentialsService *service.CredentialsService, cardsService *service.CardsService, textsService *service.TextsService, userService *service.UserService, jwtService *service.JWTService) *GRPCServer {
@@ -54,6 +55,7 @@ func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *se
 
 	server := grpc.NewServer(opts...)
 
+	healthHandler := grpchandlers.NewHealthHandler(logger)
 	authHandler := grpchandlers.NewAuthHandler(logger, authService, cfg.JWT)
 	binariesHandler := grpchandlers.NewBinariesHandler(logger, binariesService)
 	credentialsHandler := grpchandlers.NewCredentialsHandler(logger, credentialsService)
@@ -67,6 +69,7 @@ func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *se
 	pb.RegisterCardsServiceServer(server, cardsHandler)
 	pb.RegisterTextsServiceServer(server, textsHandler)
 	pb.RegisterUserServiceServer(server, userHandler)
+	pb.RegisterHealthServiceServer(server, healthHandler)
 
 	if cfg.IsDevelopment() {
 		reflection.Register(server)
@@ -83,6 +86,7 @@ func NewGRPCServer(cfg *config.ServerConfig, logger *zap.Logger, authService *se
 		cardsHandler:       cardsHandler,
 		textsHandler:       textsHandler,
 		userHandler:        userHandler,
+		healthHandler:      healthHandler,
 	}
 }
 

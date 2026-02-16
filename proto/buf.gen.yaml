@@ -1,0 +1,36 @@
+version: v2
+clean: true
+managed:
+  enabled: false
+
+inputs:
+  - directory: .
+    paths:
+      - gophkeeper/v1
+
+plugins:
+  - local: ../bin/protoc-gen-go
+    out: ../pkg/proto
+    opt:
+      - paths=source_relative
+  - local: ../bin/protoc-gen-go-grpc
+    out: ../pkg/proto
+    opt:
+      - paths=source_relative
+  - local: ../bin/protoc-gen-grpc-gateway
+    out: ../pkg/proto
+    opt:
+      - paths=source_relative
+  - local: ../bin/protoc-gen-openapiv2
+    out: ../api
+    opt:
+      - allow_merge=true
+      - merge_file_name=gophkeeper
+      - json_names_for_fields=false
+      - use_go_templates=true
+      - simple_operation_ids=true
+  - local: ../bin/protoc-gen-validate
+    out: ../pkg/proto
+    opt:
+      - paths=source_relative
+      - lang=go

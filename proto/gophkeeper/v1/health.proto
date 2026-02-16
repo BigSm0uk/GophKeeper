@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1;gophkeepv1";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+// HealthService provides health check operations for monitoring server status.
+service HealthService {
+  // Check performs a health check and returns the server status.
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse) {
+    option (google.api.http) = {
+      get: "/health"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Health check"
+      description: "Performs a health check and returns the server status"
+      tags: "Health"
+      operation_id: "healthCheck"
+      security: {}
+      responses: {
+        key: "200"
+        value: {
+          description: "Server is healthy"
+        }
+      }
+      responses: {
+        key: "503"
+        value: {
+          description: "Server is unhealthy or degraded"
+        }
+      }
+    };
+  }
+}
+
+// HealthCheckRequest specifies which service to check.
+message HealthCheckRequest {
+  // service is the service name to check. Leave empty for overall server health.
+  string service = 1;
+}
+
+// HealthCheckResponse returns the health status of the server.
+message HealthCheckResponse {
+  // status is the health status of the service.
+  string status = 1;
+  // uptime_seconds is the server uptime in seconds.
+  int64 uptime_seconds = 2;
+}

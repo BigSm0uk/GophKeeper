@@ -1,0 +1,47 @@
+{
+    "env": "development",
+    "logger" :{
+        "level": "debug"
+    },
+    "jwt": {
+        "private_key_path": "keys/jwt_private.pem",
+        "public_key_path": "keys/jwt_public.pem",
+        "access_token_ttl": "15m",
+        "refresh_token_ttl": "168h",
+        "issuer": "gophkeeper"
+    },
+    "grpc":{
+        "host": "0.0.0.0",
+        "port": 50051,
+        "read_timeout": "15s",
+        "write_timeout": "15s",
+        "tls": {
+            "enabled": true,
+            "cert_file": "keys/server.crt",
+            "key_file": "keys/server.key"
+        }
+    },
+    "http":{
+        "host": "0.0.0.0",
+        "port": 8080,
+        "read_timeout": "15s",
+        "write_timeout": "15s"
+    },
+    "db" : {
+        "connection_string" : "postgresql://user:password@localhost:5432/gophkeeper?sslmode=disable",
+        "max_conns": 25,
+        "min_conns":5
+    },
+    "auth": {
+        "public_methods": [
+            "/gophkeeper.v1.AuthService/Register",
+            "/gophkeeper.v1.AuthService/Token",
+            "/grpc.health.v1.Health/Check",
+            "/grpc.health.v1.Health/Watch"
+        ]
+    },
+    "storage": {
+        "base_path": "./data/files",
+        "max_file_size": 104857600
+    }
+}

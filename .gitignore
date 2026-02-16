@@ -7,9 +7,11 @@
 *.dll
 *.so
 *.dylib
+bin
 
 # Test binary, built with `go test -c`
 *.test
+mocks/
 
 # Code coverage profiles and other test artifacts
 *.out
@@ -18,7 +20,7 @@ coverage.*
 profile.cov
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+vendor/
 
 # Go workspace file
 go.work
@@ -27,6 +29,28 @@ go.work.sum
 # env file
 .env
 
+# JWT keys
+keys/
+
+
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+.task/
+
+# Generated Go
+*.pb.go
+*.pb.*.go
+
+# Temporary proto dependencies (downloaded for buf generation)
+proto/validate/
+proto/google/
+proto/protoc-gen-openapiv2/
+proto/.gitignore
+
+# Binary files
+/client
+/server
+
+# GoReleaser
+dist/

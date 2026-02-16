@@ -1,0 +1,156 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1;gophkeepv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "validate/validate.proto";
+
+// AuthService provides OAuth2-compatible token operations.
+service AuthService {
+  // Register creates a new user account.
+  rpc Register(RegisterRequest) returns (RegisterResponse) {
+    option (google.api.http) = {
+      post: "/auth/register"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "User registration"
+      description: "Creates a new user account"
+      tags: "Authentication"
+      operation_id: "registerUser"
+      responses: {
+        key: "201"
+        value: {
+          description: "User successfully registered"
+        }
+      }
+      responses: {
+        key: "400"
+        value: {
+          description: "Invalid data"
+        }
+      }
+      responses: {
+        key: "409"
+        value: {
+          description: "User already exists"
+        }
+      }
+    };
+  }
+  // Token issues access/refresh tokens using OAuth2 grant types.
+  rpc Token(TokenRequest) returns (TokenResponse) {
+    option (google.api.http) = {
+      post: "/oauth/token"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get token (OAuth2)"
+      description: "Issues access and refresh tokens via OAuth2 Password Grant or Refresh Token Grant"
+      tags: "Authentication"
+      operation_id: "getToken"
+      responses: {
+        key: "200"
+        value: {
+          description: "Token successfully issued"
+        }
+      }
+      responses: {
+        key: "400"
+        value: {
+          description: "Invalid grant_type or missing parameters"
+        }
+      }
+      responses: {
+        key: "401"
+        value: {
+          description: "Invalid credentials or refresh token"
+        }
+      }
+      responses: {
+        key: "403"
+        value: {
+          description: "Client not authorized for password grant"
+        }
+      }
+    };
+  }
+}
+
+// TokenGrantType enumerates supported OAuth2 grant types.
+enum TokenGrantType {
+  // TOKEN_GRANT_TYPE_UNSPECIFIED is an unknown grant type.
+  TOKEN_GRANT_TYPE_UNSPECIFIED = 0;
+  // TOKEN_GRANT_TYPE_PASSWORD is Resource Owner Password Credentials grant.
+  TOKEN_GRANT_TYPE_PASSWORD = 1;
+  // TOKEN_GRANT_TYPE_REFRESH_TOKEN is Refresh Token grant.
+  TOKEN_GRANT_TYPE_REFRESH_TOKEN = 2;
+}
+
+
+// RegisterRequest represents user registration data.
+message RegisterRequest {
+  // username is a unique user name.
+  string username = 1 [(validate.rules).string = {
+    min_len: 3,
+    max_len: 50,
+    pattern: "^[a-zA-Z0-9_-]+$"
+  }];
+  // password is the raw password.
+  string password = 2 [(validate.rules).string = {
+    min_len: 8,
+    max_len: 128
+  }];
+  // email is an optional email.
+  optional string email = 3 [(validate.rules).string.email = true];
+}
+
+// RegisterResponse represents registration result.
+message RegisterResponse {
+  // user_id is the created user ID.
+  string user_id = 1;
+  // username is the created username.
+  string username = 2;
+  // created_at is the account creation timestamp.
+  google.protobuf.Timestamp created_at = 3;
+}
+
+// TokenRequest represents OAuth2 token request.
+message TokenRequest {
+  // grant_type selects OAuth2 grant type.
+  TokenGrantType grant_type = 1 [(validate.rules).enum = {
+    defined_only: true,
+    in: [1,2]
+  }];
+  // username is required for password grant.
+  string username = 2;
+  // password is required for password grant.
+  string password = 3;
+  // client_id identifies a client application.
+  string client_id = 4 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
+  // client_secret is optional for public clients.
+  optional string client_secret = 5;
+  // scope is a space-delimited list of scopes.
+  optional string scope = 6;
+  // device_id is device fingerprint
+  string device_id = 7[(validate.rules).string.max_len = 255];
+}
+
+// TokenResponse represents OAuth2 token response.
+message TokenResponse {
+  // access_token is the issued access token.
+  string access_token = 1;
+  // token_type is typically "Bearer".
+  string token_type = 2;
+  // expires_in is access token lifetime in seconds.
+  uint32 expires_in = 3;
+  // scope is a space-delimited list of scopes.
+  optional string scope = 4;
+}

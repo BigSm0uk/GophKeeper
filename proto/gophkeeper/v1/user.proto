@@ -1,0 +1,300 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1;gophkeepv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "validate/validate.proto";
+
+// UserService manages user profile operations.
+service UserService {
+  // GetProfile returns current user profile data.
+  rpc GetProfile(UserProfileGetRequest) returns (UserProfileGetResponse) {
+    option (google.api.http) = {
+      get: "/user/profile"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get user profile"
+      description: "Returns current user profile information"
+      tags: "User"
+      operation_id: "getUserProfile"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
+  // UpdateProfile updates user profile data.
+  rpc UpdateProfile(UserProfileUpdateRequest) returns (UserProfileUpdateResponse) {
+    option (google.api.http) = {
+      put: "/user/profile"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update user profile"
+      description: "Updates user profile information"
+      tags: "User"
+      operation_id: "updateUserProfile"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
+  // ChangePassword updates user password.
+  rpc ChangePassword(UserPasswordChangeRequest) returns (UserPasswordChangeResponse) {
+    option (google.api.http) = {
+      post: "/user/change-password"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Change password"
+      description: "Changes user password (requires old password)"
+      tags: "User"
+      operation_id: "changePassword"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+      responses: {
+        key: "401"
+        value: {
+          description: "Invalid old password"
+        }
+      }
+    };
+  }
+  // DeleteAccount deletes user account.
+  rpc DeleteAccount(UserAccountDeleteRequest) returns (UserAccountDeleteResponse) {
+    option (google.api.http) = {
+      post: "/user/account/delete"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Delete account"
+      description: "Permanently deletes user account and all associated data (requires password confirmation)"
+      tags: "User"
+      operation_id: "deleteAccount"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
+  // GetActiveSessions returns all active sessions for the user.
+  rpc GetActiveSessions(GetActiveSessionsRequest) returns (GetActiveSessionsResponse) {
+    option (google.api.http) = {
+      get: "/user/sessions"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get Active Sessions"
+      description: "Permanently deletes user account and all associated data (requires password confirmation)"
+      tags: "User"
+      operation_id: "getActiveSessions"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
+  
+  // RevokeSession revokes a specific session.
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse) {
+    option (google.api.http) = {
+      delete: "/oauth/revoke"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Revoke session"
+      description: "Revokes refresh token (Logout / Revoke)"
+      tags: "Authentication"
+      operation_id: "revokeSession"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+      responses: {
+        key: "200"
+        value: {
+          description: "Token successfully revoked"
+        }
+      }
+      responses: {
+        key: "400"
+        value: {
+          description: "Missing id"
+        }
+      }
+      responses: {
+        key: "401"
+        value: {
+          description: "Invalid client credentials"
+        }
+      }
+    };
+  }
+  
+  // RevokeAllSessions revokes all sessions except current.
+  rpc RevokeAllSessions(RevokeAllSessionsRequest) returns (RevokeAllSessionsResponse) {
+    option (google.api.http) = {
+      post: "/user/sessions/revoke-all"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Revoke all sessions"
+      description: "Revokes all refresh tokens (Logout / Revoke)"
+      tags: "Authentication"
+      operation_id: "revokeAllSessions"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+      responses: {
+        key: "200"
+        value: {
+          description: "Sessions successfully revoked"
+        }
+      }
+      responses: {
+        key: "401"
+        value: {
+          description: "Invalid client credentials"
+        }
+      }
+    };
+  }
+}
+// SessionInfo represents information about a user session (refresh_tokens row).
+message SessionInfo {
+  // session_id is the unique session identifier (id).
+  string session_id = 1;
+  // client_id is the device fingerprint.
+  string client_id = 2;
+  // ip_address is the IP address used for this session.
+  optional string ip_address = 3;
+  // user_agent is the client User-Agent string.
+  optional string user_agent = 4;
+  // created_at is the session creation timestamp.
+  google.protobuf.Timestamp created_at = 5;
+  // last_used_at is the last session activity timestamp.
+  google.protobuf.Timestamp last_used_at = 6;
+  // is_current indicates if this is the current session.
+  bool is_current = 7;
+}
+
+// GetActiveSessionsRequest requests all active sessions for the user.
+message GetActiveSessionsRequest {}
+
+// GetActiveSessionsResponse returns the list of active sessions.
+message GetActiveSessionsResponse {
+  // sessions is the list of active sessions.
+  repeated SessionInfo sessions = 1;
+}
+
+// RevokeSessionRequest requests to revoke a specific session.
+message RevokeSessionRequest {
+  // session_id is the session identifier to revoke.
+  string session_id = 1;
+}
+
+// RevokeSessionResponse confirms session revocation.
+message RevokeSessionResponse {
+  // revoked indicates whether the session was successfully revoked.
+  bool revoked = 1;
+}
+
+// RevokeAllSessionsRequest requests to revoke all user sessions.
+message RevokeAllSessionsRequest {
+  // except_current when true, keeps the current session active.
+  bool except_current = 1;
+}
+
+// RevokeAllSessionsResponse returns the number of revoked sessions.
+message RevokeAllSessionsResponse {
+  // revoked_count is the number of sessions that were revoked.
+  int32 revoked_count = 1;
+}
+
+// UserProfile represents user profile data.
+message UserProfile {
+  // user_id is the user ID.
+  string user_id = 1;
+  // username is the username.
+  string username = 2;
+  // email is the user email.
+  optional string email = 3;
+  // created_at is account creation timestamp.
+  google.protobuf.Timestamp created_at = 4;
+  // last_sync is last sync timestamp.
+  optional google.protobuf.Timestamp last_sync = 5;
+  // storage_used is current storage usage in bytes.
+  int64 storage_used = 6;
+  // storage_limit is storage quota in bytes.
+  int64 storage_limit = 7;
+}
+
+// UserProfileGetRequest requests the current user profile.
+message UserProfileGetRequest {}
+
+// UserProfileGetResponse returns the user profile.
+message UserProfileGetResponse {
+  // profile is the user profile data.
+  UserProfile profile = 1;
+}
+
+// UserProfileUpdateRequest updates user profile data.
+message UserProfileUpdateRequest {
+  // email is the new user email.
+  optional string email = 1 [(validate.rules).string.email = true];
+}
+
+// UserProfileUpdateResponse returns updated profile data.
+message UserProfileUpdateResponse {
+  // profile is the updated profile data.
+  UserProfile profile = 1;
+}
+
+// UserPasswordChangeRequest changes the user password.
+message UserPasswordChangeRequest {
+  // old_password is the current password.
+  string old_password = 1 [(validate.rules).string = {
+    min_len: 8,
+    max_len: 128
+  }];
+  // new_password is the new password.
+  string new_password = 2 [(validate.rules).string = {
+    min_len: 8,
+    max_len: 128
+  }];
+}
+
+// UserPasswordChangeResponse confirms password change.
+message UserPasswordChangeResponse {
+  // changed indicates success.
+  bool changed = 1;
+}
+
+// UserAccountDeleteRequest deletes the user account.
+message UserAccountDeleteRequest {
+  // password is required to confirm deletion.
+  string password = 1 [(validate.rules).string.min_len = 1];
+  // confirmation must be a fixed confirmation string.
+  string confirmation = 2 [(validate.rules).string = {
+    const: "DELETE_MY_ACCOUNT"
+  }];
+}
+
+// UserAccountDeleteResponse confirms account deletion.
+message UserAccountDeleteResponse {
+  // deleted indicates successful deletion.
+  bool deleted = 1;
+}

@@ -1,0 +1,252 @@
+syntax = "proto3";
+
+package gophkeeper.v1;
+
+option go_package = "github.com/BigSm0uk/GophKeeper/pkg/proto/gophkeeper/v1;gophkeepv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "gophkeeper/v1/common.proto";
+import "validate/validate.proto";
+
+// BinariesService manages binary data entries.
+service BinariesService {
+  // UploadStream stores a new binary file using streaming (supports large files).
+  rpc UploadStream(stream BinaryUploadChunk) returns (BinaryUploadResponse) {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Upload binary (streaming)"
+      description: "Uploads a new encrypted binary file using streaming, supports files of any size"
+      tags: "Binaries"
+      operation_id: "uploadBinaryStream"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
+  // DownloadStream returns binary file content by id using streaming (supports large files).
+  rpc DownloadStream(BinaryDownloadRequest) returns (stream BinaryDownloadChunk) {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Download binary (streaming)"
+      description: "Downloads binary file content by ID using streaming, supports files of any size"
+      tags: "Binaries"
+      operation_id: "downloadBinaryStream"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
+  // Get returns metadata for a binary entry.
+  rpc Get(BinaryGetRequest) returns (BinaryGetResponse) {
+    option (google.api.http) = {
+      get: "/binaries/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get binary metadata"
+      description: "Returns metadata for a binary entry by ID"
+      tags: "Binaries"
+      operation_id: "getBinary"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
+  // List returns paginated binary entries.
+  rpc List(BinaryListRequest) returns (BinaryListResponse) {
+    option (google.api.http) = {
+      get: "/binaries"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "List binaries"
+      description: "Returns paginated list of binary file entries"
+      tags: "Binaries"
+      operation_id: "listBinaries"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
+  // Update modifies binary metadata.
+  rpc Update(BinaryUpdateRequest) returns (BinaryUpdateResponse) {
+    option (google.api.http) = {
+      put: "/binaries/{id}"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Update binary metadata"
+      description: "Updates metadata for an existing binary entry"
+      tags: "Binaries"
+      operation_id: "updateBinary"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
+  // Delete removes a binary entry.
+  rpc Delete(BinaryDeleteRequest) returns (BinaryDeleteResponse) {
+    option (google.api.http) = {
+      delete: "/binaries/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Delete binary"
+      description: "Deletes a binary file entry by ID"
+      tags: "Binaries"
+      operation_id: "deleteBinary"
+      security: {
+        security_requirement: {
+          key: "Bearer"
+        }
+      }
+    };
+  }
+}
+
+// Binary represents a binary entry metadata.
+message Binary {
+  // id is the entry ID.
+  string id = 1;
+  // name is a user-provided label.
+  string name = 2;
+  // filename is the original file name.
+  string filename = 3;
+  // size is the file size in bytes.
+  int64 size = 4;
+  // content_type is the file content type.
+  string content_type = 5;
+  // metadata is an optional metadata field.
+  optional string metadata = 6;
+  // created_at is the creation timestamp.
+  google.protobuf.Timestamp created_at = 7;
+  // updated_at is the last update timestamp.
+  google.protobuf.Timestamp updated_at = 8;
+  // checksum is the SHA256 hash of the file content for integrity verification.
+  string checksum = 9;
+}
+
+// BinaryMetadata contains metadata for streaming upload.
+message BinaryMetadata {
+  // name is a user-provided label.
+  string name = 1 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
+  // filename is the original file name.
+  string filename = 2 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
+  // content_type is the file content type.
+  string content_type = 3 [(validate.rules).string.max_len = 100];
+  // total_size is the total file size in bytes.
+  int64 total_size = 4 [(validate.rules).int64.gt = 0];
+  // metadata is an optional metadata field.
+  optional string metadata = 5 [(validate.rules).string.max_len = 1000];
+  // checksum is the expected SHA256 hash of the file content.
+  string checksum = 6 [(validate.rules).string = {
+    pattern: "^[a-f0-9]{64}$"
+  }];
+}
+
+// BinaryUploadChunk represents a chunk of data during streaming upload.
+message BinaryUploadChunk {
+  oneof data {
+    // metadata is sent in the first message.
+    BinaryMetadata metadata = 1;
+    // chunk_data is the file content chunk (sent in subsequent messages).
+    bytes chunk_data = 2;
+  }
+}
+
+// BinaryUploadResponse returns the created binary entry.
+message BinaryUploadResponse {
+  // binary is the created entry.
+  Binary binary = 1;
+}
+
+// BinaryDownloadRequest fetches binary content by id.
+message BinaryDownloadRequest {
+  // id is the binary entry ID.
+  string id = 1 [(validate.rules).string.uuid = true];
+}
+
+// BinaryDownloadChunk represents a chunk of data during streaming download.
+message BinaryDownloadChunk {
+  // chunk_data is a portion of the file content.
+  bytes chunk_data = 1 [(validate.rules).bytes = {
+    min_len: 1,
+    max_len: 1048576  // 1MB max chunk size
+  }];
+  // offset is the byte offset of this chunk in the file.
+  int64 offset = 2;
+  // total_size is the total file size in bytes.
+  int64 total_size = 3;
+  // checksum is the SHA256 hash of the complete file (sent in the last chunk).
+  optional string checksum = 4;
+}
+
+// BinaryGetRequest fetches binary metadata by id.
+message BinaryGetRequest {
+  // id is the binary entry ID.
+  string id = 1 [(validate.rules).string.uuid = true];
+}
+
+// BinaryGetResponse returns binary metadata by id.
+message BinaryGetResponse {
+  // binary is the requested entry.
+  Binary binary = 1;
+}
+
+// BinaryListRequest returns paginated binary entries.
+message BinaryListRequest {
+  // page defines pagination options.
+  PageRequest page = 1;
+}
+
+// BinaryListResponse returns paginated binary entries.
+message BinaryListResponse {
+  // items is the list of binaries.
+  repeated Binary items = 1;
+  // page is pagination metadata.
+  PageResponse page = 2;
+}
+
+// BinaryUpdateRequest updates binary metadata.
+message BinaryUpdateRequest {
+  // id is the binary entry ID.
+  string id = 1 [(validate.rules).string.uuid = true];
+  // name is a user-provided label.
+  string name = 2 [(validate.rules).string = {
+    min_len: 1,
+    max_len: 255
+  }];
+  // metadata is an optional metadata field.
+  optional string metadata = 3 [(validate.rules).string.max_len = 1000];
+}
+
+// BinaryUpdateResponse returns the updated binary entry.
+message BinaryUpdateResponse {
+  // binary is the updated entry.
+  Binary binary = 1;
+}
+
+// BinaryDeleteRequest deletes a binary entry by id.
+message BinaryDeleteRequest {
+  // id is the binary entry ID.
+  string id = 1 [(validate.rules).string.uuid = true];
+}
+
+// BinaryDeleteResponse confirms deletion.
+message BinaryDeleteResponse {
+  // deleted indicates successful deletion.
+  bool deleted = 1;
+}

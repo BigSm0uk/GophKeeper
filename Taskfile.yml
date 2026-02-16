@@ -1,0 +1,24 @@
+# https://taskfile.dev
+
+version: "3"
+
+
+vars:
+  GREETING: Hello, World!
+  BIN_DIR: "{{.ROOT_DIR}}/bin"
+  TASKS_DIR: "{{.ROOT_DIR}}/tasks"
+  SERVER_DIR: "{{.ROOT_DIR}}/cmd/server/*"
+  CLIENT_DIR: "{{.ROOT_DIR}}/cmd/client/*"
+  CONFIG_DIR: "{{.ROOT_DIR}}/configs"
+
+includes:
+  server: ./tasks/ServerTasks.yml
+  client: ./tasks/ClientTasks.yml
+  docker: ./tasks/DockerTasks.yml
+  proto: ./tasks/ProtoTasks.yml
+  test: ./tasks/TestTasks.yml
+  tls: ./tasks/TLSTasks.yml
+  release: ./tasks/ReleaseTasks.yml
+  format:
+    taskfile: ./tasks/FormatTasks.yml
+    flatten: true

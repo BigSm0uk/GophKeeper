@@ -1,0 +1,102 @@
+# https://taskfile.dev
+
+version: "3"
+
+tasks:
+  # Проверка конфигурации goreleaser
+  check:
+    desc: "Проверка конфигурации GoReleaser"
+    cmds:
+      - goreleaser check
+
+  # Локальная сборка (snapshot) без публикации
+  build:
+    desc: "Локальная сборка всех бинарников для всех платформ (без релиза)"
+    cmds:
+      - goreleaser build --snapshot --clean
+    sources:
+      - .goreleaser.yaml
+      - "cmd/**/*.go"
+      - "internal/**/*.go"
+      - "pkg/**/*.go"
+      - go.mod
+      - go.sum
+
+  # Полная сборка snapshot с архивами
+  snapshot:
+    desc: "Полная локальная сборка (snapshot) с архивами"
+    cmds:
+      - goreleaser release --snapshot --clean
+    sources:
+      - .goreleaser.yaml
+      - "cmd/**/*.go"
+      - "internal/**/*.go"
+      - "pkg/**/*.go"
+      - go.mod
+      - go.sum
+
+  # Релиз (требуется git tag)
+  release:
+    desc: "Создание релиза и публикация на GitHub"
+    cmds:
+      - goreleaser release --clean
+    preconditions:
+      - sh: git describe --exact-match --tags HEAD
+        msg: "Нет git тега для текущего коммита. Создайте тег: git tag v1.0.0 && git push origin v1.0.0"
+
+  # Показать текущую версию
+  version:
+    desc: "Показать версию goreleaser"
+    cmds:
+      - goreleaser --version
+
+  # Очистка артефактов сборки
+  clean:
+    desc: "Удалить папку dist с артефактами сборки"
+    cmds:
+      - cmd: rm -rf dist
+        platforms: [linux, darwin]
+      - cmd: rmdir /s /q dist
+        platforms: [windows]
+        ignore_error: true
+
+  # Установка goreleaser (если не установлен)
+  install:
+    desc: "Установка GoReleaser"
+    cmds:
+      - cmd: |
+          echo "Установка GoReleaser..."
+          go install github.com/goreleaser/goreleaser/v2@latest
+        platforms: [linux, darwin, windows]
+    status:
+      - which goreleaser || where goreleaser
+
+  # Помощь по созданию релиза
+  help:
+    desc: "Показать инструкцию по созданию релиза"
+    cmds:
+      - cmd: |
+          echo "=== Инструкция по созданию релиза ==="
+          echo ""
+          echo "1. Проверьте конфигурацию:"
+          echo "   task release:check"
+          echo ""
+          echo "2. Протестируйте локальную сборку:"
+          echo "   task release:snapshot"
+          echo ""
+          echo "3. Создайте и отправьте git tag:"
+          echo "   git tag v1.0.0"
+          echo "   git push origin v1.0.0"
+          echo ""
+          echo "4. Создайте релиз (требуется GITHUB_TOKEN):"
+          echo "   GITHUB_TOKEN=your_token task release:release"
+          echo ""
+          echo "Для Windows PowerShell:"
+          echo '   $env:GITHUB_TOKEN="your_token"; task release:release'
+          echo ""
+          echo "=== Полезные команды ==="
+          echo "- task release:build       - быстрая сборка без архивов"
+          echo "- task release:snapshot    - полная локальная сборка"
+          echo "- task release:clean       - очистить артефакты"
+          echo ""
+        silent: true

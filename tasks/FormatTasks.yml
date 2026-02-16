@@ -1,0 +1,64 @@
+# https://taskfile.dev
+
+version: "3"
+
+vars:
+  GCI_VERSION: "v0.13.6"
+  GOFUMPT_VERSION: "v0.8.0"
+
+  GOFUMPT: "{{.BIN_DIR}}/gofumpt"
+  GCI: "{{.BIN_DIR}}/gci"
+
+tasks:
+  install-formatters:
+    desc: "Устанавливает форматтеры gci и gofumpt в ./bin"
+    summary: |
+      Эта задача проверяет наличие инструментов форматирования кода gofumpt и gci в директории bin.
+      Если инструменты не найдены, они будут автоматически установлены с указанными версиями.
+
+      Используется:
+        - gofumpt: для форматирования кода Go
+        - gci: для сортировки импортов Go
+    cmds:
+      - |
+        [ -f "{{.GOFUMPT}}" ] || {
+          echo '📦 Устанавливаем gofumpt {{.GOFUMPT_VERSION}}...'
+          GOBIN="{{.BIN_DIR}}" go install mvdan.cc/gofumpt@{{.GOFUMPT_VERSION}}
+        }
+        [ -f "{{.GCI}}" ] || {
+          echo '📦 Устанавливаем gci {{.GCI_VERSION}}...'
+          GOBIN="{{.BIN_DIR}}" go install github.com/daixiang0/gci@{{.GCI_VERSION}}
+        }
+    status:
+      - test -x "{{.GOFUMPT}}"
+      - test -x "{{.GCI}}"
+  tidy:
+    desc: "Выполняет go mod tidy во всех модулях"
+    summary: |
+      Запускает 'go mod tidy' 
+      Это обновляет модуль и убирает неиспользуемые зависимости.
+    cmds:
+      - |
+        echo "🧹 go mod tidy"
+        go mod tidy
+
+  format:
+    desc: "Форматирует весь проект gofumpt + gci, исключая mocks"
+    summary: |
+      Форматирует все Go-файлы проекта с использованием gofumpt для стандартизации кода
+      и gci для сортировки импортов, исключая файлы в директориях mocks.
+
+      Использует инструменты:
+        - gofumpt: для стандартизации форматирования
+        - gci: для сортировки импортов по стандартным группам
+    deps: [install-formatters, tidy]
+    cmds:
+      - |
+        echo "🧼 Форматируем через gofumpt ..."
+        find . -type f -name '*.go' ! -path '*/mocks/*' -exec "{{.GOFUMPT}}" -extra -w {} +
+
+      - |
+        echo "🎯 Сортируем импорты через gci ..."
+        find . -type f -name '*.go' ! -path '*/mocks/*' -exec "{{.GCI}}" write -s standard -s default -s "prefix(github.com/bigsm0uk)" {} +
+
+

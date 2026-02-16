@@ -1,0 +1,84 @@
+version: "3"
+
+interval: 500ms
+
+vars:
+  BIN_DIR: "{{.ROOT_DIR}}/bin"
+  SERVER_DIR: "{{.ROOT_DIR}}/cmd/server/*"
+  CONFIG_DIR: "{{.ROOT_DIR}}/configs"
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
+  BUILD_DATE:
+    sh: date -u +"%Y-%m-%dT%H:%M:%SZ"
+  COMMIT:
+    sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
+  LDFLAGS: '-ldflags "-X main.version={{.VERSION}} -X main.buildDate={{.BUILD_DATE}} -X main.commit={{.COMMIT}}"'
+
+tasks:
+  build:
+    desc: "Build server with version info"
+    cmds:
+      - echo "Building server {{.VERSION}} ({{.COMMIT}}) built at {{.BUILD_DATE}}"
+      - go build {{.LDFLAGS}} -o {{.BIN_DIR}}/server {{.SERVER_DIR}}
+    silent: false
+
+  run:
+    desc: "Build and run server"
+    deps: [build]
+    cmds:
+      - "{{.BIN_DIR}}/server --config={{.CONFIG_DIR}}/server.dev.json"
+    silent: true
+
+  run:w:
+    desc: "Build and run server with file watching"
+    deps: [build]
+    watch: true
+    sources:
+      - 'internal/server/**/*.go'
+    cmds:
+      - "{{.BIN_DIR}}/server --config={{.CONFIG_DIR}}/server.dev.json"
+    silent: true
+
+  run:dev:
+    desc: "Run server in development mode"
+    sources:
+      - 'internal/server/**/*.go'
+    cmds:
+      - "go run {{.LDFLAGS}} {{.SERVER_DIR}} --config={{.CONFIG_DIR}}/server.dev.json"
+    silent: true
+
+  run:watch:
+    desc: "Run server with file watching"
+    watch: true
+    sources:
+      - 'internal/server/**/*.go'
+    cmds:
+      - "go run {{.LDFLAGS}} {{.SERVER_DIR}} --config={{.CONFIG_DIR}}/server.dev.json"
+    silent: true
+
+  migrate:up:
+    desc: "Run database migrations up"
+    cmds:
+      - "goose -dir migrations postgres \"postgresql://user:password@localhost:5432/gophkeeper?sslmode=disable\" up"
+    silent: true
+
+  migrate:down:
+    desc: "Run database migrations down"
+    cmds:
+      - "goose -dir migrations postgres \"postgresql://user:password@localhost:5432/gophkeeper?sslmode=disable\" down"
+    silent: true
+
+  migrate:status:
+    desc: "Show migration status"
+    cmds:
+      - "goose -dir migrations postgres \"postgresql://user:password@localhost:5432/gophkeeper?sslmode=disable\" status"
+    silent: true
+
+  jwt:generate-keys:
+    desc: "Generate RSA key pair for JWT tokens"
+    cmds:
+      - "mkdir -p keys"
+      - "openssl genrsa -out keys/jwt_private.pem 2048"
+      - "openssl rsa -in keys/jwt_private.pem -pubout -out keys/jwt_public.pem"
+      - "echo 'JWT keys generated successfully in keys/ directory'"
+    silent: true
